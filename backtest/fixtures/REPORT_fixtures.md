@@ -2,7 +2,7 @@
 
 근사-PIT — C1에서 실측 확정 (BACKTEST_PLAN.md §5). FRED lag_days 등 as-of 지연 적용은 리플레이(MT0-04)로 이연 — 이 리포트는 관측일(as_of) 기준 원자료 커버리지만 다룬다.
 실수집 이력·결함 재현 절차: docs/journal/2026-08-02_MT0-03_fixture_collection.md
-지표 레지스트리 버전: 0.1.0 (SSOT: configs/indicators.yaml)
+지표 레지스트리 버전: 0.2.0 (SSOT: configs/indicators.yaml)
 
 ## 0. 규칙 범례
 

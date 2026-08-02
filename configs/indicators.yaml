@@ -11,7 +11,7 @@
 # =============================================================================
 
 schema: indicator-registry/1
-registry_version: 0.1.0
+registry_version: 0.2.0   # O-3 해소(REVIEW_M0): 문서상 현행 0.2.0과 표기 일치. 0.3.0-rc 상향은 BT-03 스윕 결과 반영 시.
 
 axes:
   vol_global:      { name_kr: 글로벌 변동성 }
