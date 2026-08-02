@@ -54,6 +54,20 @@ def test_sources_new_providers_present() -> None:
     providers = d["providers"]
     assert "kis" in providers
     assert "stooq" in providers
+    assert providers["gemini_api"]["enabled"] is False  # D-24 불변식: 기본 비활성
+
+
+def test_llm_tiering_provider_option_structure() -> None:
+    """D-24: provider switch + gemini_model candidates coexist per role (keys only, no SSOT values)."""
+    d = _load("statemachine.yaml")
+    lt = d["llm_tiering"]
+    assert "provider" in lt
+    # D-24 불변식: 기본 공급자 고정 — 전환은 D-24 게이트 통과 후 의도적 변경만
+    assert lt["provider"] == "anthropic"
+    for role in ("daily_digest", "amber_summary", "scenario_report"):
+        assert "model" in lt[role]
+    for role in ("daily_digest", "amber_summary"):
+        assert "gemini_model" in lt[role]
 
 
 def test_contracts_importable() -> None:

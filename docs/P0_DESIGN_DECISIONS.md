@@ -116,3 +116,16 @@ Tailscale HTTP)하고 모바일은 이를 추가 provider로 등록해 있으면
 P4 모듈 C는 INT로 흡수·폐지되고 모듈 A/B는 선택 확장으로 존치한다.
 
 D-22(기능 동등성 매트릭스)·D-23(온디맨드 결과 동등성 규율)도 `docs/ARCHITECTURE_SPLIT.md`에 확정 기록되어 있다.
+
+## D-24. LLM 공급자 옵션화 — Gemini 병기 (2026-08-02, 사용자 지시)
+런타임 llm_tiering에 `provider:` 스위치(기본 anthropic)를 신설하고 **GA 후보 2종만** `gemini_model:`로
+병기한다: daily_digest=`gemini-3.5-flash-lite`(GA), amber_summary=`gemini-3.6-flash`(GA).
+scenario_report 후보 `gemini-3.1-pro-preview`는 **preview(최소 2주 예고 폐기 가능)라 SSOT에 상주시키지
+않는다** — 3.x Pro 안정판 출시 시 기입하며, 후보 기록은 검토서가 담당한다(aaa-critic 결함 2 해소, ⓐ안).
+sources.yaml에 `gemini_api` provider(enabled: false)를 추가한다. 기본 비활성 불변식(provider=anthropic,
+gemini_api.enabled=false)은 스키마 테스트가 가드한다.
+판정: **부분 대체 가능, 전면 대체 비권고(현시점)** — 근거·비용표·전환 조건은
+`docs/journal/2026-08-02_gemini_option_review.md`. 전환 게이트: ① GEMINI_API_KEY 스모크
+(scenario-snapshot/1 responseSchema 왕복 실측) ② scenario_report는 3.x Pro 안정판 출시 전 금지
+③ M2 이후 품질 A/B + 사용자 승인. 분기 C-주기 재검증(D-20 §20.3)에 Gemini 목록·폐기 일정 포함.
+개발 하네스(D-20 §20.2)는 본 결정의 대상이 아니다.

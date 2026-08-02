@@ -32,6 +32,25 @@
   - O-3: `registry_version: 0.1.0` vs 문서상 "현행 0.2.0" 불일치 — 기존 결함, MT0-05 착수 전 해소 필요
     (MT0-06 게이트의 "0.2.0→0.3.0 diff" 기준점 부재 문제).
 
+## D-24 — LLM 공급자 옵션화(Gemini 병기) (사용자 직접 지시, M0 부수 작업)
+
+### 라운드 1 (2026-08-02)
+- **qa-verifier: PASS.** 어서션 green, D-20 확정값 무변경(diff 1 hunk), format/lint/test green, SSOT 하드코딩 0건, 후보 ID 3곳 문자 동일.
+- **aaa-critic: CONDITIONAL** (경미 2건). 외부 사실 표본 재실사(ai.google.dev 직접 조회) 결과 검토서 주장 전부 일치 — 사실관계 결함 0건.
+  1. (경미) "기본 비활성" 불변식(provider=anthropic, gemini_api.enabled=false)에 값 가드 부재.
+  2. (경미) preview ID(gemini-3.1-pro-preview)를 SSOT에 상주시키면서 재검증 주기(분기)가 폐기 창(2주)보다 긺 — 문서 내부 모순.
+  - 관찰: O-1 cost_controls 캐싱 미기재 사유 없음 / O-2 구조화출력+도구 동시 조합 자체가 preview 기능 / O-4 PROGRESS·본 로그 미기록.
+
+### 해소
+1. 테스트에 값 가드 2건 추가(provider=='anthropic', enabled is False — 비평가가 모드 플래그로 하드코딩 예외 인정).
+2. **ⓐ안 채택**: scenario_report의 gemini_model을 SSOT에서 제거, 후보 기록은 검토서 §1이 원본. D-24·검토서 동시 갱신.
+- O-1: cost_controls 주석 1줄 / O-2: 검토서 §5-① 스모크 항목에 preview 의존 명시 / O-4: PROGRESS·본 로그 기록(이 절).
+
+### 상태 (D-24)
+- 해소 반영 후 qa-verifier 재검증 → aaa-critic 해소 확인으로 종결 예정. 옵션은 기본 비활성 — 현 시점 런타임 동작 변화 0.
+
+---
+
 ### 상태
 - 적용분 2단 판정 **PASS**. 단 **MT0-01 완료 아님** — 스모크 검증이 부분 완료 상태다:
   (a) 모델 목록 실조회로 3개 ID 완전일치 확인(2026-08-02, data-verifier, 증빙

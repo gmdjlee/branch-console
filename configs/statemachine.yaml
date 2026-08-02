@@ -57,11 +57,13 @@ actions:
     RED:    [telegram_notify, generate_postmortem_stub]
     ORANGE: [telegram_notify]
 
-llm_tiering:                   # D-20 확정(2026-08-02). 무날짜 ID는 고정 스냅샷 — 별칭 아님.
-  daily_digest:     { model: claude-haiku-4-5-20251001,  web_search: false }
-  amber_summary:    { model: claude-sonnet-5,   web_search: false }
+llm_tiering:                   # D-20 확정(2026-08-02) + D-24 공급자 옵션(2026-08-02). 무날짜 Claude ID는 고정 스냅샷 — 별칭 아님.
+  provider: anthropic          # anthropic | gemini (D-24). gemini 전환은 D-24 게이트(스모크 + 품질 A/B + 사용자 승인) 통과 후에만.
+  daily_digest:     { model: claude-haiku-4-5-20251001,  web_search: false, gemini_model: gemini-3.5-flash-lite }
+  amber_summary:    { model: claude-sonnet-5,   web_search: false, gemini_model: gemini-3.6-flash }
   scenario_report:  { model: claude-opus-5,     web_search: true, structured_output: scenario-snapshot/1 }
-  # 변경 절차: 분기 C-주기에 모델 목록 실조회 → 폐기 일정 확인 → 여기와 .claude/agents/* 동시 갱신(D-20 §20.3)
+  # 변경 절차: 분기 C-주기에 모델 목록 실조회(Claude·Gemini 모두) → 폐기 일정 확인 → 여기와 .claude/agents/* 동시 갱신(D-20 §20.3)
+  # gemini_model은 후보 병기(현재 비활성). scenario_report의 gemini 후보는 preview(2주 예고 폐기 가능)라 SSOT에 상주시키지 않는다 — 3.x Pro 안정판 출시 시 기입. 후보·근거는 docs/journal/2026-08-02_gemini_option_review.md (D-24).
 
 schedules:
   evaluation:                  # 평가 틱 정의 (KST)

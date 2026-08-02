@@ -62,6 +62,15 @@ providers:
     usage: [daily_digest, amber_summary, scenario_report]
     cost_controls: { prompt_caching: true, batch_for_backfill: true }
 
+  gemini_api:
+    kind: rest
+    enabled: false            # D-24 옵션 — llm_tiering.provider=gemini 전환 전까지 비활성
+    auth: env:GEMINI_API_KEY
+    # consumers: both (전환 시 서버=google-genai SDK, 모바일=네이티브 REST x-goog-api-key)
+    usage: [daily_digest, amber_summary, scenario_report]
+    cost_controls: { batch_for_backfill: true }  # prompt_caching 미기재: 캐싱 과금 구조가 상이(저장료) — 전환 검토 시 정책 확정 (D-24 검토서 §3)
+    notes: "대체 공급자 옵션(D-24). 전환 게이트: GEMINI_API_KEY 스모크(responseSchema 왕복) + 품질 A/B + 사용자 승인. 무료 티어는 그라운딩·배치·캐싱 불가"
+
   kis:
     kind: rest
     enabled: false          # 옵션 — 기본 비활성

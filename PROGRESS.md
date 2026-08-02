@@ -15,6 +15,7 @@
 - [ ] MT0-01 SSOT v3 패치(CHANGES_V3) + 모델 ID 적용·스모크 검증(D-20)
   - 2026-08-02: §0~§5+§3.5 적용분 2단 판정 PASS(qa-verifier→aaa-critic, docs/reviews/REVIEW_M0.md). 커밋 348f1b9·5e190a9. 참고: registry_version 0.1.0 vs 문서 "0.2.0" 불일치는 MT0-05 착수 전 해소(O-3)
   - 2026-08-02 스모크(부분): 모델 목록 실조회로 3개 ID 완전일치 확인(D-20 유효성 실측 완료). 실호출 3건은 400 "credit balance too low"로 차단 — 크레딧 충전 후 (b)호출·(c)구조화출력만 재검증(증빙: docs/journal/2026-08-02_MT0-01_model_smoke.md)
+  - 2026-08-02 (사용자 지시) D-24 LLM 공급자 옵션화: llm_tiering provider 스위치 + Gemini GA 후보 2종 병기(기본 비활성, 동작 변화 0), 검토 결론 "부분 대체 가능·전면 대체 비권고"(docs/journal/2026-08-02_gemini_option_review.md). qa PASS → aaa CONDITIONAL(경미 2) → 해소(REVIEW_M0.md)
 - [ ] MT0-02 engine_ref / [ ] MT0-03 픽스처 9창 (BT-01)
 - [ ] MT0-04 골든 2×2프로파일 + golden_mobile.yaml + D-14 상신 자료 (BT-02)
 - [ ] MT0-05 보정 스윕 → configs 0.3.0-rc (BT-03)
