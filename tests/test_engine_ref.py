@@ -15,10 +15,12 @@ from __future__ import annotations
 import dataclasses
 import re
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
+import yaml
 
 from engine_ref import modifiers, registry, scoring, statemachine, transforms
 from engine_ref.registry import ProfileParams
@@ -326,6 +328,39 @@ def test_load_yaml_returns_independent_copy_not_polluted_by_mutation() -> None:
     spec1.thresholds["warn"] = 999999.0  # 반환된 dict를 직접 오염 시도
     spec2 = registry.indicator_spec("vix_level_z")
     assert spec2.thresholds["warn"] != 999999.0
+
+
+def _write_indicators_yaml_with_weight(path: Path, weight: float) -> None:
+    base = yaml.safe_load(
+        (registry._CONFIGS_DIR / "indicators.yaml").read_text(encoding="utf-8")
+    )
+    for ind in base["indicators"]:
+        if ind["id"] == "vix_level_z":
+            ind["weight"] = weight
+    path.write_text(yaml.safe_dump(base, allow_unicode=True), encoding="utf-8")
+
+
+def test_path_override_reflects_file_overwrite_not_stuck_on_first_load(
+    tmp_path: Path,
+) -> None:
+    """F-2(aaa-critic 라운드1): --config로 준 경로에 후보 yaml을 덮어쓰며 반복 호출하는
+    것은 BT-03 스윕의 실제 접근 패턴이다. path 인자를 넘긴 로드는 캐시하면 안 된다 —
+    캐시하면 같은 경로를 재사용할 때 최초 로드 내용에 영영 고착된다(F-2 결함 재현: 후보
+    0.5 -> 원본으로 되돌려 써도 여전히 0.5가 나오면 버그)."""
+    cand_path = tmp_path / "candidate_indicators.yaml"
+
+    _write_indicators_yaml_with_weight(cand_path, 0.5)
+    assert registry.weight_map(path=cand_path)["vix_level_z"] == pytest.approx(0.5)
+
+    _write_indicators_yaml_with_weight(
+        cand_path, 3.0
+    )  # 같은 경로에 덮어쓰기(스윕 패턴)
+    assert registry.weight_map(path=cand_path)["vix_level_z"] == pytest.approx(3.0)
+
+    # 경로 없이(SSOT 기본) 부른 호출은 여전히 정상적으로 캐시되고 오버라이드에 오염되지 않는다.
+    assert registry.weight_map()["vix_level_z"] == pytest.approx(
+        3.0
+    )  # configs/indicators.yaml 원값
 
 
 # ---------------------------------------------------------------------------

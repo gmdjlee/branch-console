@@ -35,6 +35,21 @@ def _load_yaml(name: str) -> dict[str, Any]:
     return copy.deepcopy(_load_yaml_cached(name))
 
 
+def _indicators_yaml(path: Path | None = None) -> dict[str, Any]:
+    """indicators.yaml 로드, 경로 오버라이드 가능(MT0-04 — backtest/run_replay.py의
+    --config 플래그, BT-03 스윕 후보 레지스트리용).
+
+    path=None: 기존 동작과 완전히 동일(configs/indicators.yaml, `_load_yaml_cached`의
+    이름 키 캐시 그대로 재사용). path 지정 시: **캐시하지 않는다** — BT-03 스윕은 같은
+    경로에 후보 yaml을 반복 덮어쓰며 재호출하는 패턴이라(F-2, aaa-critic 라운드1), 경로만
+    보고 캐싱하면 첫 로드 내용에 고착되어 이후 덮어쓴 내용을 영영 못 본다. 매 호출 새로
+    읽는 비용은 yaml 하나 파싱뿐이라 무시할 만하다."""
+    if path is None:
+        return _load_yaml("indicators.yaml")
+    with open(path, encoding="utf-8") as f:
+        return yaml.safe_load(f)
+
+
 # ----------------------------------------------------------------- indicators
 
 
@@ -52,8 +67,10 @@ class IndicatorSpec:
     optional: bool = False
 
 
-def load_indicator_specs(*, enabled_only: bool = True) -> list[IndicatorSpec]:
-    d = _load_yaml("indicators.yaml")
+def load_indicator_specs(
+    *, enabled_only: bool = True, path: Path | None = None
+) -> list[IndicatorSpec]:
+    d = _indicators_yaml(path)
     specs = []
     for item in d["indicators"]:
         if enabled_only and not item.get("enabled", True):
@@ -73,19 +90,26 @@ def load_indicator_specs(*, enabled_only: bool = True) -> list[IndicatorSpec]:
     return specs
 
 
-def indicator_spec(indicator_id: str) -> IndicatorSpec:
-    for spec in load_indicator_specs(enabled_only=False):
+def indicator_spec(indicator_id: str, *, path: Path | None = None) -> IndicatorSpec:
+    for spec in load_indicator_specs(enabled_only=False, path=path):
         if spec.id == indicator_id:
             return spec
     raise KeyError(f"unknown indicator id: {indicator_id!r}")
 
 
-def weight_map(*, enabled_only: bool = True) -> dict[str, float]:
-    return {s.id: s.weight for s in load_indicator_specs(enabled_only=enabled_only)}
+def weight_map(
+    *, enabled_only: bool = True, path: Path | None = None
+) -> dict[str, float]:
+    return {
+        s.id: s.weight
+        for s in load_indicator_specs(enabled_only=enabled_only, path=path)
+    }
 
 
-def axis_map(*, enabled_only: bool = True) -> dict[str, str]:
-    return {s.id: s.axis for s in load_indicator_specs(enabled_only=enabled_only)}
+def axis_map(*, enabled_only: bool = True, path: Path | None = None) -> dict[str, str]:
+    return {
+        s.id: s.axis for s in load_indicator_specs(enabled_only=enabled_only, path=path)
+    }
 
 
 # ------------------------------------------------------------- transform 파싱
@@ -238,8 +262,10 @@ def _parse_usdkrw_intraday_force(rule: str) -> UsdkrwIntradayForce:
     return UsdkrwIntradayForce(float(nums[0]), float(nums[1]))
 
 
-def load_modifiers() -> tuple[HyLevelBoost, UsdkrwIntradayForce]:
-    d = _load_yaml("indicators.yaml")
+def load_modifiers(
+    *, path: Path | None = None
+) -> tuple[HyLevelBoost, UsdkrwIntradayForce]:
+    d = _indicators_yaml(path)
     rules = {m["id"]: m["rule"] for m in d["engine"]["modifiers"]}
     return (
         _parse_hy_level_boost(rules["hy_level_boost"]),
@@ -262,23 +288,25 @@ def parse_duration(s: str) -> timedelta:
     ]
 
 
-def stale_window(profile: str, cadence: str) -> timedelta:
+def stale_window(profile: str, cadence: str, *, path: Path | None = None) -> timedelta:
     """engine.stale_profiles[profile][cadence]를 duration으로 파싱.
 
     Advisor 지정 해석: 프로파일 맵에 해당 cadence 키가 없으면(예: mobile_daily에
     intraday_30m 없음) 그 프로파일의 daily_kr 창을 대신 적용한다.
     """
-    d = _load_yaml("indicators.yaml")
+    d = _indicators_yaml(path)
     windows = d["engine"]["stale_profiles"][profile]
     raw = windows.get(cadence, windows["daily_kr"])
     return parse_duration(raw)
 
 
-def is_stale(as_of, evaluated_at, *, profile: str, cadence: str) -> bool:
+def is_stale(
+    as_of, evaluated_at, *, profile: str, cadence: str, path: Path | None = None
+) -> bool:
     """평가 시각 대비 as_of가 stale 창을 초과했는가(등호 미포함 — 초과만 stale)."""
     if as_of.tzinfo is None or evaluated_at.tzinfo is None:
         raise ValueError("naive datetime 금지 (K-05, CLAUDE.md §2) — tz-aware만 허용")
-    return (evaluated_at - as_of) > stale_window(profile, cadence)
+    return (evaluated_at - as_of) > stale_window(profile, cadence, path=path)
 
 
 # ------------------------------------------------------------- statemachine

@@ -259,3 +259,68 @@
   영향권) / exchange_calendars XKRX 2026 휴장 미반영(서버 P1 K-03 주의) / FRED BAMLH0A0HYM2
   2023-08-01 개시(구창 5개 credit 축 0%) / VKOSPI 현물 미제공 → realized_vol 폴백 확정(K-02
   종결) / ^MOVE·^VIX3M 야후 2026-07-17 절단+2018 산발 공백(K-01/K-18 증거).
+
+## MT0-04 — 골든 이관·확장 (BT-02)
+
+### 라운드 1 (2026-08-02)
+- **구현**: run_replay.py(근사-PIT 리플레이: 경험적 달력 틱 그리드, cadence별 가시성 규칙,
+  stale_profiles 판정, engine_ref import만) + replay.yaml(하니스 파라미터, mobile 확정 틱 16:20)
+  + golden_server.yaml(D-08 이관) + golden_mobile.yaml(mobile_daily 동결 타임라인, BT-05 소비 대상)
+  + test_golden.py(2케이스×2프로파일) + tests/test_replay.py(24건) + D-14 상신 저널.
+  명세 밖 수정 1건: engine_ref/registry.py path 오버라이드(--config CLI 규격 사유).
+  재량 판단 6건 보고(스테일 as_of=가시화 시각, US ffill 정렬, worst-of 가시성 등).
+- **qa-verifier: PASS.** 게이트 재현(139 green, 골든 6건), 골든·D-14 핵심 수치 전건 독립 재현
+  일치(w2024 server 첫 ORANGE 08-05 09:00·kr_close ORANGE 유지·최고 72.6496 / mobile RED
+  최고 66.0606 / 음성 전 틱 GREEN / w2026 두 프로파일 AMBER 상한 35.1515), 퇴화 입력 뮤테이션
+  3종 사멸(원복 md5), look-ahead 부재 확인. 관찰 5건(test_golden "17:00" 하드코딩, Worker 보고
+  문구 오기 — 실제 mobile은 08-02 AMBER 경유 AMBER→RED, O4-A 미이행, corr 테스트 docstring
+  방어선 오기, registry.py 정당성 aaa 위임).
+- **aaa-critic: FAIL** (중대 2·중 3·경미 1). 수치 산출물은 전건 재현 일치했으나:
+  - F-1 (중대) --config 오버라이드가 stale_profiles를 조용히 무시(split-brain) — 스테일만 변형한
+    mutant로 결과 비트 동일 재현. BT-03 스윕 대상 ④ 무력화, 명세 밖 수정의 유일 사유 불성립.
+  - F-2 (중대) _load_yaml_at_path @cache가 동일 경로 덮어쓰기 재로드(BT-03 스윕 패턴)에서 첫
+    로드 고착 + stale_window/is_stale path 인자는 호출자 0(죽은 매개변수).
+  - F-3 (중) D-14 저널 §3.2 출처 허위 — z 수치(1.2314/0.9858)는 metrics.json에서 도출 불가
+    (값 자체는 픽스처+engine_ref 재계산으로 정확 확인).
+  - F-4 (중) §2.2 인과 오서술 — server GREEN/mobile AMBER 차이의 실기전(KR 3지표 8.0/31이
+    intraday_30m·90분 스테일로 kr_close 고립 1틱만 생존 → sustain=2 구조적 불가)을 누락하고
+    추측성 히스테리시스 서술로 대체. 90분 창=BT-03 스윕 ④ 미언급으로 후속 보정 오도.
+  - F-5 (중) modifier 결측 폴백 2경로(hy level·usdkrw OHLC) 무증인 — 신설 규율 ① 및 이월
+    O4-A 미이행. / F-6 (경미) test_golden.py "17:00" 하드코딩(check_tick 키 사장).
+  - 재량 판단 판정: 1·2·3·5·6 타당(6은 오히려 엄격), 4(registry.py)는 F-1·F-2로 반려.
+  - 명시 판정: mobile 08-05 RED 직행은 D-08 "ORANGE 이상(RED 허용)" 충족 — 새니티 게이트 유효.
+- **Advisor 조치**: F-1/F-2는 비평가 제시 택일(전면 배선 vs 철회 원복) 중 **전면 배선** 채택 —
+  backtest-run 스킬 CLI 규격에 --config 명시 + BT-03 스윕 ④가 스테일 창이라 어차피 필요.
+  단 캐시는 명시 path 무캐시로. O-1·O-2·O-4·O-6 문서 정비 동일 라운드 지시.
+
+### 라운드 2 (2026-08-02)
+- **해소**: 스테일 창을 run_replay() 1회당 사전 파싱(load_stale_windows)해 틱마다 재사용 —
+  틱당 path 재파싱 방식의 성능 재앙(창당 2분+)을 Worker가 자체 발견해 재설계(실측 3.5초).
+  @cache 제거(path=None만 이름 키 캐시), §3.2 실행 가능 재현 스니펫 수록, §2.2 실기전 정정,
+  증인 2건+O4-A 단언+F-2 witness 추가(전체 145), check_tick 동적 해석(load_schedule_times).
+- **qa-verifier: PASS.** 게이트 145 green, 스테일 mutant(90m→720h) 자체 작성 재현(AMBER/20/
+  35.15/None → ORANGE/17/49.33/07-06), 덮어쓰기 재로드 raw API 확인, 뮤테이션 3종 사멸·원복
+  md5, 저널 스니펫 실행 일치, 9창×2프로파일 18행 라운드 1과 비트 동일, golden yaml 무변경.
+  W8 관찰: kr_close cron 17→18시 변형 시 골든 테스트가 적응 통과 — 정상 동작 판단.
+- **aaa-critic: PASS (MT0-04 종결).** F-1~F-6 전건 독립 재현으로 해소 확인(identity 사본
+  비오염, F-5 뮤테이션 TypeError 사멸·md5 원복, 커버리지 두 분기 소멸 94%). W8 명시 판정:
+  **F-6 해소 인정** — D-08은 "kr_close 틱"을 구속하지 "17:00"을 구속하지 않고(SSOT는
+  statemachine.yaml), 시각 이동 시 가시성이 동반 이동해 통과가 옳음. 스키마 파손(다중 시각·
+  id 소멸)은 fail-loud 차단 유지 확인. O-1·O-2·O-4·O-6 이행 적정(0.548=06-22 us_market 결측
+  10.5 가중, 17/31 산술 검산 일치).
+- **신규 관찰 O-7**(경미·이월): kr_close를 KRX 마감(15:30) 이전(14:00)으로 당겨도 골든 통과 —
+  확정 틱 시각의 물리 타당성은 어디서도 검증 안 됨. BT-03 스윕 그리드에 물리 하한(마감 이후)
+  제약 권고.
+
+### 상태 (MT0-04)
+- **완료(PASS).** 리플레이 하니스+골든 yaml 2종+test_golden 6건, 전체 145 green, 골든 18행
+  라운드 간 비트 동일. D-08 재확인: server 08-05 kr_close ORANGE(vol_global·kr_flow_price
+  포함)/mobile 동일일 RED/음성 전 틱 GREEN.
+- **D-14 상신**: 승격 **보류 권고**(안 ⓐ) — w2026 두 프로파일 ORANGE 미도달(최고 35.15/임계
+  40), vol_global 전 구간 무발화. 데이터 결손(^MOVE·^VIX3M 절단 4.0/7.0) vs 실거동(vix_level_z
+  최고 1.23) 분리 불가 — C1 실측 후 재상신. GM0 게이트 안건.
+- **이월·인계**: O-3 레지스트리 버전 표기(BT-03 커밋) / O-5 tests/test_replay_golden.py 경로
+  일원화(P1) / O-7 스윕 물리 하한(BT-03) / O-4 w2023_11_rally mobile AMBER 18/22틱 — §6 오탐
+  기준 초과, 홀드아웃(BT-03/04) / O-1 KRW=X 가시성 ~16h 근사(C1) / O-2 30분 해상도 실검증(C1)
+  / 90분 스테일↔sustain=2 구조 격리 보정 검토(BT-03 스윕 ④) / D-08 "그 틱 자체" 정밀화의
+  본문 개정(D-14 승격 시 동시 반영).

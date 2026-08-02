@@ -1,0 +1,34 @@
+# =============================================================================
+# replay.yaml — BT-02 리플레이 하니스 파라미터 (SSOT, backtest 전용)
+# branch-console M0 | schema: backtest-replay/1
+# -----------------------------------------------------------------------------
+# 여기의 값은 backtest/run_replay.py 하니스 고유 파라미터다. 지표 임계값·가중치·
+# transform 파라미터·상태기계 sustain/dwell/cooldown 값은 여기에 복제하지 않는다 —
+# 그건 configs/indicators.yaml·configs/statemachine.yaml이 유일한 SSOT다(CLAUDE.md §1).
+# =============================================================================
+
+schema: backtest-replay/1
+
+profiles:
+  mobile_daily:
+    # 일 확정 틱 시각(KST) — docs/ARCHITECTURE_SPLIT.md D-16 "KR 마감 후 16:20 KST" 가설
+    # 그대로. BT-03에서 17:00과 스윕 예정(docs/BACKTEST_PLAN.md §BT-03
+    # "mobile_daily {..., 확정 틱 시각 16:20 vs 17:00}").
+    confirm_time_kst: "16:20"
+  server_intraday:
+    # 틱 시각은 configs/statemachine.yaml schedules.evaluation(us_close/kr_intraday/
+    # kr_close cron)에서 그대로 파생한다 — 이 파일에 시각을 복제하지 않는다.
+    use_statemachine_schedule: true
+
+# 근사-PIT 가시성 규칙 요약(문서화용, 수치 없음 — 실제 판정 로직은 run_replay.py 모듈
+# docstring·backtest-worker MT0-04 브리프 참조):
+#   daily_us(야후 미국계)      : 관측일 T 다음 KST 거래일의 us_close 틱(server) /
+#                                동일 거래일의 확정 틱(mobile)에서 최초 가시.
+#   fred_daily                 : T + lag_days(indicators.yaml) 이후 첫 거래일의
+#                                us_close 틱(server) / 확정 틱(mobile)에서 최초 가시.
+#   daily_kr·intraday_30m(KRX·FX) : T 당일 kr_close 틱(server) / T 당일 확정 틱(mobile).
+# 스테일 판정은 engine_ref.registry.is_stale(configs/indicators.yaml engine.stale_profiles)
+# 그대로 사용 — 이 파일은 가시성 "시점"만 정의하고 "얼마나 오래되면 무효인가"는 규정하지 않는다.
+visibility_note: >-
+  가시성 규칙의 실행 가능한 정의는 backtest/run_replay.py에 있다. 이 문서는 설명용
+  주석이며 값을 담지 않는다(SSOT는 여전히 indicators.yaml/statemachine.yaml).

@@ -1,0 +1,162 @@
+# =============================================================================
+# golden_mobile.yaml — BT-02 mobile_daily 골든 기대 타임라인 (SSOT)
+# branch-console M0 | schema: backtest-golden-mobile/1
+# -----------------------------------------------------------------------------
+# 근거: docs/BACKTEST_PLAN.md BT-02, docs/P0_DESIGN_DECISIONS.md D-08 ("두 프로파일
+# 모두 통과해야 한다", ARCHITECTURE_SPLIT D-16). 이 파일은 backtest/run_replay.py를
+# mobile_daily 프로파일로 실행한 실제 산출(backtest/results/metrics.json)에서 그대로
+# 옮긴 값이다 — 코드에 재입력하지 않는다(backtest/test_golden.py가 이 yaml만 읽는다).
+#
+# 근사-PIT — C1에서 실측 확정(BACKTEST_PLAN.md §5). composite는 표시 반올림 없는
+# full float(K-07 — 반올림은 표시 계층 몫, BT-05 Kotlin 패리티 |ᐧΔcomposite|<=0.05 비교의
+# 기준값이기도 하다).
+#
+# 새니티 게이트(MT0-04 브리프) 통과 기록: 양성 창이 2024-08-05 확정 틱까지 phase>=ORANGE
+# 도달, 그 틱의 발화 축에 vol_global·kr_flow_price 포함 확인(RED로 도달, ORANGE 이상 허용
+# 조건 충족) / 음성 창은 전 틱 GREEN 유지(AMBER 이하 요건보다 강함). D-08 원문은
+# golden_server.yaml 주석 참조.
+# =============================================================================
+
+schema: backtest-golden-mobile/1
+registry_version: 0.1.0
+source_run:
+  generated_at: '2026-08-02T13:24:58.547701+00:00'
+  note: 근사-PIT — C1에서 실측 확정 (docs/BACKTEST_PLAN.md §5)
+windows:
+  w2024_carry_unwind:
+    kind: positive
+    ticks:
+    - date: '2024-07-25'
+      phase: GREEN
+      composite: 16.363636363636363
+      coverage: 0.8870967741935484
+      fired_axes:
+      - kr_flow_price
+    - date: '2024-07-26'
+      phase: GREEN
+      composite: 15.151515151515152
+      coverage: 0.8870967741935484
+      fired_axes:
+      - kr_flow_price
+    - date: '2024-07-29'
+      phase: GREEN
+      composite: 8.484848484848484
+      coverage: 0.8870967741935484
+      fired_axes: []
+    - date: '2024-07-30'
+      phase: GREEN
+      composite: 11.515151515151516
+      coverage: 0.8870967741935484
+      fired_axes:
+      - kr_flow_price
+    - date: '2024-07-31'
+      phase: GREEN
+      composite: 8.484848484848484
+      coverage: 0.8870967741935484
+      fired_axes: []
+    - date: '2024-08-01'
+      phase: GREEN
+      composite: 9.696969696969697
+      coverage: 0.8870967741935484
+      fired_axes: []
+    - date: '2024-08-02'
+      phase: AMBER
+      composite: 29.09090909090909
+      coverage: 0.8870967741935484
+      fired_axes:
+      - kr_flow_price
+      - rates_fx
+    - date: '2024-08-05'
+      phase: RED
+      composite: 62.42424242424242
+      coverage: 0.8870967741935484
+      fired_axes:
+      - credit
+      - global_price
+      - kr_flow_price
+      - rates_fx
+      - vol_global
+    - date: '2024-08-06'
+      phase: RED
+      composite: 66.06060606060606
+      coverage: 0.8870967741935484
+      fired_axes:
+      - credit
+      - global_price
+      - kr_flow_price
+      - rates_fx
+      - vol_global
+    - date: '2024-08-07'
+      phase: RED
+      composite: 56.96969696969697
+      coverage: 0.8870967741935484
+      fired_axes:
+      - credit
+      - global_price
+      - kr_flow_price
+      - rates_fx
+      - vol_global
+    - date: '2024-08-08'
+      phase: RED
+      composite: 55.75757575757576
+      coverage: 0.8870967741935484
+      fired_axes:
+      - global_price
+      - kr_flow_price
+      - vol_global
+    - date: '2024-08-09'
+      phase: RED
+      composite: 47.27272727272727
+      coverage: 0.8870967741935484
+      fired_axes:
+      - global_price
+      - kr_flow_price
+      - vol_global
+  w2024_05_calm:
+    kind: negative
+    ticks:
+    - date: '2024-05-13'
+      phase: GREEN
+      composite: 0.0
+      coverage: 0.8870967741935484
+      fired_axes: []
+    - date: '2024-05-14'
+      phase: GREEN
+      composite: 0.0
+      coverage: 0.8870967741935484
+      fired_axes: []
+    - date: '2024-05-16'
+      phase: GREEN
+      composite: 0.0
+      coverage: 0.8870967741935484
+      fired_axes: []
+    - date: '2024-05-17'
+      phase: GREEN
+      composite: 0.0
+      coverage: 0.8870967741935484
+      fired_axes: []
+    - date: '2024-05-20'
+      phase: GREEN
+      composite: 0.0
+      coverage: 0.8870967741935484
+      fired_axes: []
+    - date: '2024-05-21'
+      phase: GREEN
+      composite: 0.0
+      coverage: 0.8870967741935484
+      fired_axes: []
+    - date: '2024-05-22'
+      phase: GREEN
+      composite: 0.0
+      coverage: 0.8870967741935484
+      fired_axes: []
+    - date: '2024-05-23'
+      phase: GREEN
+      composite: 0.0
+      coverage: 0.8870967741935484
+      fired_axes: []
+    - date: '2024-05-24'
+      phase: GREEN
+      composite: 0.0
+      coverage: 0.8870967741935484
+      fired_axes: []

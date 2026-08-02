@@ -582,6 +582,36 @@ def test_build_window_fixture_end_to_end(
     validate_fixture(reloaded)  # round-trips through parquet without violating schema
 
 
+class _KrwXEmptyFetcher(StubFetcher):
+    """O4-A(MT0-03 이월 관찰, aaa-critic 라운드1): fx_advisory_gaps 자체(순수 함수)는
+    total-loss 케이스가 테스트돼 있지만, build_window_fixture 배선(_series_meta_entry의
+    is_fx=True 경로)이 실제로 그 결과를 meta에 붙이는지는 무증인이었다 — KRW=X만 완전
+    공백으로 만들어 배선을 확인한다."""
+
+    def yfinance(self, symbol: str, start: date, end: date) -> pd.DataFrame:
+        if symbol == "KRW=X":
+            self.calls.append("yfinance:KRW=X")
+            return pd.DataFrame()
+        return super().yfinance(symbol, start, end)
+
+
+def test_build_window_fixture_wires_fx_no_observations_advisory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _set_all_credentials(monkeypatch)
+    plan = derive_collection_plan(_indicators_cfg())
+    window = next(w for w in load_windows() if w.window_id == "w2024_05_calm")
+    _df, meta = build_window_fixture(
+        window,
+        plan,
+        _KrwXEmptyFetcher(),
+        tmp_path,
+        _sources_cfg(),
+        sleeper=lambda _s: None,
+    )
+    assert meta["series"]["KRW=X"]["fx_advisory_gaps"][0]["kind"] == "no_observations"
+
+
 def test_build_window_fixture_blocked_without_fred_api_key(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

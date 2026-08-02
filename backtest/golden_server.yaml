@@ -1,0 +1,33 @@
+# =============================================================================
+# golden_server.yaml — BT-02 server_intraday 골든 기대값 (SSOT, D-08 이관)
+# branch-console M0 | schema: backtest-golden-server/1
+# -----------------------------------------------------------------------------
+# 근거: docs/P0_DESIGN_DECISIONS.md D-08(골든 케이스, 원문 아래 그대로 인용) +
+# docs/ARCHITECTURE_SPLIT.md D-16("골든 케이스(D-08)는 두 프로파일 모두 통과해야 한다").
+#
+# D-08 원문:
+#   - 양성: 2024-07-25 ~ 2024-08-09 리플레이 -> 2024-08-05 kr_close 틱까지 ORANGE 이상
+#     도달 (RED 허용). 발화 축에 vol_global과 kr_flow_price가 반드시 포함.
+#   - 음성: 2024-05-13 ~ 2024-05-24 리플레이 -> 전 구간 AMBER 이하 유지.
+#   - 이 두 조건이 P1의 최종 완료 기준이며 tests/test_replay_golden.py로 고정한다.
+#     (MT0-04: server_intraday 판정은 backtest/test_golden.py가 이 파일을 읽어 수행한다.
+#     "kr_close 틱까지"는 실측 재현(MT0-04)에서 "2024-08-05 kr_close 틱 그 자체"로 확정
+#     — kr_flow_price 축은 일봉 근사상 그 틱에서만 그날치 값이 가시화되므로, 그 이전
+#     같은 날의 다른 server 틱에서는 발화 축에 kr_flow_price가 아직 없는 것이 정상이다.)
+#
+# 이 파일은 값을 담을 뿐 판정 로직은 backtest/test_golden.py에 있다. 날짜·축 이름을
+# 테스트 코드에 하드코딩하지 않기 위한 SSOT.
+# =============================================================================
+
+schema: backtest-golden-server/1
+
+positive:
+  window_id: w2024_carry_unwind
+  check_date: "2024-08-05"
+  check_tick: kr_close # configs/statemachine.yaml schedules.evaluation id
+  min_phase: ORANGE # ORANGE 이상 (RED 허용)
+  required_fired_axes: [vol_global, kr_flow_price]
+
+negative:
+  window_id: w2024_05_calm
+  max_phase: AMBER # 전 틱 AMBER 이하 (GREEN도 허용)

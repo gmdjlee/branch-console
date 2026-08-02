@@ -20,7 +20,8 @@
   - 2026-08-02: 순수 함수 6모듈(transforms·scoring·modifiers·registry·statemachine) + 테스트 67건, 커버리지 100%. 라운드 1 FAIL(의미론 미확정 3건 외 9결함) → D-25 물질화 → 라운드 2 FAIL(증인 테스트 부재, 변이 생존 5종) → 라운드 3 **PASS**(qa→aaa, 변이 7/7 kill 특이도 1:1). REVIEW_M0 참조. 인계: O3-1(min_dwell 무효 — D-25 §2 부기, BT-03 규율), O2-1·O2-2·O3-2 잠재 관찰
 - [x] MT0-03 픽스처 9창 (BT-01 후반)
   - 2026-08-02: 빌더(경험적 달력×비례 롤업)+windows.yaml+37테스트, 9창 실수집 완료(근사-PIT). aaa 4라운드 수렴(DEF-1~6 → NEW-1~3 → F3-1 → F4-1, 3연속 FAIL 시 사용자 승인으로 표적 수정) → **PASS**. 실측 확정: KRX 2026 로그인 정책(pykrx 1.2.8+계정), XKRX 달력 2026 휴장 미반영, FRED HY OAS 2023-08 개시, VKOSPI 폴백 확정(K-02 종결), ^MOVE·^VIX3M 야후 절단. 신설 규율 2건(퇴화 입력 증인·귀속 서술 증거) — REVIEW_M0 참조
-- [ ] MT0-04 골든 2×2프로파일 + golden_mobile.yaml + D-14 상신 자료 (BT-02)
+- [x] MT0-04 골든 2×2프로파일 + golden_mobile.yaml + D-14 상신 자료 (BT-02)
+  - 2026-08-02: run_replay(근사-PIT 가시성·스테일·경험적 달력)+replay.yaml+골든 yaml 2종+test_golden 6건, 전체 145 green. 라운드 1 FAIL(F-1~F-6: --config 스테일 split-brain·경로 캐시 고착·D-14 출처/인과 결함·증인 부재) → 전면 배선+무캐시 해소 → 라운드 2 **PASS**(qa→aaa, 골든 18행 비트 동일, REVIEW_M0 참조). D-08 재확인(server 08-05 kr_close ORANGE·mobile RED·음성 GREEN). **D-14 상신: 승격 보류 권고** — w2026 두 프로파일 ORANGE 미도달(35.15/40), vol_global 무발화(데이터 결손 vs 실거동 분리 불가, C1 재상신). 이월: O-3·O-7·O-4·90분 스테일↔sustain 격리(BT-03), O-5(P1), KRW=X 가시성·30분 해상도(C1)
 - [ ] MT0-05 보정 스윕 → configs 0.3.0-rc (BT-03)
 - [ ] MT0-06 성능·해상도 리포트 + F-06 대응 제안 (BT-04)
 - [ ] 게이트 GM0: 수용 기준표 충족 + GATE_GM0.md + 사용자 승인(안건: D-14 / F-04 / F-06 / 픽스처 교체)
