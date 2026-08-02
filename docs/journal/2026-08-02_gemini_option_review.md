@@ -1,5 +1,7 @@
 # Gemini 공급자 옵션 검토 (D-24 근거 문서)
 
+> 본 검토의 결정(D-24)은 2026-08-02 사용자 지시로 철회됨. 아래 내용은 기록 보존용.
+
 - 작성: 2026-08-02, M0 세션 Advisor · 지시: 사용자("gemini를 옵션으로 추가하고 claude 대신 사용 가능한지 검토")
 - 사실관계 출처: ai.google.dev 공식 문서 실사(2026-08-02, general-purpose 에이전트 웹 조회) + claude-api 스킬 단가표(캐시 2026-06-24). D-20 §20.3 규율(기억이 아니라 조회로 판정) 준수.
 - 범위: **런타임 판단 계층(statemachine.yaml llm_tiering)만.** 개발 하네스(Claude Code Advisor/Worker, D-20 §20.2)는 대상 아님.
