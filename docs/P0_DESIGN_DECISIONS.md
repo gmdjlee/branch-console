@@ -134,3 +134,30 @@ gemini_api.enabled=false)은 스키마 테스트가 가드한다.
 gemini_model 병기, sources.yaml gemini_api)에서 제거하고, 기본 비활성 불변식을 가드하던 스키마 테스트
 2건(tests/test_configs_schema.py)도 함께 제거(가드 대상 소멸). 위 본문의 "스키마 테스트가 가드한다"는
 철회 전 서술이다. 검토서(docs/journal/2026-08-02_gemini_option_review.md)는 기록으로 존치.
+
+## D-25. 상태기계·복합점수 실행 의미론 확정 (2026-08-02, MT0-02)
+
+engine_ref 구현(MT0-02)에서 기존 SSOT 문언이 확정하지 않던 실행 의미 3건을 확정한다.
+aaa-critic 반려(REVIEW_M0 MT0-02 라운드 1, 결함 D-1~D-3)의 해소이며, 골든(MT0-04)·패리티(BT-05)·
+스윕(MT0-05)은 이 의미 위에서 수행한다. configs 값 변경 없음 — 해석의 확정이다.
+
+1. **승격 sustain은 레벨별 연속 충족이다.** 레벨 L로의 승격은 "L의 조건(composite_gte·distinct_axes_gte·
+   or_any_crit)이 promote_sustain_ticks 연속 충족"을 요구한다(statemachine.yaml `upgrade:` 주석 문언 그대로).
+   skip_levels=true는 이 요건을 충족한 **최고** 레벨로의 직행을 뜻한다. "현재 국면보다 높은 아무 레벨이든
+   충족이면 스트릭 유지" 해석은 기각 — 단일 틱 근거로 RED 액션(알림·리포트)이 발화해 D-03의 오탐·플래핑
+   방어 취지에 반한다. 레벨별 스트릭은 국면 전이와 무관하게 연속 충족으로 누적되고, 강등 직후에는
+   reentry_cooldown_ticks 동안 승격 커밋·스트릭 누적이 모두 정지·리셋된다(기존 규칙 유지).
+2. **min_dwell_ticks는 명목값 = 실효 체류다.** 전이가 커밋된 틱을 그 국면의 1틱째로 세고, 강등은
+   min_dwell_ticks 틱을 채운 뒤(min_dwell_ticks+1틱째부터) 커밋될 수 있다. 강등 스트릭(demote_below_ticks)
+   카운트는 dwell 충족 전에도 누적되며 커밋만 지연된다. server_intraday의 "최소 체류 4틱"은 실효 4틱이다
+   — BT-03 스윕 결과 해석의 전제.
+   > **부기(2026-08-02, aaa-critic 라운드 3 관찰 O3-1)**: 위 카운터 의미론 하에서 dwell 게이트는
+   > `min_dwell_ticks > demote_below_ticks`일 때만 거동에 영향을 준다(강등 스트릭이 차는 시점에 체류
+   > 틱수는 항상 스트릭+1 이상이므로). 현행 두 프로파일(server 4<6, mobile 2<3)에서 min_dwell은
+   > **무효(inert)**이며 실효 최소 체류는 demote_below_ticks+1(서버 7틱)이다 — 랜덤 4만+전수 48.8만
+   > 시퀀스 실측으로 확인. **BT-03 규율**: min_dwell 스윕에서 `min_dwell ≤ demote_below` 구간은 거동
+   > 동일 구간이므로 하나의 값으로 취급하고, 평탄한 응답을 "보정 완료"로 오독하지 말 것.
+3. **전 지표 결측은 GREEN이 아니라 평가 불능이다.** composite 계산은 (score, coverage=유효가중/전체가중)을
+   함께 산출하고, 유효 가중 0(분모 0)이면 score는 None이다. 상태기계는 score None 틱에서 국면·스트릭·
+   카운터를 동결한다(전이 없음, 틱 미소비). 근거: D-23 §23.3의 커버리지 규율, PRINCIPLES
+   "Fail Fast / Never Suppress Silently". 부분 결측의 분모 제외(D-02)는 불변.

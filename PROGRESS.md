@@ -16,7 +16,9 @@
   - 2026-08-02: §0~§5+§3.5 적용분 2단 판정 PASS(qa-verifier→aaa-critic, docs/reviews/REVIEW_M0.md). 커밋 348f1b9·5e190a9. 참고: registry_version 0.1.0 vs 문서 "0.2.0" 불일치는 MT0-05 착수 전 해소(O-3)
   - 2026-08-02 스모크(부분): 모델 목록 실조회로 3개 ID 완전일치 확인(D-20 유효성 실측 완료). 실호출 3건은 400 "credit balance too low"로 차단 — 크레딧 충전 후 (b)호출·(c)구조화출력만 재검증(증빙: docs/journal/2026-08-02_MT0-01_model_smoke.md) → 2026-08-02 충전 후 재검증 **3/3 PASS**(저널 §6), qa→aaa 2단 PASS(REVIEW_M0 MT0-01 라운드 3) — **MT0-01 완료**
   - 2026-08-02 (사용자 지시) D-24 LLM 공급자 옵션화: llm_tiering provider 스위치 + Gemini GA 후보 2종 병기(기본 비활성, 동작 변화 0), 검토 결론 "부분 대체 가능·전면 대체 비권고"(docs/journal/2026-08-02_gemini_option_review.md). qa PASS → aaa CONDITIONAL(경미 2) → 해소(REVIEW_M0.md) → **같은 날 사용자 지시로 D-24 철회**: SSOT gemini 병기·스키마 테스트 가드 제거, 검토서는 기록 존치(P0_DESIGN_DECISIONS D-24 철회 기록)
-- [ ] MT0-02 engine_ref / [ ] MT0-03 픽스처 9창 (BT-01)
+- [x] MT0-02 engine_ref (BT-01 전반)
+  - 2026-08-02: 순수 함수 6모듈(transforms·scoring·modifiers·registry·statemachine) + 테스트 67건, 커버리지 100%. 라운드 1 FAIL(의미론 미확정 3건 외 9결함) → D-25 물질화 → 라운드 2 FAIL(증인 테스트 부재, 변이 생존 5종) → 라운드 3 **PASS**(qa→aaa, 변이 7/7 kill 특이도 1:1). REVIEW_M0 참조. 인계: O3-1(min_dwell 무효 — D-25 §2 부기, BT-03 규율), O2-1·O2-2·O3-2 잠재 관찰
+- [ ] MT0-03 픽스처 9창 (BT-01 후반)
 - [ ] MT0-04 골든 2×2프로파일 + golden_mobile.yaml + D-14 상신 자료 (BT-02)
 - [ ] MT0-05 보정 스윕 → configs 0.3.0-rc (BT-03)
 - [ ] MT0-06 성능·해상도 리포트 + F-06 대응 제안 (BT-04)

@@ -5,5 +5,7 @@ __pycache__/
 lake_data/
 reports/
 backtest/results/
+backtest/fixtures/_cache/
 .pytest_cache/
 .ruff_cache/
+.coverage
