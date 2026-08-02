@@ -4,7 +4,7 @@ description: 백테스트 하니스(BT)를 실행·해석·보고할 때 사용�
 ---
 # 백테스트 실행 절차
 
-1) 픽스처: `uv run python backtest/build_fixtures.py --window <id|all>` — 기존 파일 있으면 재수집 금지(캐시 우선, 강제 시 --force).
+1) 픽스처: `uv run python backtest/build_fixtures.py --window <id|all>` — 기존 파일 있으면 재수집 금지(캐시 우선, 강제 시 --force). 필요 환경변수: `FRED_API_KEY`(FRED), `KRX_ID`/`KRX_PW`(pykrx 1.2.8 KRX 로그인) — 미설정 시 해당 계열은 `blocked_missing_api_key`/`blocked_missing_credentials`로 기록되고 실행은 계속된다.
 2) 리플레이: `uv run python backtest/run_replay.py --profile server_intraday|mobile_daily|both --config <registry>` → `backtest/results/metrics.json`.
 3) 골든: `uv run pytest backtest/test_golden.py -q` — 2케이스 × 2프로파일. 실패 시 원인 규명 전 어떤 보정도 반영 금지.
 4) 스윕: `uv run python backtest/run_sweep.py`(그리드는 sweep.yaml만) — 홀드아웃(2015-08, 2023-11) 자동 제외 확인.

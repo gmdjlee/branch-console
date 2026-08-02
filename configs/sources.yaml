@@ -39,7 +39,7 @@ providers:
     # consumers: server (모바일은 kotlin_krx 네이티브 경로)
     datasets: [index_ohlcv, investor_trading_value, vkospi]
     rate_limit: { min_interval_s: 1.0 }
-    notes: "비공식 KRX 스크레이핑 기반. 과호출 금지, 장중 30분 주기 상한 (함정 K-03)"
+    notes: "비공식 KRX 스크레이핑 기반. 과호출 금지, 장중 30분 주기 상한 (함정 K-03). 2026-08-02 1차 실측(pykrx 1.0.51, 미인증): data.krx.co.kr가 전 데이터셋 요청을 403/빈 응답으로 거부(KRX 2026 로그인 정책 도입과 구버전 불일치). 2026-08-02 최종 확정(pykrx 1.2.8 + KRX_ID/KRX_PW 인증 성공, --force 전량 재수집 후): 인덱스(현물) 티커 168종 전량 스캔 결과 VKOSPI/변동성 지수 없음 — get_index_ohlcv_by_date 경로(현재 dataset=vkospi 코드 경로)로는 확정 불가. 단, 선물 티커 목록에는 'KRDRVFUVKI = V-KOSPI Futures'가 존재(현물 지수 자체가 아니라 그 선물) — 향후 대체 경로 검토 시 참고. 현재 아키텍처(현물 인덱스 API) 기준 fallback realized_vol_kospi_20d 확정(K-02, 재현 절차는 저널 참조)."
 
   scrape_wgb:
     kind: scrape

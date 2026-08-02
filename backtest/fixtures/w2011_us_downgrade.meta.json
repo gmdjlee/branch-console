@@ -1,0 +1,194 @@
+{
+  "schema": "backtest-fixture-meta/1",
+  "window_id": "w2011_us_downgrade",
+  "definition": {
+    "start": "2011-07-15",
+    "end": "2011-09-15",
+    "anchor_hint": "2011-08-08",
+    "kind": "positive",
+    "holdout": false,
+    "character": "미국 신용등급 강등"
+  },
+  "collected_range": {
+    "start": "2010-01-11",
+    "end": "2011-09-15"
+  },
+  "collected_at": "2026-08-02T11:54:10.519364+00:00",
+  "series": {
+    "DX-Y.NYB": {
+      "status": "ok",
+      "distinct_days": 44,
+      "reference_days": 44,
+      "missing_rate": 0.0,
+      "last_as_of": "2011-09-15",
+      "padding_rows": 381,
+      "gaps": []
+    },
+    "KRW=X": {
+      "status": "ok",
+      "distinct_days": 45,
+      "reference_days": 45,
+      "missing_rate": 0.0,
+      "last_as_of": "2011-09-15",
+      "padding_rows": 1572,
+      "gaps": [],
+      "fx_advisory_gaps": []
+    },
+    "^GSPC": {
+      "status": "ok",
+      "distinct_days": 44,
+      "reference_days": 44,
+      "missing_rate": 0.0,
+      "last_as_of": "2011-09-15",
+      "padding_rows": 381,
+      "gaps": []
+    },
+    "^MOVE": {
+      "status": "ok",
+      "distinct_days": 44,
+      "reference_days": 44,
+      "missing_rate": 0.0,
+      "last_as_of": "2011-09-15",
+      "padding_rows": 379,
+      "gaps": []
+    },
+    "^VIX": {
+      "status": "ok",
+      "distinct_days": 44,
+      "reference_days": 44,
+      "missing_rate": 0.0,
+      "last_as_of": "2011-09-15",
+      "padding_rows": 381,
+      "gaps": []
+    },
+    "^VIX3M": {
+      "status": "ok",
+      "distinct_days": 44,
+      "reference_days": 44,
+      "missing_rate": 0.0,
+      "last_as_of": "2011-09-15",
+      "padding_rows": 381,
+      "gaps": []
+    },
+    "BAMLH0A0HYM2": {
+      "status": "empty",
+      "distinct_days": 0,
+      "reference_days": 44,
+      "missing_rate": 1.0,
+      "last_as_of": null,
+      "padding_rows": 0,
+      "gaps": [
+        {
+          "start": "2011-07-15",
+          "end": "2011-09-15",
+          "sessions": 44
+        }
+      ],
+      "message": "no observations returned"
+    },
+    "T10Y2Y": {
+      "status": "ok",
+      "distinct_days": 44,
+      "reference_days": 44,
+      "missing_rate": 0.0,
+      "last_as_of": "2011-09-15",
+      "padding_rows": 380,
+      "gaps": []
+    },
+    "KRX:1001": {
+      "status": "ok",
+      "distinct_days": 42,
+      "reference_days": 42,
+      "missing_rate": 0.0,
+      "last_as_of": "2011-09-15",
+      "padding_rows": 1890,
+      "gaps": []
+    },
+    "KRX:VKOSPI": {
+      "status": "error",
+      "distinct_days": 0,
+      "reference_days": 42,
+      "missing_rate": 1.0,
+      "last_as_of": null,
+      "padding_rows": 0,
+      "gaps": [
+        {
+          "start": "2011-07-15",
+          "end": "2011-09-15",
+          "sessions": 42
+        }
+      ],
+      "message": "VKOSPI ticker not resolvable via pykrx index metadata (K-02) — needs data-verifier confirmation; falls back to engine-side realized_vol_kospi_20d"
+    },
+    "KRX:investor_foreign_kospi": {
+      "status": "ok",
+      "distinct_days": 42,
+      "reference_days": 42,
+      "missing_rate": 0.0,
+      "last_as_of": "2011-09-15",
+      "padding_rows": 378,
+      "gaps": []
+    },
+    "krx_credit_spread_delta": {
+      "status": "uncollected",
+      "distinct_days": 0,
+      "reference_days": 0,
+      "missing_rate": 1.0,
+      "last_as_of": null,
+      "padding_rows": 0,
+      "gaps": [],
+      "message": "out of M0 collection scope (see MT0-03 brief)"
+    },
+    "kr_cds_5y_delta": {
+      "status": "uncollected",
+      "distinct_days": 0,
+      "reference_days": 0,
+      "missing_rate": 1.0,
+      "last_as_of": null,
+      "padding_rows": 0,
+      "gaps": [],
+      "message": "out of M0 collection scope (see MT0-03 brief)"
+    },
+    "krx_halt_events": {
+      "status": "uncollected",
+      "distinct_days": 0,
+      "reference_days": 0,
+      "missing_rate": 1.0,
+      "last_as_of": null,
+      "padding_rows": 0,
+      "gaps": [],
+      "message": "disabled in indicators.yaml (enabled: false)"
+    },
+    "margin_leverage_stress": {
+      "status": "uncollected",
+      "distinct_days": 0,
+      "reference_days": 0,
+      "missing_rate": 1.0,
+      "last_as_of": null,
+      "padding_rows": 0,
+      "gaps": [],
+      "message": "disabled in indicators.yaml (enabled: false)"
+    },
+    "news_volume_z": {
+      "status": "uncollected",
+      "distinct_days": 0,
+      "reference_days": 0,
+      "missing_rate": 1.0,
+      "last_as_of": null,
+      "padding_rows": 0,
+      "gaps": [],
+      "message": "disabled in indicators.yaml (enabled: false)"
+    },
+    "news_novelty": {
+      "status": "uncollected",
+      "distinct_days": 0,
+      "reference_days": 0,
+      "missing_rate": 1.0,
+      "last_as_of": null,
+      "padding_rows": 0,
+      "gaps": [],
+      "message": "disabled in indicators.yaml (enabled: false)"
+    }
+  },
+  "note": "근사-PIT — C1에서 실측 확정 (BACKTEST_PLAN.md §5)"
+}

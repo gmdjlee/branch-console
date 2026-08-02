@@ -18,7 +18,8 @@
   - 2026-08-02 (사용자 지시) D-24 LLM 공급자 옵션화: llm_tiering provider 스위치 + Gemini GA 후보 2종 병기(기본 비활성, 동작 변화 0), 검토 결론 "부분 대체 가능·전면 대체 비권고"(docs/journal/2026-08-02_gemini_option_review.md). qa PASS → aaa CONDITIONAL(경미 2) → 해소(REVIEW_M0.md) → **같은 날 사용자 지시로 D-24 철회**: SSOT gemini 병기·스키마 테스트 가드 제거, 검토서는 기록 존치(P0_DESIGN_DECISIONS D-24 철회 기록)
 - [x] MT0-02 engine_ref (BT-01 전반)
   - 2026-08-02: 순수 함수 6모듈(transforms·scoring·modifiers·registry·statemachine) + 테스트 67건, 커버리지 100%. 라운드 1 FAIL(의미론 미확정 3건 외 9결함) → D-25 물질화 → 라운드 2 FAIL(증인 테스트 부재, 변이 생존 5종) → 라운드 3 **PASS**(qa→aaa, 변이 7/7 kill 특이도 1:1). REVIEW_M0 참조. 인계: O3-1(min_dwell 무효 — D-25 §2 부기, BT-03 규율), O2-1·O2-2·O3-2 잠재 관찰
-- [ ] MT0-03 픽스처 9창 (BT-01 후반)
+- [x] MT0-03 픽스처 9창 (BT-01 후반)
+  - 2026-08-02: 빌더(경험적 달력×비례 롤업)+windows.yaml+37테스트, 9창 실수집 완료(근사-PIT). aaa 4라운드 수렴(DEF-1~6 → NEW-1~3 → F3-1 → F4-1, 3연속 FAIL 시 사용자 승인으로 표적 수정) → **PASS**. 실측 확정: KRX 2026 로그인 정책(pykrx 1.2.8+계정), XKRX 달력 2026 휴장 미반영, FRED HY OAS 2023-08 개시, VKOSPI 폴백 확정(K-02 종결), ^MOVE·^VIX3M 야후 절단. 신설 규율 2건(퇴화 입력 증인·귀속 서술 증거) — REVIEW_M0 참조
 - [ ] MT0-04 골든 2×2프로파일 + golden_mobile.yaml + D-14 상신 자료 (BT-02)
 - [ ] MT0-05 보정 스윕 → configs 0.3.0-rc (BT-03)
 - [ ] MT0-06 성능·해상도 리포트 + F-06 대응 제안 (BT-04)

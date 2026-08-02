@@ -1,0 +1,187 @@
+{
+  "schema": "backtest-fixture-meta/1",
+  "window_id": "w2024_05_calm",
+  "definition": {
+    "start": "2024-05-13",
+    "end": "2024-05-24",
+    "anchor_hint": null,
+    "kind": "negative",
+    "holdout": false,
+    "character": "무사건 (골든 음성, D-08)"
+  },
+  "collected_range": {
+    "start": "2022-11-10",
+    "end": "2024-05-24"
+  },
+  "collected_at": "2026-08-02T11:54:32.442325+00:00",
+  "series": {
+    "DX-Y.NYB": {
+      "status": "ok",
+      "distinct_days": 10,
+      "reference_days": 10,
+      "missing_rate": 0.0,
+      "last_as_of": "2024-05-24",
+      "padding_rows": 376,
+      "gaps": []
+    },
+    "KRW=X": {
+      "status": "ok",
+      "distinct_days": 10,
+      "reference_days": 10,
+      "missing_rate": 0.0,
+      "last_as_of": "2024-05-24",
+      "padding_rows": 1568,
+      "gaps": [],
+      "fx_advisory_gaps": []
+    },
+    "^GSPC": {
+      "status": "ok",
+      "distinct_days": 10,
+      "reference_days": 10,
+      "missing_rate": 0.0,
+      "last_as_of": "2024-05-24",
+      "padding_rows": 376,
+      "gaps": []
+    },
+    "^MOVE": {
+      "status": "ok",
+      "distinct_days": 10,
+      "reference_days": 10,
+      "missing_rate": 0.0,
+      "last_as_of": "2024-05-24",
+      "padding_rows": 374,
+      "gaps": []
+    },
+    "^VIX": {
+      "status": "ok",
+      "distinct_days": 10,
+      "reference_days": 10,
+      "missing_rate": 0.0,
+      "last_as_of": "2024-05-24",
+      "padding_rows": 376,
+      "gaps": []
+    },
+    "^VIX3M": {
+      "status": "ok",
+      "distinct_days": 10,
+      "reference_days": 10,
+      "missing_rate": 0.0,
+      "last_as_of": "2024-05-24",
+      "padding_rows": 376,
+      "gaps": []
+    },
+    "BAMLH0A0HYM2": {
+      "status": "ok",
+      "distinct_days": 10,
+      "reference_days": 10,
+      "missing_rate": 0.0,
+      "last_as_of": "2024-05-24",
+      "padding_rows": 204,
+      "gaps": []
+    },
+    "T10Y2Y": {
+      "status": "ok",
+      "distinct_days": 10,
+      "reference_days": 10,
+      "missing_rate": 0.0,
+      "last_as_of": "2024-05-24",
+      "padding_rows": 375,
+      "gaps": []
+    },
+    "KRX:1001": {
+      "status": "ok",
+      "distinct_days": 9,
+      "reference_days": 9,
+      "missing_rate": 0.0,
+      "last_as_of": "2024-05-24",
+      "padding_rows": 1845,
+      "gaps": []
+    },
+    "KRX:VKOSPI": {
+      "status": "error",
+      "distinct_days": 0,
+      "reference_days": 9,
+      "missing_rate": 1.0,
+      "last_as_of": null,
+      "padding_rows": 0,
+      "gaps": [
+        {
+          "start": "2024-05-13",
+          "end": "2024-05-24",
+          "sessions": 9
+        }
+      ],
+      "message": "VKOSPI ticker not resolvable via pykrx index metadata (K-02) — needs data-verifier confirmation; falls back to engine-side realized_vol_kospi_20d"
+    },
+    "KRX:investor_foreign_kospi": {
+      "status": "ok",
+      "distinct_days": 9,
+      "reference_days": 9,
+      "missing_rate": 0.0,
+      "last_as_of": "2024-05-24",
+      "padding_rows": 369,
+      "gaps": []
+    },
+    "krx_credit_spread_delta": {
+      "status": "uncollected",
+      "distinct_days": 0,
+      "reference_days": 0,
+      "missing_rate": 1.0,
+      "last_as_of": null,
+      "padding_rows": 0,
+      "gaps": [],
+      "message": "out of M0 collection scope (see MT0-03 brief)"
+    },
+    "kr_cds_5y_delta": {
+      "status": "uncollected",
+      "distinct_days": 0,
+      "reference_days": 0,
+      "missing_rate": 1.0,
+      "last_as_of": null,
+      "padding_rows": 0,
+      "gaps": [],
+      "message": "out of M0 collection scope (see MT0-03 brief)"
+    },
+    "krx_halt_events": {
+      "status": "uncollected",
+      "distinct_days": 0,
+      "reference_days": 0,
+      "missing_rate": 1.0,
+      "last_as_of": null,
+      "padding_rows": 0,
+      "gaps": [],
+      "message": "disabled in indicators.yaml (enabled: false)"
+    },
+    "margin_leverage_stress": {
+      "status": "uncollected",
+      "distinct_days": 0,
+      "reference_days": 0,
+      "missing_rate": 1.0,
+      "last_as_of": null,
+      "padding_rows": 0,
+      "gaps": [],
+      "message": "disabled in indicators.yaml (enabled: false)"
+    },
+    "news_volume_z": {
+      "status": "uncollected",
+      "distinct_days": 0,
+      "reference_days": 0,
+      "missing_rate": 1.0,
+      "last_as_of": null,
+      "padding_rows": 0,
+      "gaps": [],
+      "message": "disabled in indicators.yaml (enabled: false)"
+    },
+    "news_novelty": {
+      "status": "uncollected",
+      "distinct_days": 0,
+      "reference_days": 0,
+      "missing_rate": 1.0,
+      "last_as_of": null,
+      "padding_rows": 0,
+      "gaps": [],
+      "message": "disabled in indicators.yaml (enabled: false)"
+    }
+  },
+  "note": "근사-PIT — C1에서 실측 확정 (BACKTEST_PLAN.md §5)"
+}

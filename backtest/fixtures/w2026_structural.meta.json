@@ -1,0 +1,248 @@
+{
+  "schema": "backtest-fixture-meta/1",
+  "window_id": "w2026_structural",
+  "definition": {
+    "start": "2026-05-15",
+    "end": "2026-08-15",
+    "anchor_hint": "2026-07-28",
+    "kind": "positive",
+    "holdout": false,
+    "character": "국내 구조 증폭형 대폭락 (F-02 필수)"
+  },
+  "collected_range": {
+    "start": "2024-11-11",
+    "end": "2026-08-02"
+  },
+  "collected_at": "2026-08-02T11:54:29.318515+00:00",
+  "series": {
+    "DX-Y.NYB": {
+      "status": "ok",
+      "distinct_days": 53,
+      "reference_days": 54,
+      "missing_rate": 0.0185,
+      "last_as_of": "2026-07-31",
+      "padding_rows": 379,
+      "gaps": [
+        {
+          "start": "2026-05-25",
+          "end": "2026-05-25",
+          "sessions": 1
+        }
+      ]
+    },
+    "KRW=X": {
+      "status": "ok",
+      "distinct_days": 57,
+      "reference_days": 57,
+      "missing_rate": 0.0,
+      "last_as_of": "2026-08-02",
+      "padding_rows": 1556,
+      "gaps": [],
+      "fx_advisory_gaps": []
+    },
+    "^GSPC": {
+      "status": "ok",
+      "distinct_days": 53,
+      "reference_days": 54,
+      "missing_rate": 0.0185,
+      "last_as_of": "2026-07-31",
+      "padding_rows": 377,
+      "gaps": [
+        {
+          "start": "2026-05-25",
+          "end": "2026-05-25",
+          "sessions": 1
+        }
+      ]
+    },
+    "^MOVE": {
+      "status": "ok",
+      "distinct_days": 43,
+      "reference_days": 54,
+      "missing_rate": 0.2037,
+      "last_as_of": "2026-07-17",
+      "padding_rows": 374,
+      "gaps": [
+        {
+          "start": "2026-05-25",
+          "end": "2026-05-25",
+          "sessions": 1
+        },
+        {
+          "start": "2026-07-20",
+          "end": "2026-07-31",
+          "sessions": 10
+        }
+      ]
+    },
+    "^VIX": {
+      "status": "ok",
+      "distinct_days": 54,
+      "reference_days": 54,
+      "missing_rate": 0.0,
+      "last_as_of": "2026-07-31",
+      "padding_rows": 377,
+      "gaps": []
+    },
+    "^VIX3M": {
+      "status": "ok",
+      "distinct_days": 43,
+      "reference_days": 54,
+      "missing_rate": 0.2037,
+      "last_as_of": "2026-07-17",
+      "padding_rows": 377,
+      "gaps": [
+        {
+          "start": "2026-05-25",
+          "end": "2026-05-25",
+          "sessions": 1
+        },
+        {
+          "start": "2026-07-20",
+          "end": "2026-07-31",
+          "sessions": 10
+        }
+      ]
+    },
+    "BAMLH0A0HYM2": {
+      "status": "ok",
+      "distinct_days": 56,
+      "reference_days": 57,
+      "missing_rate": 0.0175,
+      "last_as_of": "2026-07-30",
+      "padding_rows": 395,
+      "gaps": [
+        {
+          "start": "2026-07-31",
+          "end": "2026-07-31",
+          "sessions": 1
+        }
+      ]
+    },
+    "T10Y2Y": {
+      "status": "ok",
+      "distinct_days": 53,
+      "reference_days": 57,
+      "missing_rate": 0.0702,
+      "last_as_of": "2026-07-31",
+      "padding_rows": 376,
+      "gaps": [
+        {
+          "start": "2026-05-25",
+          "end": "2026-05-25",
+          "sessions": 1
+        },
+        {
+          "start": "2026-05-31",
+          "end": "2026-05-31",
+          "sessions": 1
+        },
+        {
+          "start": "2026-06-19",
+          "end": "2026-06-19",
+          "sessions": 1
+        },
+        {
+          "start": "2026-07-03",
+          "end": "2026-07-03",
+          "sessions": 1
+        }
+      ]
+    },
+    "KRX:1001": {
+      "status": "ok",
+      "distinct_days": 53,
+      "reference_days": 53,
+      "missing_rate": 0.0,
+      "last_as_of": "2026-07-31",
+      "padding_rows": 1830,
+      "gaps": []
+    },
+    "KRX:VKOSPI": {
+      "status": "error",
+      "distinct_days": 0,
+      "reference_days": 53,
+      "missing_rate": 1.0,
+      "last_as_of": null,
+      "padding_rows": 0,
+      "gaps": [
+        {
+          "start": "2026-05-15",
+          "end": "2026-07-31",
+          "sessions": 53
+        }
+      ],
+      "message": "VKOSPI ticker not resolvable via pykrx index metadata (K-02) — needs data-verifier confirmation; falls back to engine-side realized_vol_kospi_20d"
+    },
+    "KRX:investor_foreign_kospi": {
+      "status": "ok",
+      "distinct_days": 53,
+      "reference_days": 53,
+      "missing_rate": 0.0,
+      "last_as_of": "2026-07-31",
+      "padding_rows": 366,
+      "gaps": []
+    },
+    "krx_credit_spread_delta": {
+      "status": "uncollected",
+      "distinct_days": 0,
+      "reference_days": 0,
+      "missing_rate": 1.0,
+      "last_as_of": null,
+      "padding_rows": 0,
+      "gaps": [],
+      "message": "out of M0 collection scope (see MT0-03 brief)"
+    },
+    "kr_cds_5y_delta": {
+      "status": "uncollected",
+      "distinct_days": 0,
+      "reference_days": 0,
+      "missing_rate": 1.0,
+      "last_as_of": null,
+      "padding_rows": 0,
+      "gaps": [],
+      "message": "out of M0 collection scope (see MT0-03 brief)"
+    },
+    "krx_halt_events": {
+      "status": "uncollected",
+      "distinct_days": 0,
+      "reference_days": 0,
+      "missing_rate": 1.0,
+      "last_as_of": null,
+      "padding_rows": 0,
+      "gaps": [],
+      "message": "disabled in indicators.yaml (enabled: false)"
+    },
+    "margin_leverage_stress": {
+      "status": "uncollected",
+      "distinct_days": 0,
+      "reference_days": 0,
+      "missing_rate": 1.0,
+      "last_as_of": null,
+      "padding_rows": 0,
+      "gaps": [],
+      "message": "disabled in indicators.yaml (enabled: false)"
+    },
+    "news_volume_z": {
+      "status": "uncollected",
+      "distinct_days": 0,
+      "reference_days": 0,
+      "missing_rate": 1.0,
+      "last_as_of": null,
+      "padding_rows": 0,
+      "gaps": [],
+      "message": "disabled in indicators.yaml (enabled: false)"
+    },
+    "news_novelty": {
+      "status": "uncollected",
+      "distinct_days": 0,
+      "reference_days": 0,
+      "missing_rate": 1.0,
+      "last_as_of": null,
+      "padding_rows": 0,
+      "gaps": [],
+      "message": "disabled in indicators.yaml (enabled: false)"
+    }
+  },
+  "note": "근사-PIT — C1에서 실측 확정 (BACKTEST_PLAN.md §5)"
+}

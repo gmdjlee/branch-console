@@ -1,0 +1,85 @@
+# =============================================================================
+# windows.yaml — BT-01 9창 정의 (SSOT for backtest fixture windows)
+# branch-console M0 | schema: backtest-windows/1
+# -----------------------------------------------------------------------------
+# 근거: docs/BACKTEST_PLAN.md §3, D-08(골든 무회귀).
+# kind: positive|negative. holdout=true는 BT-03 스윕에서 제외, 최종 검증에만 사용(R-03).
+# anchor_hint: 참고치(실제 최대낙폭일은 BT-04에서 데이터로 산출). 음성 창은 null.
+# padding_days: 각 창 start 이전 추가 수집일(달력일) — 변환 워밍업용(zscore 252거래일 등).
+# =============================================================================
+
+schema: backtest-windows/1
+padding_days: 550
+
+windows:
+  - window_id: w2011_us_downgrade
+    start: 2011-07-15
+    end: 2011-09-15
+    anchor_hint: 2011-08-08
+    kind: positive
+    holdout: false
+    character: "미국 신용등급 강등"
+
+  - window_id: w2015_cny_deval
+    start: 2015-07-15
+    end: 2015-09-15
+    anchor_hint: 2015-08-24
+    kind: positive
+    holdout: true
+    character: "위안화 절하"
+
+  - window_id: w2018_q4_tightening
+    start: 2018-09-15
+    end: 2018-12-31
+    anchor_hint: 2018-10-29
+    kind: positive
+    holdout: false
+    character: "긴축 국면"
+
+  - window_id: w2020_covid
+    start: 2020-01-15
+    end: 2020-04-15
+    anchor_hint: 2020-03-19
+    kind: positive
+    holdout: false
+    character: "COVID 급락"
+
+  - window_id: w2022_tightening
+    start: 2022-08-01
+    end: 2022-11-30
+    anchor_hint: 2022-09-30
+    kind: positive
+    holdout: false
+    character: "긴축 심화"
+
+  - window_id: w2024_carry_unwind
+    start: 2024-07-25
+    end: 2024-08-09
+    anchor_hint: 2024-08-05
+    kind: positive
+    holdout: false
+    character: "캐리 청산 (골든, D-08)"
+
+  - window_id: w2026_structural
+    start: 2026-05-15
+    end: 2026-08-15
+    anchor_hint: 2026-07-28
+    kind: positive
+    holdout: false
+    character: "국내 구조 증폭형 대폭락 (F-02 필수)"
+
+  - window_id: w2024_05_calm
+    start: 2024-05-13
+    end: 2024-05-24
+    anchor_hint: null
+    kind: negative
+    holdout: false
+    character: "무사건 (골든 음성, D-08)"
+
+  - window_id: w2023_11_rally
+    start: 2023-11-01
+    end: 2023-11-30
+    anchor_hint: null
+    kind: negative
+    holdout: true
+    character: "랠리 (오탐 대조)"

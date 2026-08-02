@@ -1,0 +1,193 @@
+{
+  "schema": "backtest-fixture-meta/1",
+  "window_id": "w2023_11_rally",
+  "definition": {
+    "start": "2023-11-01",
+    "end": "2023-11-30",
+    "anchor_hint": null,
+    "kind": "negative",
+    "holdout": true,
+    "character": "랠리 (오탐 대조)"
+  },
+  "collected_range": {
+    "start": "2022-04-30",
+    "end": "2023-11-30"
+  },
+  "collected_at": "2026-08-02T11:54:35.558482+00:00",
+  "series": {
+    "DX-Y.NYB": {
+      "status": "ok",
+      "distinct_days": 21,
+      "reference_days": 21,
+      "missing_rate": 0.0,
+      "last_as_of": "2023-11-30",
+      "padding_rows": 378,
+      "gaps": []
+    },
+    "KRW=X": {
+      "status": "ok",
+      "distinct_days": 22,
+      "reference_days": 22,
+      "missing_rate": 0.0,
+      "last_as_of": "2023-11-30",
+      "padding_rows": 1568,
+      "gaps": [],
+      "fx_advisory_gaps": []
+    },
+    "^GSPC": {
+      "status": "ok",
+      "distinct_days": 21,
+      "reference_days": 21,
+      "missing_rate": 0.0,
+      "last_as_of": "2023-11-30",
+      "padding_rows": 378,
+      "gaps": []
+    },
+    "^MOVE": {
+      "status": "ok",
+      "distinct_days": 21,
+      "reference_days": 21,
+      "missing_rate": 0.0,
+      "last_as_of": "2023-11-30",
+      "padding_rows": 375,
+      "gaps": []
+    },
+    "^VIX": {
+      "status": "ok",
+      "distinct_days": 21,
+      "reference_days": 21,
+      "missing_rate": 0.0,
+      "last_as_of": "2023-11-30",
+      "padding_rows": 378,
+      "gaps": []
+    },
+    "^VIX3M": {
+      "status": "ok",
+      "distinct_days": 21,
+      "reference_days": 21,
+      "missing_rate": 0.0,
+      "last_as_of": "2023-11-30",
+      "padding_rows": 378,
+      "gaps": []
+    },
+    "BAMLH0A0HYM2": {
+      "status": "ok",
+      "distinct_days": 22,
+      "reference_days": 22,
+      "missing_rate": 0.0,
+      "last_as_of": "2023-11-30",
+      "padding_rows": 67,
+      "gaps": []
+    },
+    "T10Y2Y": {
+      "status": "ok",
+      "distinct_days": 21,
+      "reference_days": 22,
+      "missing_rate": 0.0455,
+      "last_as_of": "2023-11-30",
+      "padding_rows": 376,
+      "gaps": [
+        {
+          "start": "2023-11-23",
+          "end": "2023-11-23",
+          "sessions": 1
+        }
+      ]
+    },
+    "KRX:1001": {
+      "status": "ok",
+      "distinct_days": 22,
+      "reference_days": 22,
+      "missing_rate": 0.0,
+      "last_as_of": "2023-11-30",
+      "padding_rows": 1850,
+      "gaps": []
+    },
+    "KRX:VKOSPI": {
+      "status": "error",
+      "distinct_days": 0,
+      "reference_days": 22,
+      "missing_rate": 1.0,
+      "last_as_of": null,
+      "padding_rows": 0,
+      "gaps": [
+        {
+          "start": "2023-11-01",
+          "end": "2023-11-30",
+          "sessions": 22
+        }
+      ],
+      "message": "VKOSPI ticker not resolvable via pykrx index metadata (K-02) — needs data-verifier confirmation; falls back to engine-side realized_vol_kospi_20d"
+    },
+    "KRX:investor_foreign_kospi": {
+      "status": "ok",
+      "distinct_days": 22,
+      "reference_days": 22,
+      "missing_rate": 0.0,
+      "last_as_of": "2023-11-30",
+      "padding_rows": 370,
+      "gaps": []
+    },
+    "krx_credit_spread_delta": {
+      "status": "uncollected",
+      "distinct_days": 0,
+      "reference_days": 0,
+      "missing_rate": 1.0,
+      "last_as_of": null,
+      "padding_rows": 0,
+      "gaps": [],
+      "message": "out of M0 collection scope (see MT0-03 brief)"
+    },
+    "kr_cds_5y_delta": {
+      "status": "uncollected",
+      "distinct_days": 0,
+      "reference_days": 0,
+      "missing_rate": 1.0,
+      "last_as_of": null,
+      "padding_rows": 0,
+      "gaps": [],
+      "message": "out of M0 collection scope (see MT0-03 brief)"
+    },
+    "krx_halt_events": {
+      "status": "uncollected",
+      "distinct_days": 0,
+      "reference_days": 0,
+      "missing_rate": 1.0,
+      "last_as_of": null,
+      "padding_rows": 0,
+      "gaps": [],
+      "message": "disabled in indicators.yaml (enabled: false)"
+    },
+    "margin_leverage_stress": {
+      "status": "uncollected",
+      "distinct_days": 0,
+      "reference_days": 0,
+      "missing_rate": 1.0,
+      "last_as_of": null,
+      "padding_rows": 0,
+      "gaps": [],
+      "message": "disabled in indicators.yaml (enabled: false)"
+    },
+    "news_volume_z": {
+      "status": "uncollected",
+      "distinct_days": 0,
+      "reference_days": 0,
+      "missing_rate": 1.0,
+      "last_as_of": null,
+      "padding_rows": 0,
+      "gaps": [],
+      "message": "disabled in indicators.yaml (enabled: false)"
+    },
+    "news_novelty": {
+      "status": "uncollected",
+      "distinct_days": 0,
+      "reference_days": 0,
+      "missing_rate": 1.0,
+      "last_as_of": null,
+      "padding_rows": 0,
+      "gaps": [],
+      "message": "disabled in indicators.yaml (enabled: false)"
+    }
+  },
+  "note": "근사-PIT — C1에서 실측 확정 (BACKTEST_PLAN.md §5)"
+}
