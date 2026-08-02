@@ -15,3 +15,8 @@ dev = [
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+
+[tool.ruff]
+# 룰셋은 ruff 기본값 유지(AAA §2.3 "기본 룰셋"), 재현성은 uv.lock 버전 핀이 담당.
+# .md 제외: ruff format이 설계 문서 내 예시 코드펜스를 재작성하는 것 방지 (aaa-critic O-1, ⓑ 채택).
+extend-exclude = ["*.md"]
