@@ -1,0 +1,75 @@
+# =============================================================================
+# statemachine.yaml — 복합 국면 상태기계 (SSOT)
+# branch-console P0 | schema: statemachine/1
+# -----------------------------------------------------------------------------
+# 평가 틱(run): schedules.evaluation 참조. sustain/dwell 카운트 단위는 "틱".
+# distinct_axes: severity >= warn(2)인 지표가 존재하는 서로 다른 axis 개수.
+# =============================================================================
+
+schema: statemachine/1
+phases: [GREEN, AMBER, ORANGE, RED]
+initial_phase: GREEN
+
+upgrade:                      # 조건 충족이 sustain_ticks 연속이어야 승격
+  rules:
+    AMBER:  { composite_gte: 20, or_any_crit: true }
+    ORANGE: { composite_gte: 40, distinct_axes_gte: 2 }
+    RED:    { composite_gte: 60, distinct_axes_gte: 3 }
+
+downgrade:                    # 히스테리시스: 진입선보다 낮은 이탈선 + 긴 유지
+  rules:
+    exit_RED:    { composite_lt: 50 }
+    exit_ORANGE: { composite_lt: 32 }
+    exit_AMBER:  { composite_lt: 14 }
+
+# 프로파일 이원화 (D-16, CHANGES_V3 §2.1). 엔진은 프로파일 키를 주입받는다(D-16).
+# 전이 구조·composite 공식(D-02)·distinct_axes 요건·skip_levels는 프로파일과 무관하게 동일 —
+# 달라지는 것은 틱 단위 카운트뿐.
+profiles:
+  server_intraday:                 # 기존 값 그대로 이관 (의미 변화 없음)
+    tick: 30m
+    promote_sustain_ticks: 2
+    demote_below_ticks: 6
+    min_dwell_ticks: 4
+    reentry_cooldown_ticks: 6      # 하향 직후 재승격 시 sustain 카운트 리셋 + 쿨다운
+  mobile_daily:                    # 신규 — 전부 가설, BT-03 보정 대상 (D-04 규율 적용)
+    tick: 1d
+    promote_sustain_ticks: 1
+    demote_below_ticks: 3
+    min_dwell_ticks: 2
+    # reentry_cooldown_ticks 미정의 — BT-03에서 결정
+
+skip_levels: true             # 조건 충족 시 GREEN->ORANGE 등 단계 건너뜀 허용 (2024-08-05형 갭 이벤트)
+
+hmm_confirmation:             # P2에서 활성화: RED 승격의 보조 확인 신호
+  enabled: false
+  rule: "high_vol_regime_posterior >= 0.8 -> RED 요구 축 수 3->2 완화"
+
+actions:
+  on_tick:
+    - persist_state            # Postgres: phase, composite, fired 목록
+    - lake_append              # Parquet PIT 기록
+  on_enter:
+    AMBER:  [telegram_notify, tag_daily_digest]
+    ORANGE: [telegram_alert, generate_scenario_report]
+    RED:    [telegram_alert, generate_scenario_report, schedule_session_reviews]
+  on_exit:
+    RED:    [telegram_notify, generate_postmortem_stub]
+    ORANGE: [telegram_notify]
+
+llm_tiering:                   # D-20 확정(2026-08-02). 무날짜 ID는 고정 스냅샷 — 별칭 아님.
+  daily_digest:     { model: claude-haiku-4-5-20251001,  web_search: false }
+  amber_summary:    { model: claude-sonnet-5,   web_search: false }
+  scenario_report:  { model: claude-opus-5,     web_search: true, structured_output: scenario-snapshot/1 }
+  # 변경 절차: 분기 C-주기에 모델 목록 실조회 → 폐기 일정 확인 → 여기와 .claude/agents/* 동시 갱신(D-20 §20.3)
+
+schedules:
+  evaluation:                  # 평가 틱 정의 (KST)
+    - { id: kr_intraday, cron: "*/30 9-15 * * 1-5", note: "09:00–15:30 장중" }
+    - { id: kr_close,    cron: "0 17 * * 1-5",      note: "KR 마감 확정치" }
+    - { id: us_close,    cron: "30 7 * * 1-5",      note: "미국 마감 반영" }
+  collection:
+    - { id: fred_daily,  cron: "0 8 * * 1-5" }
+    - { id: daily_us,    cron: "20 7 * * 1-5" }
+    - { id: daily_kr,    cron: "50 16 * * 1-5" }
+  holidays: krx_calendar       # exchange_calendars 'XKRX' 사용, 휴장일 틱 스킵

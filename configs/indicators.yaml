@@ -1,0 +1,237 @@
+# =============================================================================
+# indicators.yaml — 지표 레지스트리 (SSOT)
+# branch-console P0 | schema: indicator-registry/1
+# -----------------------------------------------------------------------------
+# 규칙:
+#  - 코드에 임계값/가중치 하드코딩 금지. 모든 판정 파라미터는 이 파일에서만 온다.
+#  - severity: 0=none, 1=watch, 2=warn, 3=crit
+#  - composite = 100 * Σ(weight_i * severity_i) / Σ(weight_i * 3)
+#  - 모든 임계값은 "초기 가설"이며 backtest/ 리플레이로 보정한다 (P0 결정 D-07 참조)
+#  - direction: 어느 방향이 위험인지. transform 출력 기준.
+# =============================================================================
+
+schema: indicator-registry/1
+registry_version: 0.1.0
+
+axes:
+  vol_global:      { name_kr: 글로벌 변동성 }
+  credit:          { name_kr: 신용 }
+  rates_fx:        { name_kr: 금리·환율 }
+  global_price:    { name_kr: 글로벌 가격구조 }
+  kr_flow_price:   { name_kr: 한국 수급·가격 }
+  news:            { name_kr: 뉴스 (P2 예약) }
+
+indicators:
+
+  # ---------------------------------------------------------------- vol_global
+  - id: vix_level_z
+    name_kr: VIX 수준 z-score
+    axis: vol_global
+    weight: 3.0
+    source: { provider: yfinance, symbol: "^VIX", field: close, cadence: daily_us }
+    transform: zscore(close, window=252)
+    direction: higher_is_risk
+    thresholds: { watch: 1.5, warn: 2.0, crit: 3.0 }
+
+  - id: vix_term_structure
+    name_kr: VIX 기간구조 (VIX/VIX3M)
+    axis: vol_global
+    weight: 2.5
+    source: { provider: yfinance, symbol: ["^VIX", "^VIX3M"], field: close, cadence: daily_us }
+    transform: ratio(vix, vix3m)          # >1 = 백워데이션(스트레스)
+    direction: higher_is_risk
+    thresholds: { watch: 0.95, warn: 1.00, crit: 1.07 }
+
+  - id: move_index_z
+    name_kr: MOVE(채권 변동성) z-score
+    axis: vol_global
+    weight: 1.5
+    source: { provider: yfinance, symbol: "^MOVE", field: close, cadence: daily_us }
+    transform: zscore(close, window=252)
+    direction: higher_is_risk
+    thresholds: { watch: 1.5, warn: 2.0, crit: 3.0 }
+
+  # -------------------------------------------------------------------- credit
+  - id: hy_oas_delta
+    name_kr: 미국 HY OAS 5일 변화(bp)
+    axis: credit
+    weight: 3.0
+    source: { provider: fred, series_id: BAMLH0A0HYM2, cadence: fred_daily, lag_days: 1 }
+    transform: delta_bp(value, lookback=5)
+    direction: higher_is_risk
+    thresholds: { watch: 25, warn: 40, crit: 75 }
+    notes: "레벨>4.5%면 severity +1 가산 (엔진 modifier 규칙)"
+
+  - id: krx_credit_spread_delta
+    name_kr: 회사채(AA-,3y)-국고(3y) 스프레드 5일 변화(bp)
+    axis: credit
+    weight: 2.0
+    source:
+      provider: ecos
+      stat_code: "721Y001"          # 시장금리(일별)
+      item_codes: { corp_aa3y: VERIFY, ktb_3y: VERIFY }   # Worker 검증 필수 (TASK 함정 K-04)
+      cadence: daily_kr
+      lag_days: 1
+    transform: delta_bp(corp_aa3y - ktb_3y, lookback=5)
+    direction: higher_is_risk
+    thresholds: { watch: 6, warn: 10, crit: 20 }
+
+  - id: kr_cds_5y_delta
+    name_kr: 한국 CDS 5Y 5일 변화(bp)
+    axis: credit
+    weight: 1.5
+    optional: true                   # 무료 소스 불안정 — 결측 시 가중치 자동 제외
+    source: { provider: scrape_wgb, symbol: KR_CDS_5Y, cadence: daily_kr }
+    transform: delta_bp(value, lookback=5)
+    direction: higher_is_risk
+    thresholds: { watch: 5, warn: 8, crit: 15 }
+
+  # ------------------------------------------------------------------ rates_fx
+  - id: usdkrw_z
+    name_kr: USD/KRW 일변화 z-score
+    axis: rates_fx
+    weight: 3.0
+    source: { provider: yfinance, symbol: "KRW=X", field: close, cadence: intraday_30m, fallback_provider: ecos }
+    transform: zscore(pct_change_1d, window=252)
+    direction: abs                   # F-03 수정: 2026-07 폭락에서 원화는 오히려 '강세'였음(수출대금·해외상장 대금 환전).
+                                     # 원화 약세만 리스크로 보면 최대 폭락에서 최고가중 지표가 침묵한다. 양방향 급변으로 전환.
+    thresholds: { watch: 2.0, warn: 2.5, crit: 3.5 }
+    notes: "일중 변동폭 ≥1.2% → warn 이상 강제, ≥2.0% → crit (modifier 규칙). C1에서 방향/임계 재검증 필수"
+
+  - id: dxy_z
+    name_kr: DXY 5일 변화 z-score
+    axis: rates_fx
+    weight: 1.5
+    source: { provider: yfinance, symbol: "DX-Y.NYB", field: close, cadence: daily_us }
+    transform: zscore(pct_change_5d, window=252, absolute=true)
+    direction: higher_is_risk        # 급격한 양방향 이동 모두 리스크 (absolute)
+    thresholds: { watch: 1.5, warn: 2.0, crit: 3.0 }
+
+  - id: ust_2s10s_move
+    name_kr: 미국 2s10s 5일 변화(bp, 절대값)
+    axis: rates_fx
+    weight: 1.0
+    source: { provider: fred, series_id: T10Y2Y, cadence: fred_daily, lag_days: 1 }
+    transform: abs(delta_bp(value, lookback=5))
+    direction: higher_is_risk
+    thresholds: { watch: 15, warn: 25, crit: 40 }
+
+  # -------------------------------------------------------------- global_price
+  - id: spx_drawdown_momentum
+    name_kr: S&P500 낙폭·모멘텀
+    axis: global_price
+    weight: 2.0
+    source: { provider: yfinance, symbol: "^GSPC", field: close, cadence: daily_us }
+    transform: max_severity( drawdown_from_high(window=60), neg_zscore(pct_change_5d, window=252) )
+    direction: higher_is_risk
+    thresholds:                       # drawdown % 기준 / z 기준 각각
+      drawdown: { watch: 3.0, warn: 5.0, crit: 8.0 }
+      neg_z:    { watch: 1.5, warn: 2.0, crit: 3.0 }
+
+  - id: global_corr_break
+    name_kr: KOSPI-SPX 상관 급변
+    axis: global_price
+    weight: 1.5
+    source: { provider: derived, inputs: ["^GSPC", "KOSPI"], cadence: daily_kr }
+    transform: abs( rolling_corr(ret_kospi, ret_spx, window=20) - rolling_mean_corr(window=120) )
+    direction: higher_is_risk
+    thresholds: { watch: 0.30, warn: 0.40, crit: 0.55 }
+
+  # ------------------------------------------------------------- kr_flow_price
+  - id: vkospi_z
+    name_kr: VKOSPI z-score
+    axis: kr_flow_price
+    weight: 2.5
+    source:
+      provider: pykrx
+      dataset: vkospi
+      cadence: intraday_30m
+      fallback: realized_vol_kospi_20d   # VKOSPI 조회 불가 시 실현변동성 대체 (함정 K-02)
+    transform: zscore(close, window=252)
+    direction: higher_is_risk
+    thresholds: { watch: 1.5, warn: 2.0, crit: 3.0 }
+
+  - id: kospi_drawdown
+    name_kr: KOSPI 60일 고점 대비 낙폭(%)
+    axis: kr_flow_price
+    weight: 2.5
+    source: { provider: pykrx, dataset: index_ohlcv, symbol: "1001", cadence: intraday_30m }
+    transform: drawdown_from_high(window=60)
+    direction: higher_is_risk
+    thresholds: { watch: 3.0, warn: 4.5, crit: 7.0 }
+
+  - id: foreign_net_sell_kospi
+    name_kr: 외국인 KOSPI 5일 누적 순매수 z (매도 방향)
+    axis: kr_flow_price
+    weight: 2.0
+    source: { provider: pykrx, dataset: investor_trading_value, market: KOSPI, investor: 외국인, cadence: daily_kr }
+    transform: neg_zscore(rolling_sum(net_buy_value, window=5), window=252)
+    direction: higher_is_risk
+    thresholds: { watch: 1.5, warn: 2.0, crit: 3.0 }
+
+  - id: kospi_volume_distribution
+    name_kr: KOSPI 거래대금 급증 + 음봉 (분산일)
+    axis: kr_flow_price
+    weight: 1.5
+    source: { provider: pykrx, dataset: index_ohlcv, symbol: "1001", cadence: daily_kr }
+    transform: gated( zscore(trading_value, window=60), gate="daily_return < 0" )
+    direction: higher_is_risk
+    thresholds: { watch: 2.0, warn: 2.5, crit: 3.5 }
+
+  # ------------------------------- KR 구조 지표 (F-04, P2 예약, 비활성 / C1에서 활성 검토)
+  - id: krx_halt_events
+    name_kr: 사이드카·서킷브레이커 발동
+    axis: kr_flow_price
+    weight: 3.0
+    enabled: false
+    source: { provider: krx_notice, cadence: intraday_30m }
+    transform: count_5d(sidecar_sell + circuit_breaker*2)
+    direction: higher_is_risk
+    thresholds: { watch: 1, warn: 2, crit: 4 }
+    notes: "1998~2025 서킷브레이커 누적 13회 vs 2026년 단일연도 7회+. 관측 즉시 확정적 스트레스 신호"
+
+  - id: margin_leverage_stress
+    name_kr: 신용융자·레버리지 쏠림
+    axis: kr_flow_price
+    weight: 2.0
+    enabled: false
+    source: { provider: krx_margin, cadence: daily_kr }
+    transform: zscore(margin_balance_to_mktcap, window=252)
+    direction: higher_is_risk
+    thresholds: { watch: 1.5, warn: 2.0, crit: 3.0 }
+    notes: "2026 폭락의 구조적 증폭 요인(단일종목 레버리지 ETF·빚투). 사전 경고 성격 지표"
+
+  # ------------------------------------------------------- news (P2 예약, 비활성)
+  - id: news_volume_z
+    name_kr: 토픽 클러스터 기사량 z
+    axis: news
+    weight: 2.0
+    enabled: false
+    source: { provider: news_pipeline, cadence: hourly }
+    transform: zscore(cluster_article_count, window=30d)
+    direction: higher_is_risk
+    thresholds: { watch: 2.0, warn: 2.5, crit: 3.5 }
+
+  - id: news_novelty
+    name_kr: 헤드라인 임베딩 노벨티
+    axis: news
+    weight: 2.0
+    enabled: false
+    source: { provider: news_pipeline, cadence: hourly, model: bge-m3 }
+    transform: novelty_score(embedding, index=recent_90d)
+    direction: higher_is_risk
+    thresholds: { watch: 0.55, warn: 0.65, crit: 0.78 }
+
+# -----------------------------------------------------------------------------
+# 엔진 공통 규칙
+# -----------------------------------------------------------------------------
+engine:
+  missing_data_policy: exclude_from_denominator   # 결측 지표는 분모에서 제외 (optional 포함)
+  stale_profiles:                                 # D-16 프로파일 이원화 (CHANGES_V3 §2.2)
+    server_intraday: { intraday_30m: 90m, daily_kr: 36h, daily_us: 36h, fred_daily: 72h }   # 기존 값 그대로
+    mobile_daily: { daily_kr: 30h, daily_us: 48h, fred_daily: 96h }   # 주말·T+1 반영 가설, BT-03 보정 대상
+  modifiers:
+    - id: hy_level_boost
+      rule: "hy_oas_level > 4.5 -> hy_oas_delta.severity += 1 (max 3)"
+    - id: usdkrw_intraday_force
+      rule: "usdkrw intraday_range >= 1.2% -> severity max(warn); >= 2.0% -> crit"

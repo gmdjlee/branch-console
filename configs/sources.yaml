@@ -1,0 +1,84 @@
+# =============================================================================
+# sources.yaml — 수집 소스 레지스트리 (SSOT)
+# branch-console P0 | schema: source-registry/1
+# -----------------------------------------------------------------------------
+# 공통 규칙:
+#  - 모든 수집 레코드는 (observed_at, as_of, source, raw) 4필드로 lake에 append.
+#    observed_at = 수집 시각(KST), as_of = 데이터 기준 시점. PIT 조인은 as_of 기준.
+#  - 수정·삭제 금지. 정정치가 오면 새 레코드로 append (revision 필드 증가).
+# =============================================================================
+
+schema: source-registry/1
+
+providers:
+  yfinance:
+    kind: python_lib
+    # consumers: server (모바일은 동일 야후 엔드포인트를 네이티브 REST로 직접 호출)
+    symbols: ["^VIX", "^VIX3M", "^MOVE", "^GSPC", "DX-Y.NYB", "KRW=X"]
+    retry: { attempts: 3, backoff_s: [5, 30, 120] }
+    notes: "비공식 API. 결측·지연 흔함 — stale 정책은 indicators.engine 참조 (함정 K-01)"
+
+  fred:
+    kind: rest
+    # consumers: both
+    base: "https://api.stlouisfed.org/fred"
+    auth: env:FRED_API_KEY
+    series: [BAMLH0A0HYM2, T10Y2Y]
+    notes: "T+1 지연. as_of는 FRED observation date로 기록, 지표 계산은 as_of 정렬(as-of join)"
+
+  ecos:
+    kind: rest
+    # consumers: both
+    base: "https://ecos.bok.or.kr/api"
+    auth: env:ECOS_API_KEY
+    stats:
+      - { stat_code: "721Y001", note: "시장금리(일별) — item_code는 구현 시 API 응답으로 검증 (함정 K-04)" }
+
+  pykrx:
+    kind: python_lib
+    # consumers: server (모바일은 kotlin_krx 네이티브 경로)
+    datasets: [index_ohlcv, investor_trading_value, vkospi]
+    rate_limit: { min_interval_s: 1.0 }
+    notes: "비공식 KRX 스크레이핑 기반. 과호출 금지, 장중 30분 주기 상한 (함정 K-03)"
+
+  scrape_wgb:
+    kind: scrape
+    # consumers: server (모바일 v1은 CDS 미수집 — G-4)
+    enabled: true
+    optional: true
+    target: "worldgovernmentbonds KR CDS 5Y"
+    notes: "구조 변경 잦음. 실패 시 조용히 결측 처리 (indicator optional=true)"
+
+  news_pipeline:                # P2에서 구현
+    kind: internal
+    # consumers: server (S2에서 구현)
+    enabled: false
+    upstreams: [naver_news_api, gdelt, rss]
+
+  claude_api:
+    kind: rest
+    # consumers: both
+    auth: env:ANTHROPIC_API_KEY
+    usage: [daily_digest, amber_summary, scenario_report]
+    cost_controls: { prompt_caching: true, batch_for_backfill: true }
+
+  kis:
+    kind: rest
+    enabled: false          # 옵션 — 기본 비활성
+    consumers: mobile
+    usage: preview_realtime
+    notes: "옵션 — TinyOscillator 검증 자산"
+
+  stooq:
+    kind: rest
+    consumers: mobile
+    usage: yahoo_fallback
+    notes: "K-18 폴백. MT1-04a에서 실측"
+
+delivery:
+  telegram:
+    auth: [env:TELEGRAM_BOT_TOKEN, env:TELEGRAM_CHAT_ID]
+  healthcheck:
+    provider: healthchecks_io
+    ping_url: env:HEALTHCHECK_URL
+    interval: every_evaluation_tick

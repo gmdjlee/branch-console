@@ -1,0 +1,55 @@
+# =============================================================================
+# news_topics.yaml — 뉴스 토픽 레지스트리 (SSOT) | schema: news-topics/1
+# P2 파이프라인이 소비. 키워드는 Longest-Match 우선, 대소문자 무시.
+# 기사량 z의 기준 창은 indicators.yaml의 news_volume_z 정의를 따른다.
+# =============================================================================
+schema: news-topics/1
+version: 0.2.0
+
+topics:
+  - id: us_monetary
+    name_kr: 미국 통화정책
+    keywords_kr: [연준, 연방준비제도, FOMC, 파월, 금리 인상, 금리 인하, 양적긴축, 점도표]
+    keywords_en: [Federal Reserve, FOMC, Powell, rate hike, rate cut, QT, dot plot]
+  - id: us_credit
+    name_kr: 미국 신용·유동성
+    keywords_kr: [하이일드, 회사채 스프레드, 은행 위기, 유동성 경색, 디폴트, 상업용 부동산]
+    keywords_en: [high yield, credit spread, bank failure, liquidity crunch, default, CRE]
+  - id: china_macro
+    name_kr: 중국 거시
+    keywords_kr: [중국 경기, 위안화, 인민은행, 부동산 위기, 부양책, 헝다, 비구이위안]
+    keywords_en: [China economy, yuan, PBOC, property crisis, stimulus]
+  - id: geopolitics
+    name_kr: 지정학
+    keywords_kr: [전쟁, 공습, 미사일, 대만해협, 호르무즈, 확전, 휴전 결렬]
+    keywords_en: [war, airstrike, missile, Taiwan strait, Hormuz, escalation]
+  - id: trade_tariff
+    name_kr: 무역·관세
+    keywords_kr: [관세, 상호관세, 수출규제, 무역전쟁, 반도체 규제, 공급망 제재]
+    keywords_en: [tariff, export control, trade war, chip restriction, sanctions]
+  - id: kr_credit
+    name_kr: 한국 신용
+    keywords_kr: [PF 부실, 자금 경색, 회사채 발행 취소, 단기자금, CP 금리, 부동산 PF, 워크아웃]
+    keywords_en: [Korea project financing, credit crunch Korea]
+  - id: kr_leverage
+    name_kr: 국내 레버리지·시장구조 (F-05 추가)
+    keywords_kr: [단일종목 레버리지, 레버리지 ETF, 신용융자, 빚투, 반대매매, 서킷브레이커, 사이드카, 증거금]
+    keywords_en: [single stock leverage ETF, margin call Korea, circuit breaker Korea, sidecar]
+  - id: kr_politics
+    name_kr: 한국 정치 리스크
+    keywords_kr: [계엄, 탄핵, 하야, 국정 마비, 대북 도발, NLL, 핵실험]
+    keywords_en: [martial law Korea, impeachment Korea, North Korea provocation]
+  - id: semis_ai
+    name_kr: 반도체·AI 사이클
+    keywords_kr: [반도체 감산, HBM, 파운드리, AI 투자 축소, 데이터센터, 엔비디아 실적, AI 버블, 순환출자, 창신메모리, CXMT, 브로드컴]
+    keywords_en: [semiconductor, HBM, foundry, AI capex, datacenter, Nvidia earnings, AI bubble, circular deals, CXMT, Broadcom]
+  - id: energy_oil
+    name_kr: 에너지
+    keywords_kr: [유가 급등, 유가 급락, OPEC, 감산, 원유 공급]
+    keywords_en: [oil price, OPEC, supply cut, crude]
+  - id: fx_krw
+    name_kr: 원화·외환
+    keywords_kr: [원달러, 원화 약세, 외환시장 개입, 외환보유액, 환율 급등]
+    keywords_en: [USDKRW, won weakness, FX intervention Korea]
+
+# GDELT DOC API 질의는 keywords_en 상위 3개를 OR 결합해 생성한다 (P2 ST-P2-01 규칙).

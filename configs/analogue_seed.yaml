@@ -1,0 +1,55 @@
+# =============================================================================
+# analogue_seed.yaml — 유사사례 라이브러리 시드 | schema: analogue-seed/1
+# -----------------------------------------------------------------------------
+# 규칙:
+#  - 본 26건은 Advisor가 선별한 시드다. Worker는 각 건을 실데이터로 검증하며,
+#    날짜·유형이 데이터와 어긋나면 수정하지 말고 게이트 리포트에 이견으로 기록한다.
+#  - 2025 하반기~2026 사건 추가는 AL-04에서 뉴스·데이터 검증을 거쳐서만 수행한다.
+#  - type은 contracts/snapshot.py EventClassification.type과 동일 어휘를 쓴다.
+#  - anchor_date = 사건 기준일(리드타임 측정 원점), window = 지표·경로 관찰 창.
+# =============================================================================
+schema: analogue-seed/1
+version: 0.2.0
+
+outcome_spec:
+  price_paths: { horizons_days: [5, 20, 60], assets: [KOSPI, KOSDAQ, USDKRW] }
+  sector_paths:
+    horizons_days: [20]
+    krx_sectors: [은행, 증권, 보험, 전기전자, 화학, 건설, 운수장비, 유통, 통신, 음식료]   # 지수코드는 AL-02에서 실측 (K-13)
+  trigger_vector: all_enabled_indicators_at_anchor   # 보정판 레지스트리 기준
+
+events:
+  - { id: 2007-08_bnp_freeze,        anchor_date: 2007-08-09, window: [2007-08-01, 2007-09-14], type: credit_stress,   name_kr: BNP 파리바 펀드 동결 }
+  - { id: 2008-09_lehman,            anchor_date: 2008-09-15, window: [2008-09-01, 2008-11-21], type: credit_stress,   name_kr: 리먼 파산 }
+  - { id: 2010-05_flash_euro,        anchor_date: 2010-05-06, window: [2010-04-26, 2010-06-11], type: mixed,           name_kr: 플래시 크래시·남유럽 재정 }
+  - { id: 2011-08_us_downgrade,      anchor_date: 2011-08-05, window: [2011-07-25, 2011-09-30], type: credit_stress,   name_kr: 미국 신용등급 강등 }
+  - { id: 2013-05_taper_tantrum,     anchor_date: 2013-05-22, window: [2013-05-15, 2013-06-28], type: monetary_policy, name_kr: 테이퍼 탠트럼 }
+  - { id: 2015-06_mers,              anchor_date: 2015-06-01, window: [2015-05-20, 2015-07-10], type: domestic_kr,     name_kr: 메르스 (경증 대조군) }
+  - { id: 2015-08_cny_deval,         anchor_date: 2015-08-11, window: [2015-08-05, 2015-09-11], type: growth_shock,    name_kr: 위안화 기습 절하 }
+  - { id: 2016-01_china_cb,          anchor_date: 2016-01-04, window: [2016-01-04, 2016-02-15], type: growth_shock,    name_kr: 중국 서킷브레이커·유가 급락 }
+  - { id: 2016-06_brexit,            anchor_date: 2016-06-24, window: [2016-06-20, 2016-07-08], type: geopolitical,    name_kr: 브렉시트 }
+  - { id: 2016-11_us_election,       anchor_date: 2016-11-09, window: [2016-11-07, 2016-11-30], type: mixed,           name_kr: 미 대선 서프라이즈 }
+  - { id: 2018-02_volmageddon,       anchor_date: 2018-02-05, window: [2018-01-29, 2018-03-02], type: mixed,           name_kr: 볼마겟돈 }
+  - { id: 2018-10_q4_selloff,        anchor_date: 2018-10-10, window: [2018-10-01, 2018-12-26], type: monetary_policy, name_kr: 2018 4분기 급락 }
+  - { id: 2019-07_jp_export,         anchor_date: 2019-07-01, window: [2019-07-01, 2019-08-16], type: domestic_kr,     name_kr: 일본 수출규제 }
+  - { id: 2019-08_trade_escalation,  anchor_date: 2019-08-01, window: [2019-08-01, 2019-08-30], type: geopolitical,    name_kr: 미중 관세 격화 }
+  - { id: 2020-02_covid,             anchor_date: 2020-02-20, window: [2020-02-17, 2020-03-23], type: growth_shock,    name_kr: 코로나 폭락 }
+  - { id: 2021-02_rates_scare,       anchor_date: 2021-02-25, window: [2021-02-16, 2021-03-12], type: monetary_policy, name_kr: 금리 발작 (경증 대조군) }
+  - { id: 2022-01_fed_hawkish,       anchor_date: 2022-01-05, window: [2022-01-03, 2022-02-25], type: monetary_policy, name_kr: 연준 매파 전환 }
+  - { id: 2022-06_cpi_shock,         anchor_date: 2022-06-13, window: [2022-06-09, 2022-07-01], type: monetary_policy, name_kr: CPI 쇼크 }
+  - { id: 2022-09_gilt_dollar,       anchor_date: 2022-09-26, window: [2022-09-19, 2022-10-21], type: credit_stress,   name_kr: 길트 위기·킹달러 }
+  - { id: 2022-10_legoland,          anchor_date: 2022-10-04, window: [2022-09-26, 2022-11-30], type: domestic_kr,     name_kr: 레고랜드 자금경색 }
+  - { id: 2023-03_svb,               anchor_date: 2023-03-10, window: [2023-03-06, 2023-03-31], type: credit_stress,   name_kr: SVB 사태 }
+  - { id: 2023-10_ust_5pct,          anchor_date: 2023-10-19, window: [2023-10-02, 2023-10-31], type: monetary_policy, name_kr: 미 10년물 5% }
+  - { id: 2024-08_carry_unwind,      anchor_date: 2024-08-05, window: [2024-07-25, 2024-08-09], type: mixed,           name_kr: 엔캐리 청산 (골든) }
+  - { id: 2024-12_martial_law,       anchor_date: 2024-12-03, window: [2024-12-03, 2024-12-31], type: domestic_kr,     name_kr: 비상계엄 사태 }
+  - { id: 2025-04_tariff_shock,      anchor_date: 2025-04-02, window: [2025-04-01, 2025-04-30], type: geopolitical,    name_kr: 상호관세 쇼크 }
+  - { id: 2014-10_growth_scare,      anchor_date: 2014-10-15, window: [2014-10-01, 2014-10-31], type: growth_shock,    name_kr: 2014 성장 스케어 (경증 대조군) }
+
+  # --- F-02 추가 (2026-08-01 정합성 점검) : 시드 공백기 2025H2~2026H1 보강 ---
+  # 주의: 아래 4건은 뉴스 기반 1차 선별이다. AL-01 백필에서 지수·수급 데이터로 anchor_date를
+  #       재확인하고, 어긋나면 수정하지 말고 게이트 리포트에 이견으로 기록한다(시드 규칙).
+  - { id: 2026-06-08_semis_shock,    anchor_date: 2026-06-08, window: [2026-06-01, 2026-06-30], type: mixed,           name_kr: 브로드컴 쇼크·중동 확전 (KOSPI -8.3%, 서킷브레이커) }
+  - { id: 2026-07-28_ai_bubble_bust, anchor_date: 2026-07-28, window: [2026-07-01, 2026-08-31], type: mixed,           name_kr: AI·반도체 버블 조정 (KOSPI -10.84%, 이틀 연속 서킷브레이커) }
+  - { id: 2026-02_foreign_exodus,    anchor_date: 2026-02-01, window: [2026-02-01, 2026-03-31], type: mixed,           name_kr: 외국인 대규모 순매도·고환율 (2~3월 60조 순매도) }
+  - { id: 2025-2026_krw_stress,      anchor_date: 2026-01-02, window: [2025-11-01, 2026-07-31], type: domestic_kr,     name_kr: 원화 고환율 국면 (완만형 대조군, 장기창) }
