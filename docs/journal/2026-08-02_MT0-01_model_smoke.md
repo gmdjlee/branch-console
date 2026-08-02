@@ -1,5 +1,8 @@
 # MT0-01 모델 ID 스모크 검증 (D-20 §20.1 확정값)
 
+> **최종 판정: 3/3 유효 — PASS (§6 재검증).** §1~§5는 계정 크레딧 차단 상태의 1차 기록이며,
+> §2 결과 표의 400 오류와 §3의 "FAIL (부분)" 판정은 §6으로 대체되었다.
+
 - 작성: 2026-08-02, data-verifier Worker
 - 대상: `configs/statemachine.yaml` `llm_tiering`에 이미 기입된 D-20 확정 ID 3개
   (`claude-opus-5`, `claude-sonnet-5`, `claude-haiku-4-5-20251001`)
@@ -56,6 +59,8 @@
 D-20이 확정한 3개 ID는 (a) 기준으로는 Anthropic 카탈로그에 실재함이 확인되었고, (b)(c)는
 계정 크레딧 충전 후 재검증이 필요한 상태로 남는다.
 
+→ 2026-08-02 재검증(§6)으로 최종 판정 대체.
+
 ## 4. 조치 및 제약 준수
 
 - **configs 수정 없음.** `configs/statemachine.yaml`의 `llm_tiering` 블록은 변경하지
@@ -74,3 +79,61 @@ ANTHROPIC_API_KEY="$(grep '^ANTHROPIC_API_KEY=' .env | cut -d= -f2- | tr -d '\r\
 curl 요청 헤더는 `-H "x-api-key: $ANTHROPIC_API_KEY"` 변수 참조 형태로만 실행했다. 본
 문서, 터미널 출력, 응답 캡처본(`resp_*.json`, `models_list.json`) 어디에도 키 값(원문·
 부분 문자열 포함)이 기록되지 않았음을 확인한다.
+
+## 6. 재검증 (크레딧 충전 후)
+
+- 검증 시각: 2026-08-02 06:48:38 ~ 06:48:44 UTC (2026-08-02 15:48:38 ~ 15:48:44 KST)
+- 총 실호출: **3회** (모델당 1회, 예비 재시도 미사용 — 3건 모두 첫 시도에서 HTTP 200 수신)
+- payload는 1차 스모크와 동일 파일 재사용
+  (`...5525d2c2.../scratchpad/payload_{opus,sonnet,haiku}.json`): `tool_choice`로
+  `record_phase` 강제, `max_tokens: 256`, `input_schema`는 `phase` enum(GREEN/AMBER/
+  ORANGE/RED) + `composite` number 둘 다 required.
+- 응답 원문은 콘솔 출력 없이 파일로만 저장 후 파싱
+  (`...9c54481e.../scratchpad/resp_{opus,sonnet,haiku}.json`,
+  파싱 스크립트 `parse_resp.py` → `parsed_summary.json`).
+
+### 결과 표
+
+| 모델 ID | HTTP 상태 | 지연(ms) | input/output 토큰 | 구조화 출력 파싱 | message id |
+|---|---|---|---|---|---|
+| `claude-opus-5` | 200 | 2298 | 583 / 58 | **O** | `msg_011CddUWYiVuBARZ6iQBSpNg` |
+| `claude-sonnet-5` | 200 | 1943 | 651 / 59 | **O** | `msg_011CddUWjW9Ae1weBcVj8o5t` |
+| `claude-haiku-4-5-20251001` | 200 | 1457 | 715 / 51 | **O** | `msg_011CddUWskjJJLf57GM6xvy8` |
+
+(성공(200) 응답 본문에는 에러 응답과 달리 `request_id` 필드가 없다 — 대신 메시지
+고유 식별자인 최상위 `id`(`msg_...`)를 대체 증빙으로 기재했다. 3건 모두
+`stop_reason: "tool_use"`.)
+
+### 파싱된 tool input 원문 (JSON)
+
+```json
+{
+  "opus":   {"phase": "AMBER",  "composite": 42},
+  "sonnet": {"phase": "ORANGE", "composite": 42},
+  "haiku":  {"phase": "AMBER",  "composite": 42}
+}
+```
+
+세 응답 모두 `tool_use` 블록 1개, `name: "record_phase"`, `input`이 스키마에 완전
+부합(`phase` ∈ {GREEN, AMBER, ORANGE, RED}, `composite`는 number, 키 집합이
+`{phase, composite}`와 정확히 일치) — **schema_valid: true (3/3)**.
+
+### 최종 판정
+
+**3/3 유효 — PASS.**
+
+- (a) 목록 존재: 3/3 통과 (1차 스모크에서 이미 확인, 재실행 불필요).
+- (b) 메시지 호출 200: **3/3 통과**.
+- (c) 구조화 출력 파싱 성공: **3/3 통과**.
+
+D-20이 확정한 3개 모델 ID(`claude-opus-5`, `claude-sonnet-5`,
+`claude-haiku-4-5-20251001`)는 존재·호출 가능·구조화 출력 계약 준수를 모두 실측으로
+확인했다. `configs/statemachine.yaml`의 `llm_tiering` 값은 수정하지 않았다(이미 올바른
+확정값이므로 변경 불요).
+
+### 키 미노출 확인 (재검증)
+
+`ANTHROPIC_API_KEY`는 1차와 동일하게 `.env`에서 셸 환경변수로만 로드했으며, curl 헤더는
+`-H "x-api-key: $ANTHROPIC_API_KEY"` 변수 참조 형태로만 실행했다. 본 섹션, 터미널
+출력, 응답 캡처본(`resp_*.json`, `parsed_summary.json`) 어디에도 키 값(원문·부분
+문자열 포함)이 기록되지 않았음을 확인한다.
