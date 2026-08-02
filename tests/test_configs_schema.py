@@ -20,7 +20,9 @@ def _load(name: str) -> dict:
 
 def test_all_configs_parse() -> None:
     yaml_files = sorted(CONFIGS_DIR.glob("*.yaml"))
-    assert len(yaml_files) == 5, f"expected 5 config files, found {[p.name for p in yaml_files]}"
+    assert len(yaml_files) == 5, (
+        f"expected 5 config files, found {[p.name for p in yaml_files]}"
+    )
     for path in yaml_files:
         with open(path, encoding="utf-8") as f:
             assert yaml.safe_load(f) is not None
@@ -29,7 +31,12 @@ def test_all_configs_parse() -> None:
 def test_statemachine_profiles_structure() -> None:
     d = _load("statemachine.yaml")
     profiles = d["profiles"]
-    required_keys = {"tick", "promote_sustain_ticks", "demote_below_ticks", "min_dwell_ticks"}
+    required_keys = {
+        "tick",
+        "promote_sustain_ticks",
+        "demote_below_ticks",
+        "min_dwell_ticks",
+    }
     for name in ("server_intraday", "mobile_daily"):
         assert name in profiles
         assert required_keys.issubset(profiles[name].keys())

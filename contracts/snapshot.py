@@ -38,8 +38,14 @@ class TriggerBlock(BaseModel):
 
 class EventClassification(BaseModel):
     type: Literal[
-        "monetary_policy", "credit_stress", "geopolitical",
-        "growth_shock", "tech_supply_demand", "domestic_kr", "mixed", "unknown",
+        "monetary_policy",
+        "credit_stress",
+        "geopolitical",
+        "growth_shock",
+        "tech_supply_demand",
+        "domestic_kr",
+        "mixed",
+        "unknown",
     ]
     severity: Literal["low", "medium", "high"]
     confidence: Literal["low", "medium", "high"]
@@ -47,7 +53,9 @@ class EventClassification(BaseModel):
         default_factory=list,
         description="analogue library 사건 ID (예: '2024-08-05_carry_unwind')",
     )
-    rationale: str = Field(description="분류 근거. 반드시 fired_indicators 또는 analogue 인용")
+    rationale: str = Field(
+        description="분류 근거. 반드시 fired_indicators 또는 analogue 인용"
+    )
 
 
 class KrImpact(BaseModel):

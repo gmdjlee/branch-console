@@ -13,13 +13,20 @@
 ```python
 class AnalogueRecord(BaseModel):
     schema_id: Literal["analogue-record/1"]
-    event_id: str; anchor_date: date; type: EventType; name_kr: str
-    trigger_vector: dict[str, float]          # 지표 id -> anchor 시점 값(z/level, 보정판 레지스트리)
+    event_id: str
+    anchor_date: date
+    type: EventType
+    name_kr: str
+    trigger_vector: dict[
+        str, float
+    ]  # 지표 id -> anchor 시점 값(z/level, 보정판 레지스트리)
     trigger_severities: dict[str, int]
-    paths: dict[str, dict[str, float]]        # {"KOSPI": {"d5": -6.2, "d20": ...}, "USDKRW": ...}
+    paths: dict[
+        str, dict[str, float]
+    ]  # {"KOSPI": {"d5": -6.2, "d20": ...}, "USDKRW": ...}
     sector_paths_d20: dict[str, float]
-    outcome_summary_kr: str                   # 3문장 이내, Batch API 생성
-    data_quality: dict[str, float]            # 지표별 결측률
+    outcome_summary_kr: str  # 3문장 이내, Batch API 생성
+    data_quality: dict[str, float]  # 지표별 결측률
 ```
 
 ## 서브태스크 (AL-01 → 02 → 03 → 04, 03과 04는 병렬 가능)

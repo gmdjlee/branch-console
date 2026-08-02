@@ -10,7 +10,7 @@ schema: statemachine/1
 phases: [GREEN, AMBER, ORANGE, RED]
 initial_phase: GREEN
 
-upgrade:                      # 조건 충족이 sustain_ticks 연속이어야 승격
+upgrade:                      # 조건 충족이 promote_sustain_ticks(profiles.*) 연속이어야 승격 (D-16)
   rules:
     AMBER:  { composite_gte: 20, or_any_crit: true }
     ORANGE: { composite_gte: 40, distinct_axes_gte: 2 }
