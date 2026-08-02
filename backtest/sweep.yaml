@@ -1,0 +1,402 @@
+# =============================================================================
+# sweep.yaml — BT-03 보정 스윕 그리드 (SSOT, backtest 전용)
+# branch-console M0 | schema: backtest-sweep/1
+# -----------------------------------------------------------------------------
+# 근사-PIT — C1에서 실측 확정 (docs/BACKTEST_PLAN.md §5).
+#   전 창이 일봉 근사이며(§5.2 server 30분 재현 포함), 소급 수집치는 개정치를 포함할 수
+#   있어 진짜 PIT이 아니다. 이 파일이 정의하는 모든 그리드·판정은 그 한계 위의 1차 보정
+#   가설이다(D-04 "모든 임계값은 가설"). 확정은 C1 실측 lake에서 재수행한다.
+# -----------------------------------------------------------------------------
+# 지위: **스윕 그리드의 유일한 저장소**. backtest/run_sweep.py는 여기서만 값을 읽으며
+# 코드에 그리드 리터럴을 두지 않는다(CLAUDE.md §1, BACKTEST_PLAN.md §2). 후보가 적용되는
+# 대상 파일은 configs/indicators.yaml·configs/statemachine.yaml·backtest/replay.yaml이며,
+# 이 파일은 "그 파일들의 어떤 키를 어떤 값 집합으로 흔들 것인가"만 정의한다 — 현행(baseline)
+# 값을 여기에 복제해 SSOT를 이원화하지 않는다(baseline은 대상 파일에서 읽는다).
+#
+# 차원 형상 규약(4차원 공통): target / grid / constraint? / dedupe? / combinations /
+# execute? / skip_reason?  — grid에는 "흔들 값 집합"만 두고, 값이 아닌 제약·등가규칙은
+# constraint·dedupe에 둔다. 예외 하나: stale_windows는 대상이 프로파일별 맵
+# (engine.stale_profiles)이라 같은 형상을 profile 키 아래 한 단계 중첩해 반복한다
+# (mobile_daily / server_intraday 각각이 grid·combinations·execute를 갖는다).
+#
+# 근거: docs/BACKTEST_PLAN.md §BT-03·§3·§5·§6 / docs/P0_DESIGN_DECISIONS.md
+# D-04·D-08·D-12·D-13·D-16·D-25(§2 부기 O3-1) / docs/reviews/REVIEW_M0.md MT0-04 /
+# 설계 근거·실측 진단·Advisor 결정(AD-1~4)은 docs/journal/2026-08-03_MT0-05_sweep_design.md.
+# =============================================================================
+
+schema: backtest-sweep/1
+
+meta:
+  baseline_registry_version: "0.2.0"
+  target_registry_version: "0.3.0-rc"
+  # 스윕 창 = backtest/windows.yaml에서 holdout != true인 7창(양성 6 + 음성 1).
+  # 홀드아웃 2창은 R-03 과적합 감지 장치다 — run_sweep.py는 windows.yaml의 holdout
+  # 플래그로 필터링하고 창 id를 하드코딩하지 않는다.
+  #
+  # AD-6 (R-03 해석 확정): 홀드아웃 창의 산출물은 **선정·랭킹·그리드 값 결정의 입력으로
+  # 사용 금지**다. 다만 설계 단계의 리스크 진단 서술에서 인용하는 것은 허용하며, 그 경우
+  # 반드시 "진단 관측(선정 미반영)" 라벨을 붙인다(설계 저널 §9.2c·§10 R-1이 그 예다).
+  # 즉 금지 대상은 "읽는 행위"가 아니라 "선정에 되먹이는 행위"다.
+  exclude_holdout_windows: true
+  profiles: [server_intraday, mobile_daily]
+
+# -----------------------------------------------------------------------------
+# 골든 무회귀 — 하드 제약 (성능과 무관하게 위반 즉시 탈락)
+# -----------------------------------------------------------------------------
+# 판정은 backtest/test_golden.py의 4개 단언과 **동일 의미**로 수행한다(재구현 금지 —
+# 그 모듈을 import하거나 동일 yaml을 읽어 같은 비교를 한다). 두 골든의 강도가 비대칭이다:
+#   server : D-08 원문의 의미 판정(느슨) — 2024-08-05 kr_close 틱 phase>=ORANGE +
+#            발화 축에 vol_global·kr_flow_price 포함, 음성 창 전 틱 <=AMBER.
+#   mobile : 동결 타임라인 완전 일치(엄격) — 틱별 phase·composite·coverage·fired_axes.
+# 즉 mobile 쪽은 "골든 2창에서 아무것도 바뀌지 않을 것"을 요구하며, 이것이 그리드의 실질
+# 필터다. 차원별 실측 통과/탈락 수는 설계 저널 §8 표.
+golden_constraint:
+  enforce: true
+  stage: pre_filter # 7창 성능 산출보다 먼저 — 위반 후보는 성능 계산 자체를 생략
+  windows: [w2024_carry_unwind, w2024_05_calm] # D-08 2케이스
+  expectations:
+    server: golden_server.yaml
+    mobile: golden_mobile.yaml
+  composite_rel_tol: 1.0e-9 # test_golden.py의 pytest.approx(rel=1e-9)와 동일
+  # 후보가 골든을 움직이면 그 후보를 탈락시키지, 기대값을 후보에 맞추지 않는다.
+  # 기대값을 갱신하는 순간 CLAUDE.md §5의 전 phase 공통 회귀 게이트가 무력화된다.
+  regenerate_expectations: false
+
+# -----------------------------------------------------------------------------
+# 선정 규칙 — BACKTEST_PLAN §BT-03 고정 문언의 조작적 정의
+# -----------------------------------------------------------------------------
+# 고정 문언(변경 금지): "홀드아웃 제외 7창에서 수용 기준(§6) 통과 조합 중 오탐 최소 ->
+# 리드타임 최대 순. 동률이면 단순한 값."  아래는 **계량 방법만** 확정한 것이다.
+selection:
+  gate:
+    detection:
+      metric: 양성 창에서 max_phase >= ORANGE 인 창의 수
+      # AD-1(ii)/F-2: 도달 불가가 증명된 창은 w2026_structural **1창뿐**이다(설계 저널 §4).
+      # detection 항목을 통째로 제외하지 않고 그 1창만 명시적으로 축소해 5/5를 필수로 둔다.
+      # 나머지 5개 양성 창에서 탐지를 잃는 후보는 이 게이트에서 즉시 탈락한다.
+      required: all_positive_sweep_windows_except
+      except_windows: [w2026_structural]
+      profiles: [server_intraday, mobile_daily]
+    lead_time:
+      # 창별 lead = (최대낙폭일의 거래일 인덱스) - (첫 ORANGE 이상 틱의 거래일 인덱스).
+      # 단위는 달력일이 아니라 그 창의 거래일 그리드 인덱스 차(run_replay.trading_days).
+      anchor: max_drawdown_day
+      # F-6: §6 문언 "최대 낙폭일"에 충실하게 **러닝피크 기준 최대 낙폭일**로 정의한다
+      # (peak = 창내 누적 최고 종가, dd = (peak-close)/peak 의 최대일). 픽스처 KRX:1001
+      # 종가에서 산출하며 windows.yaml의 anchor_hint는 판정에 쓰지 않는다(참고치).
+      # 실측: 6개 양성 스윕 창 전부에서 "최저 종가일" 정의와 결과가 일치하므로 이 확정으로
+      # 인한 수치 변화는 없다(두 정의가 갈리는 것은 홀드아웃 음성 창 w2023_11_rally뿐이고
+      # — 11-01 vs 11-13 — 음성 창은 앵커를 쓰지 않는다).
+      aggregate: median
+      required_median_ge: 1
+      # 미탐지 창은 중앙값 계산에서 제외한다. 단 detection 게이트가 5/5를 요구하므로
+      # w2026 외의 탐지 상실은 **중앙값에 도달하기 전에 탈락**한다 — "탐지를 잃어 표본이
+      # 줄면 중앙값이 올라가 순위가 개선되는" 역전은 규칙 수준에서 봉쇄된다(F-2).
+      undetected_handling: exclude_from_median
+      profiles: [server_intraday, mobile_daily]
+      window_specific:
+        - window_id: w2026_structural
+          first_orange_before: 2026-07-28
+          # 설계 저널 §4에서 스윕 대상 ①~④로 도달 불가임이 실측 증명됐다.
+          # 게이트에서 제외하지 않고 **FAIL 그대로 보고**하며 GM0 안건으로 올린다.
+          reachable_within_sweep: false
+    false_positive:
+      # "오탐 = 음성 창의 ORANGE 이상 진입, 0건 (AMBER 단기 진입은 3틱 이하 허용)".
+      # AMBER 틱수도 계량에 포함한다(§6이 3틱 상한을 명시하므로 원래 오탐 계량의 일부).
+      # 단 in-sample 축퇴 주의: 음성 스윕 창 w2024_05_calm은 전 틱 composite 0.00이라
+      # 실측상 **어떤 후보에서도 ORANGE+ 0 / AMBER 0**이다(① 24조합·③ 56조합 전수 확인).
+      # 이 게이트는 상시 통과하며 판별력이 없다 — 실효 완충은 flapping이다.
+      orange_or_above_ticks_max: 0
+      amber_ticks_max: 3
+      profiles: [server_intraday, mobile_daily]
+    flapping:
+      positive_transitions_max: 6
+      negative_transitions_max: 2
+      # AD-5 / F3R2: server 프로파일을 **명시적 축소로 게이트에서 제외**한다(F-2와 같은
+      # 패턴 — 항목을 통째로 없애지 않고 범위만 좁힌다). 근거는 아래 둘이며, 라운드 2의
+      # "일봉 근사 아티팩트" 귀속은 **철회**됐다(반증됨, 설계 저널 §9.2).
+      #
+      #   (1) 스윕 무감(유효 실측): 차원 ① 35조합 전수에서 server 양성창 최대 전이수는
+      #       최솟값=최댓값=20으로 **불변**이다. 후보를 전혀 변별하지 못하므로 게이트로
+      #       두면 전 후보를 똑같이 탈락시켜 선정을 봉쇄할 뿐 아무 정보도 주지 않는다.
+      #   (2) 원인이 스윕 대상 밖이다: 진짜 원인은 상태기계 **설정 모순**이다 —
+      #       upgrade.AMBER{composite_gte:20, or_any_crit:true}가 crit 발화만으로 영구
+      #       충족되는 동시에 downgrade.exit_AMBER{composite_lt:14}도 영구 충족되어
+      #       카운터 주기의 한계진동이 발생한다. 상수 입력(composite=12.8205 고정,
+      #       any_crit=True) 100틱만으로 server 15건(주기 6.7틱)·mobile 49건(주기 2.0틱)이
+      #       재현된다 — 데이터와 무관한 기전이다. 전이 규칙 수정은 스윕 대상 ①~④ 밖이다.
+      #
+      # 이것은 하니스 한계가 아니라 **SSOT 결함 후보**다. 판정표에는 FAIL 그대로 표기하고
+      # 원인 귀속과 함께 GM0 안건으로 올린다(설계 저널 "GM0 상신 안건" 절).
+      # mobile은 게이트를 유지한다 — 동일 기전에 노출돼 있으나 골든 통과 56조합 중
+      # **12조합이 실제로 통과**하므로 변별력이 있다.
+      except_profiles: [server_intraday]
+      except_reason: statemachine_config_contradiction_out_of_sweep_scope
+      except_evidence: sweep_invariant_min_eq_max_eq_20_over_dim1_35
+  rank: # gate 통과 조합 내부의 순위 — 위에서부터 적용
+    - key: false_positive_min
+      order: asc
+      tuple: [negative_orange_ticks_sum, negative_amber_ticks_sum]
+      # 위 false_positive 주석대로 in-sample 완전 축퇴(전 후보 (0,0)) — 실질 선정은
+      # 사실상 rank 2 이하로 환원된다. BT_REPORT는 이 사실을 스윕 표에 명시해야 한다.
+      degenerate_in_sample: true
+    - key: lead_time_max
+      order: desc
+      tuple: [positive_lead_median_mean, positive_lead_sum_mean]
+    - key: simplest_value
+      order: asc
+      tuple:
+        - changed_param_count # 현행 0.2.0 대비 값이 달라진 파라미터 개수
+        - total_decimal_places # 수치 파라미터의 소수 자릿수 합 (2.5 -> 1, 1.75 -> 2)
+        - canonical_yaml_lexicographic # 완전 결정론적 최종 타이브레이크
+  reporting:
+    # AD-1(iv): 게이트를 느슨하게 해 "선정 성공"으로 보이게 만드는 처리 금지.
+    # §6 미충족 항목은 전부 판정표에 FAIL 그대로 표기하고 GM0 안건으로 올린다.
+    report_all_criteria_verbatim: true
+    # 각 항목은 판정표에 FAIL 그대로 + "왜 스윕 범위 밖인가"의 원인 귀속을 함께 적는다.
+    mark_out_of_scope_fails:
+      - criterion: lead_time.window_specific.w2026_structural
+        cause: severity 포화·z 자기정규화(해상도 F-06) — 대응은 BT-04
+      - criterion: flapping.server_intraday
+        cause: 상태기계 설정 모순(or_any_crit 진입 영구 충족 ⊕ exit_AMBER 영구 충족) — 전이 규칙 수정은 스윕 대상 밖
+    gm0_agenda: [w2026_resolution_gap, or_any_crit_exit_amber_conflict]
+    result_label: "0.3.0-rc (조건부)"
+
+# -----------------------------------------------------------------------------
+# 실행 계획 — 전수 조합이 아니라 단계적(차원 분리) 스윕
+# -----------------------------------------------------------------------------
+# 전수 조합 |①|x|④|x|③| = 35 x 3 x 112 = 11,760조합 x 2.33s 약 7.6시간.
+# 단계적으로는 154회 평가 / 약 4.6분. 차원 분리의 정당성은 설계 저널 §5.
+execution:
+  runtime_seconds_per_candidate: # 실측(MT0-05 설계 단계, 이 저장소 기준)
+    golden_prefilter: 0.72 # 골든 2창 x 2프로파일
+    sweep_7w_two_profiles: 1.61
+    sweep_7w_mobile_only: 0.84
+  stages:
+    - id: S1_indicator_thresholds
+      dimensions: [usdkrw_thresholds]
+      hold_others_at: baseline
+      profiles: [server_intraday, mobile_daily]
+      evaluations: 35
+    - id: S2_stale_windows
+      dimensions: [stale_windows]
+      hold_others_at: baseline
+      profiles: [server_intraday, mobile_daily]
+      evaluations: 3
+    - id: S3_interaction_check
+      # 차원 분리 가정의 실증 검증.
+      # MR2-2: top_k는 "랭킹 상위 k개 **후보**"가 아니라 "**선정 서명 기준 서로 다른
+      # 상위 k개 등가류**"다 — 각 등가류에서 대표 후보 1개씩만 교차한다. 상위 2후보가
+      # 같은 등가류에 속하면 교차 검증이 조용히 축퇴하는 구멍을 막기 위한 정의다.
+      # 선정 서명 = 7창 각각의 (max_phase, n_transitions, first_orange_or_above_date).
+      #
+      # 실측 등가류 수(측정 기준 명시):
+      #   ① 골든 통과 24조합 -> 전체 summary 기준 4종 / **선정 서명 기준 2종**
+      #   ④ daily_us 3값     -> 전체 summary 기준 3종 / **선정 서명 기준 2종**
+      # 선정은 선정 서명만 보므로 top_k = 2로 충분하고, 그 이상은 같은 등가류를 중복
+      # 측정하는 낭비다. 등가류가 k보다 적으면 있는 만큼만 쓴다.
+      dimensions: [usdkrw_thresholds, stale_windows]
+      source: top_k_equivalence_classes_of(S1) x top_k_equivalence_classes_of(S2)
+      top_k: 2
+      top_k_unit: selection_signature_equivalence_class
+      selection_signature: [max_phase, n_transitions, first_orange_or_above_date]
+      evaluations: 4
+      escalate_to_full_cross_on_disagreement: true
+    - id: S4_statemachine_profile
+      # ③은 composite 계열을 바꾸지 않고 국면 타임라인만 바꾸는 순수 후처리이므로
+      # (engine_ref.statemachine.run은 Tick 시퀀스만 받는다) S3 승자 위에서 전수로 돈다.
+      # server 프로파일 파라미터는 스윕 대상 밖(BT-03 ③은 mobile_daily 한정)이라
+      # server 결과는 S3에서 불변 — 이 단계는 mobile만 재평가한다.
+      dimensions: [mobile_daily_profile]
+      hold_others_at: winner_of(S3)
+      profiles: [mobile_daily]
+      evaluations: 112
+    - id: S5_final_confirmation
+      # 최종 후보를 9창(홀드아웃 포함) x 2프로파일로 1회 실행 — 홀드아웃 결과는 BT-04
+      # 검증 자료이며 선정에 소급 반영하지 않는다(R-03).
+      dimensions: []
+      windows: all
+      profiles: [server_intraday, mobile_daily]
+      holdout_result_feeds_selection: false
+  total_evaluations: 154
+
+# -----------------------------------------------------------------------------
+# 스윕 차원 ①~④
+# -----------------------------------------------------------------------------
+dimensions:
+  # --------------------------------------------------------------- ① D-12
+  usdkrw_thresholds:
+    plan_ref: "BACKTEST_PLAN §BT-03 ① usdkrw 양방향 임계(D-12)"
+    target:
+      file: configs/indicators.yaml
+      path: indicators[id=usdkrw_z].thresholds
+    # direction: abs(D-12/F-03)·weight·transform은 스윕 대상 밖 — BT-03 ①의 문언은
+    # "양방향 임계"이고 방향 전환 자체는 D-12로 확정된 결정이다.
+    #
+    # 골든 가용 영역(실측): 1.194 < watch <= 2.204 < warn.  crit는 골든 2창에 |z|>=3.0
+    # 틱이 없어 골든에 구속되지 않는다. 그리드는 가용 영역 밖 값(watch 2.25 / warn 2.0)도
+    # 의도적으로 포함한다 — 경계가 실제로 탈락하는지 매 실행에서 재확인하는 대조군이다.
+    # 실측: 35조합 중 골든 통과 24 / 탈락 11, 탈락 11건 전건이 동일 사유
+    # (mobile w2024_carry_unwind 2024-08-01 틱 composite 이탈).
+    grid:
+      watch: [1.5, 1.75, 2.0, 2.25]
+      warn: [2.0, 2.25, 2.5, 3.0]
+      crit: [3.0, 3.5, 4.0]
+    constraint:
+      monotonic: watch < warn < crit # 위반 조합은 생성 단계에서 제외
+    combinations: 35
+
+  # --------------------------------------------------------------- ② F-04 / D-13
+  f04_structural:
+    plan_ref: "BACKTEST_PLAN §BT-03 ② F-04 2종 {weight x thresholds}"
+    target:
+      file: configs/indicators.yaml
+      paths:
+        - indicators[id=krx_halt_events].{enabled,weight,thresholds}
+        - indicators[id=margin_leverage_stress].{enabled,weight,thresholds}
+    # ------------------------------------------------------------------
+    # 실행하지 않는다. 사유(전건 실측, 설계 저널 §7):
+    #   1) 픽스처 결손: 9창 **전부**의 meta.json에서 두 계열 status=uncollected
+    #      (BT-01 collection plan이 krx_notice·krx_margin 제공자를 제외 — MT0-03 범위 밖).
+    #   2) 수집 경로 부재: pykrx 1.2.8 공개 API 90개 중 신용융자잔고·사이드카/서킷브레이커
+    #      발동 이력에 대응하는 함수가 0개. 2011·2015·2018 소급까지 하려면 KRX
+    #      정보데이터시스템/공시 아카이브 신규 스크레이퍼가 필요 — M0 범위 밖.
+    #   3) 하니스 미배선: enabled:true로 바꾸면 run_replay가 KeyError('krx_halt_events')로
+    #      즉시 실패한다(_BUILDERS 미등록). 데이터가 있어도 배선 구현이 선행돼야 한다.
+    #   4) 결정적: 두 지표가 전 구간 crit(3)이라는 최대 가정에서도 w2026 ORANGE 도달은
+    #      07-30(=최대낙폭일 당일) composite 42.11 -> 리드타임 0. §6 "07-28 이전 도달"은
+    #      여전히 미충족이다(07-28 36.26, 07-27 26.32 — 전부 40 미만).
+    # 결론: D-13("활성화 여부는 C1에서 판정") + BACKTEST_PLAN("희석 문제의 해가 없으면
+    # 비활성 유지가 결론")에 따라 **비활성 유지(픽스처 결손, C1 실측 후 재판정)**가
+    # BT-03의 공식 결론. 그리드 구조는 C1 재사용을 위해 남긴다.
+    # ------------------------------------------------------------------
+    execute: false
+    skip_reason: fixture_uncollected_9of9
+    grid:
+      krx_halt_events:
+        enabled: [true]
+        weight: [2.0, 3.0]
+        thresholds:
+          - { watch: 1, warn: 2, crit: 4 } # 현행 가설
+          - { watch: 1, warn: 3, crit: 6 } # 완화(희석 억제 방향)
+      margin_leverage_stress:
+        enabled: [true]
+        weight: [1.5, 2.0]
+        thresholds:
+          - { watch: 1.5, warn: 2.0, crit: 3.0 } # 현행 가설
+          - { watch: 2.0, warn: 2.5, crit: 3.5 } # 완화
+    combinations: 8 # 실행 시. 현재 실행 0회.
+
+  # --------------------------------------------------------------- ③ mobile_daily
+  mobile_daily_profile:
+    plan_ref: "BACKTEST_PLAN §BT-03 ③ mobile_daily {promote_sustain, demote_below, min_dwell, 확정 틱 시각}"
+    target:
+      - file: configs/statemachine.yaml
+        path: profiles.mobile_daily.{promote_sustain_ticks,demote_below_ticks,min_dwell_ticks,reentry_cooldown_ticks}
+      - file: backtest/replay.yaml
+        path: profiles.mobile_daily.confirm_time_kst
+    # 실측: dedupe 후 112조합 중 골든 통과 56 / 탈락 56.
+    #   promote_sustain_ticks=1 -> 56조합 전건 통과
+    #   promote_sustain_ticks=2 -> 56조합 전건 탈락, 사유 단일
+    #     (mobile w2024_carry_unwind 2024-08-02 phase GREEN != AMBER)
+    #   즉 promote_sustain_ticks=1이 골든상 유일 가용값이며, 2는 그 경계를 매 실행에서
+    #   재확인하는 대조군이다. 2는 D-08 원문("2024-08-05 kr_close 틱까지 ORANGE 이상")도
+    #   함께 위반한다(첫 ORANGE가 08-05 -> 08-06으로 밀림).
+    # reentry_cooldown_ticks는 statemachine.yaml에 미정의(주석 "BT-03에서 결정")이고
+    # 엔진 기본값이 0이다 — 이 스윕이 값을 확정한다(AD-4).
+    #
+    # MR2-1 실측(라운드 2의 "cooldown 3에서 처음 충족 / cooldown이 유일한 실효 노브"
+    # 서술은 오류였고 아래로 교체한다): 골든 통과 56조합 중 §6 mobile 플래핑
+    # (양성 <=6, 음성 <=2)을 통과하는 것은 **12조합**이며, 실효 노브는 cooldown 단독이
+    # 아니라 **dwell·demote·cooldown의 조합**이다.
+    #   통과 (demote_below, min_dwell, reentry_cooldown) =
+    #     (2,5,3) (3,5,2) (3,5,3) (4,2,3) (4,5,2) (4,5,3)  x confirm_time 2값 = 12조합
+    #   dwell 집합 {2, 5} · cooldown 집합 {2, 3} -> **cooldown=2에서도 이미 통과**한다.
+    #   **통과 6조합 중 5개가 min_dwell=5 > demote_below**(O3-1 비무효 영역)를 요구한다 —
+    #   min_dwell > demote 조합을 그리드에 넣은 설계 판단이 실측으로 정당화됐다.
+    # mobile 플래핑이 실질 필터이므로(server는 AD-5로 범위 밖 축소) 이 축들이 선정의 중심이다.
+    grid:
+      promote_sustain_ticks: [1, 2]
+      demote_below_ticks: [2, 3, 4]
+      min_dwell_ticks: [2, 3, 5]
+      reentry_cooldown_ticks: [0, 1, 2, 3]
+      confirm_time_kst: ["16:20", "17:00"]
+    constraint:
+      # O-7 물리 하한. 확정 틱은 그날의 확정치를 볼 수 있는 시각이어야 한다.
+      confirm_time_kst_min: "16:50"
+      confirm_time_kst_min_basis: |
+        (1) KRX 정규장 마감 15:30 KST 이후여야 그날의 확정치다.
+        (2) configs/statemachine.yaml schedules.collection.daily_kr = 16:50 KST —
+            그날의 KR 수집 완료 시각. 16:20은 수집이 끝나기 30분 전에 확정 틱을 도는
+            셈이라 SSOT 스케줄과 모순된다.
+      # 16:20의 지위: BACKTEST_PLAN §BT-03이 명시한 비교 대상이므로 그리드에 남기되,
+      # 위 하한 미달로 **평가 후 기각**되는 값이다(대조군이 아니라 기각 대상).
+      # 중요(AD-3): 하니스는 확정 틱 시각에 **완전 무감**이다 — 09:00·14:00·15:40·16:20·
+      # 17:00·18:00·23:50의 9창 전 틱 산출이 모두 비트 동일했다(일봉 근사에서 틱 간격이
+      # 어느 값이든 정확히 24h라 스테일 판정도 불변). 따라서 이 하한은 하니스가 검증하지
+      # 못하는 **물리·스케줄 논증**이며, §6 수치로는 두 값을 구분할 수 없다.
+      confirm_time_kst_decided_by: schedule_coherence_not_harness
+    dedupe:
+      # D-25 §2 부기 O3-1: 현행 카운터 의미론에서 min_dwell <= demote_below 구간은 거동이
+      # 완전히 동일하다. 같은 (promote, demote, cooldown, confirm)에서 그 구간을 대표값
+      # 하나로 접는다(144 -> 112). min_dwell > demote_below 조합은 지연 틱수가 값마다
+      # 달라 접지 않으며, dwell 게이트를 실제로 시험하기 위해 의도적으로 포함했다
+      # (3>2, 5>2·3·4). 평탄한 응답을 "보정 완료"로 오독하지 않기 위한 장치다.
+      rule: collapse_inert_min_dwell
+      predicate: min_dwell_ticks <= demote_below_ticks
+    combinations: 112 # dedupe 후 (144 -> 112)
+
+  # --------------------------------------------------------------- ④ 스테일 창
+  stale_windows:
+    plan_ref: "BACKTEST_PLAN §BT-03 ④ 스테일 창"
+    target:
+      file: configs/indicators.yaml
+      path: engine.stale_profiles
+    mobile_daily:
+      # AD-2/F-1: 축별 실효 거동을 극단값까지 전수 실측한 결과, mobile 스테일 4개 축 중
+      # **daily_us 하나만 거동을 바꾼다**. 나머지는 무효이므로 그리드에서 제외하고 사실만
+      # 기록한다(무효 값을 그리드에 남기면 조합 수만 부풀리고 선정에 잡음을 준다).
+      #
+      #   daily_kr     : 1h ~ 240h 전 구간 9창 산출 **완전 동일**(서로 다른 산출 1종).
+      #                  원인: mobile 틱은 하루 1회이고 거래일 그리드 자체가 KRX 관측일의
+      #                  합집합(run_replay.trading_days)이라, 모든 그리드일에 그날의 KR
+      #                  관측이 존재해 나이가 항상 0이다 — daily_kr 스테일은 구조적으로
+      #                  발동하지 않는다. (설계 1차안의 "daily_kr 최고 레버리지" 서술은
+      #                  오류였고 실측으로 반증됐다.)
+      #   intraday_30m : 키 부재(daily_kr 상속) / 1m / 8h / 30h 전부 산출 동일 — 위와 동일
+      #                  구조 때문. 새 키를 SSOT에 물질화할 근거가 0이므로 **신설 금지**
+      #                  (AD-2: 거동 0 영향 + BT-05 Kotlin 패리티 형상 부담).
+      #   fred_daily   : 96h/120h/168h 전부 동일. 1h(극단)에서만 7창이 달라져 배선이
+      #                  살아 있음은 확인되나, 정책적으로 의미 있는 구간에서는 무효.
+      #   daily_us     : 48h/72h/96h 3값이 서로 다른 틱단위 산출 3종(요약단위 2종)을 낸다.
+      #                  ^VIX3M·^MOVE의 2026-07-17 절단(K-01/K-18)과 US·KR 휴장일 불일치가
+      #                  실제로 걸리는 유일한 축이다. 96h에서 w2026 전이 6 -> 8.
+      grid:
+        daily_us: ["48h", "72h", "96h"]
+      combinations: 3
+      inert_axes_recorded_not_swept: [daily_kr, fred_daily, intraday_30m]
+    server_intraday:
+      # ------------------------------------------------------------------
+      # **동결(스윕하지 않음) — C1 이관.** 사유(설계 저널 §9.2c):
+      #   (1) [주근거] 스테일 창은 "값이 얼마나 오래 유효한가"의 정책이고, 그 값을 보정하려면
+      #       **일중 갱신 주기라는 관측 대상이 있어야 한다**. 그런데 픽스처는 전 창이
+      #       일봉이라 09:00~15:30 사이에 새 관측이 하나도 없다(BACKTEST_PLAN §5.2가
+      #       명시한 한계). 즉 이 하니스에는 90분 창을 겨눌 관측 자체가 존재하지 않는다.
+      #       **이 근거 하나로 동결이 성립한다.**
+      #   (2) [보강] 진단 실측(90m -> 26h)에서 스윕 대상 7창만 봐도 거동이 크게 흔들린다
+      #       (w2018 ORANGE->RED, w2020 전이 13->31, w2022 10->24). 그런데 **골든은
+      #       통과한다**(server 골든이 의미 판정이라 이 변화를 잡지 못한다) — 이 차원에서는
+      #       잘못된 값이 골든에 걸리지 않고 통과할 수 있다는 뜻이다.
+      #       진단 관측(선정 미반영, AD-6): 같은 실측에서 홀드아웃 w2023_11_rally도
+      #       GREEN(AMBER 0틱) -> AMBER 194틱/전이 12로 붕괴했다. R-03에 따라 이 관측은
+      #       선정·랭킹·그리드 값 결정에 일절 반영하지 않았으며, 동결 판단은 홀드아웃을
+      #       빼고 (1)(2)만으로 이미 성립한다.
+      #   주: MT0-04 F-4의 구조 격리(KR 3지표가 90분 스테일로 kr_close 1틱만 생존)는
+      #   실재하나, 그것이 server 플래핑의 원인이라는 라운드 2의 귀속은 **철회**됐다
+      #   (진짜 원인은 상태기계 설정 모순 — selection.gate.flapping 주석 참조).
+      #   동결 근거는 위 (1)(2)이며 플래핑 귀속과 무관하게 성립한다.
+      # ------------------------------------------------------------------
+      execute: false
+      skip_reason: no_intraday_observations_to_tune_against_defer_to_c1
+      diagnostic_only_probe:
+        intraday_30m: ["90m", "26h"] # 리포트에 감도만 기록, 선정에 미반영
