@@ -318,7 +318,7 @@ class ProfileParams:
     demote_below_ticks: int
     min_dwell_ticks: int
     reentry_cooldown_ticks: int = (
-        0  # 미정의 시 0 (Advisor 지정 해석, mobile_daily 해당)
+        0  # 미정의 시 0 (Advisor 지정 해석 — mobile_daily는 MT0-05④에서 2로 확정, statemachine.yaml 명시)
     )
 
 
@@ -332,8 +332,19 @@ class StatemachineConfig:
     profiles: dict[str, ProfileParams] = field(default_factory=dict)
 
 
-def load_statemachine() -> StatemachineConfig:
-    d = _load_yaml("statemachine.yaml")
+def _statemachine_yaml(path: Path | None = None) -> dict[str, Any]:
+    """statemachine.yaml 로드, 경로 오버라이드 가능(MT0-05 BT-03 스윕 ③ mobile_daily
+    프로파일 파라미터 대상). 규약은 `_indicators_yaml`과 동일: path=None이면 기존
+    이름 키 캐시 그대로, path 지정 시 **캐시하지 않는다**(F-2 교훈 — 스윕이 같은 경로에
+    후보 yaml을 반복 덮어쓰며 재호출하는 패턴이라 캐시하면 첫 로드 내용에 고착된다)."""
+    if path is None:
+        return _load_yaml("statemachine.yaml")
+    with open(path, encoding="utf-8") as f:
+        return yaml.safe_load(f)
+
+
+def load_statemachine(*, path: Path | None = None) -> StatemachineConfig:
+    d = _statemachine_yaml(path)
     profiles = {
         name: ProfileParams(
             promote_sustain_ticks=int(p["promote_sustain_ticks"]),

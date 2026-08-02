@@ -11,10 +11,14 @@ schema: backtest-replay/1
 
 profiles:
   mobile_daily:
-    # 일 확정 틱 시각(KST) — docs/ARCHITECTURE_SPLIT.md D-16 "KR 마감 후 16:20 KST" 가설
-    # 그대로. BT-03에서 17:00과 스윕 예정(docs/BACKTEST_PLAN.md §BT-03
-    # "mobile_daily {..., 확정 틱 시각 16:20 vs 17:00}").
-    confirm_time_kst: "16:20"
+    # 일 확정 틱 시각(KST) — BT-03 스윕 선정(MT0-05④, AD-3): 16:20 -> 17:00.
+    # 근거: (1) 하니스는 이 값에 완전 무감(09:00~23:50 전 값이 비트 동일 산출, 물리·
+    # 스케줄 논증이지 하니스 실측 근거가 아니다) (2) O-7 물리 하한 — KRX 정규장 마감
+    # 15:30 KST 이후여야 그날의 확정치다 (3) schedules.collection.daily_kr=16:50 KST와
+    # 정합 — 16:20은 그 수집이 끝나기 30분 전에 확정 틱을 도는 셈이라 모순. 17:00은
+    # server kr_close 평가 틱과 동일 시각이라 SSOT의 서로 다른 숫자가 하나 준다.
+    # 부기(AD-3 b): M1 모바일 실제 확정 틱 설계와 동시 재확인 조건.
+    confirm_time_kst: "17:00"
   server_intraday:
     # 틱 시각은 configs/statemachine.yaml schedules.evaluation(us_close/kr_intraday/
     # kr_close cron)에서 그대로 파생한다 — 이 파일에 시각을 복제하지 않는다.

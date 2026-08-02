@@ -781,13 +781,23 @@ def test_server_demote_streak_min_dwell_and_reentry_cooldown_full_cycle() -> Non
 
 
 def test_mobile_demote_path_and_immediate_reentry_no_cooldown() -> None:
-    """D-6: mobile_daily 강등 경로(demote_below=3, dwell=2) + 재승격 —
-    reentry_cooldown_ticks 미정의 -> 기본값 0(Advisor 지정 해석) 확인 + 강등 직후에도
-    쿨다운 없이 sustain(1)만 재충족되면 즉시 재승격됨을 확인. "양 프로파일" 완료 기준의
-    나머지 절반(서버는 test_server_demote_...full_cycle에서 이미 검증됨)."""
+    """D-6: 강등 경로(demote_below=3, dwell=2) + reentry_cooldown_ticks=0일 때 강등
+    직후에도 쿨다운 없이 sustain(1)만 재충족되면 즉시 재승격됨을 확인. "양 프로파일"
+    완료 기준의 나머지 절반(서버는 test_server_demote_...full_cycle에서 이미 검증됨).
+
+    BT-03 스윕(MT0-05④)이 mobile_daily의 min_dwell_ticks·reentry_cooldown_ticks를
+    각각 5·2로 확정해(§6 플래핑 게이트 통과 조건) 이 프로파일은 더 이상 실제
+    configs/statemachine.yaml의 mobile_daily가 아니다 — cooldown=0 메커니즘 자체를
+    검증하는 합성 프로파일(promote=1, demote=3, dwell=2, cooldown=0 — BT-03 이전
+    mobile_daily 기준값과 동일)로 전환한다(다른 min_dwell/reentry_cooldown 합성
+    프로파일 단위테스트와 동일 관례, 예: test_min_dwell_blocks_demotion_independent_of_streak)."""
     config = registry.load_statemachine()
-    profile = config.profiles["mobile_daily"]
-    assert profile.reentry_cooldown_ticks == 0  # yaml에 키 없음 -> 기본값 0
+    profile = ProfileParams(
+        promote_sustain_ticks=1,
+        demote_below_ticks=3,
+        min_dwell_ticks=2,
+        reentry_cooldown_ticks=0,
+    )
 
     red = config.upgrade["RED"]
     exit_red = config.downgrade["exit_RED"]

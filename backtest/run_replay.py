@@ -820,10 +820,20 @@ def run_replay(
     window_ids: list[str],
     indicators_path: Path = DEFAULT_INDICATORS_PATH,
     fixtures_dir: Path = FIXTURES_DIR,
+    statemachine_path: Path | None = None,
+    replay_path: Path | None = None,
 ) -> dict[str, Any]:
+    """statemachine_path/replay_path: None(기본)이면 기존 동작과 완전히 동일
+    (configs/statemachine.yaml · backtest/replay.yaml). 명시 시 그 경로를 쓴다 —
+    BT-03 스윕 대상 ③(mobile_daily 프로파일 파라미터·확정 틱 시각)을 CLI/in-process로
+    흔들 수 있게 하는 배선(MT0-05 §11.2-1, MT0-04 F-1 --config 전면 배선과 동일 원칙).
+    registry.load_statemachine(path=...)는 명시 path를 캐시하지 않는다(F-2 교훈)."""
+    sm_path = statemachine_path or STATEMACHINE_YAML_PATH
+    rp_path = replay_path or REPLAY_YAML_PATH
+
     indicators_cfg = _load_yaml(indicators_path)
-    replay_cfg = _load_yaml(REPLAY_YAML_PATH)
-    statemachine_cfg = _load_yaml(STATEMACHINE_YAML_PATH)
+    replay_cfg = _load_yaml(rp_path)
+    statemachine_cfg = _load_yaml(sm_path)
 
     indicator_specs = registry.load_indicator_specs(
         enabled_only=True, path=indicators_path
@@ -834,7 +844,7 @@ def run_replay(
     fred_lag = fred_lag_days(indicator_specs)
     schedule_times = load_schedule_times(statemachine_cfg)
     mobile_confirm_time = load_mobile_confirm_time(replay_cfg)
-    statemachine_config = registry.load_statemachine()
+    statemachine_config = registry.load_statemachine(path=statemachine_path)
 
     # F-1(aaa-critic 라운드1): 틱당 스테일 판정(resolve_severity 안에서 지표당 최대 2회
     # 호출되는 핫 패스)도 --config 레지스트리의 engine.stale_profiles를 봐야 한다. weights/

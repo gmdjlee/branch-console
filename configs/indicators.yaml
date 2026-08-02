@@ -11,7 +11,9 @@
 # =============================================================================
 
 schema: indicator-registry/1
-registry_version: 0.2.0   # O-3 해소(REVIEW_M0): 문서상 현행 0.2.0과 표기 일치. 0.3.0-rc 상향은 BT-03 스윕 결과 반영 시.
+registry_version: 0.3.0-rc   # BT-03 스윕 선정 반영(MT0-05④, docs/journal/2026-08-03_MT0-05_sweep_design.md,
+                              # backtest/results/sweep/sweep_result.json). 근사-PIT — C1에서 실측 확정.
+                              # "조건부": w2026_structural 탐지·리드타임 FAIL, server 플래핑 FAIL 잔존(GM0 안건).
 
 axes:
   vol_global:      { name_kr: 글로벌 변동성 }
@@ -95,7 +97,7 @@ indicators:
     transform: zscore(pct_change_1d, window=252)
     direction: abs                   # F-03 수정: 2026-07 폭락에서 원화는 오히려 '강세'였음(수출대금·해외상장 대금 환전).
                                      # 원화 약세만 리스크로 보면 최대 폭락에서 최고가중 지표가 침묵한다. 양방향 급변으로 전환.
-    thresholds: { watch: 2.0, warn: 2.5, crit: 3.5 }
+    thresholds: { watch: 2.0, warn: 2.5, crit: 3.5 }   # BT-03 스윕 선정: 기준선과 동일 등가류 선정 -> 무변경(35조합 중 golden 통과 24, rank 1위가 baseline).
     notes: "일중 변동폭 ≥1.2% → warn 이상 강제, ≥2.0% → crit (modifier 규칙). C1에서 방향/임계 재검증 필수"
 
   - id: dxy_z
@@ -229,7 +231,8 @@ engine:
   missing_data_policy: exclude_from_denominator   # 결측 지표는 분모에서 제외 (optional 포함)
   stale_profiles:                                 # D-16 프로파일 이원화 (CHANGES_V3 §2.2)
     server_intraday: { intraday_30m: 90m, daily_kr: 36h, daily_us: 36h, fred_daily: 72h }   # 기존 값 그대로
-    mobile_daily: { daily_kr: 30h, daily_us: 48h, fred_daily: 96h }   # 주말·T+1 반영 가설, BT-03 보정 대상
+    mobile_daily: { daily_kr: 30h, daily_us: 48h, fred_daily: 96h }   # daily_us: BT-03 스윕 선정(3값 중 기준선 48h가 rank 1위) -> 무변경.
+                                                                      # daily_kr·fred_daily·intraday_30m(신설 불허, AD-2)은 극단값에서도 거동 무효 확인(실측 기록, 스윕 미대상).
   modifiers:
     - id: hy_level_boost
       rule: "hy_oas_level > 4.5 -> hy_oas_delta.severity += 1 (max 3)"

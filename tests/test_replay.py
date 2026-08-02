@@ -92,7 +92,13 @@ def test_build_tick_grid_mobile_one_tick_per_day() -> None:
         grid_days, "mobile_daily", _SCHEDULE_TIMES, _MOBILE_CONFIRM
     )
     assert len(ticks) == 2
-    assert all(label == "16:20" for _ts, _d, label in ticks)
+    # 리터럴 기대값 고정(qa-verifier 반려 사유, MT0-05④ Stage B): _MOBILE_CONFIRM에서
+    # 파생한 값과 비교하면 build_tick_grid()가 같은 객체를 그대로 라벨링하므로 SSOT가
+    # 무엇으로 바뀌든 항상 참인 동어반복이 된다(confirm_time "09:15" 뮤테이션으로도
+    # 통과함이 실증됨). SSOT(backtest/replay.yaml profiles.mobile_daily.confirm_time_kst,
+    # BT-03 스윕 선정 "17:00")가 바뀌면 이 테스트가 깨져서 사람이 의도를 확인하는 것이
+    # 이 테스트의 존재 이유다.
+    assert all(label == "17:00" for _ts, _d, label in ticks)
 
 
 # ---------------------------------------------------------------------------

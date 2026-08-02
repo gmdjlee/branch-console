@@ -32,12 +32,12 @@ profiles:
     demote_below_ticks: 6
     min_dwell_ticks: 4
     reentry_cooldown_ticks: 6      # 하향 직후 재승격 시 sustain 카운트 리셋 + 쿨다운
-  mobile_daily:                    # 신규 — 전부 가설, BT-03 보정 대상 (D-04 규율 적용)
+  mobile_daily:                    # BT-03 스윕 선정 반영(MT0-05④, 0.3.0-rc 조건부).
     tick: 1d
-    promote_sustain_ticks: 1
-    demote_below_ticks: 3
-    min_dwell_ticks: 2
-    # reentry_cooldown_ticks 미정의 — BT-03에서 결정
+    promote_sustain_ticks: 1       # 스윕 선정: 기준선과 동일 등가류(golden상 유일 가용값 — 2는 56/56 전건 탈락) -> 무변경.
+    demote_below_ticks: 3          # 스윕 선정: 기준선과 동일값이 rank 1위(§6 플래핑 게이트 통과 6조합 중 최상위).
+    min_dwell_ticks: 5             # 스윕 선정 반영: 2 -> 5 (§6 mobile 플래핑 게이트 통과 필수 조건, O3-1 dwell>demote 영역).
+    reentry_cooldown_ticks: 2      # 스윕 선정으로 확정(이전 미정의, 엔진 기본값 0이었음) — BT-03 §6 mobile 플래핑 게이트 통과 조건.
 
 skip_levels: true             # 조건 충족 시 GREEN->ORANGE 등 단계 건너뜀 허용 (2024-08-05형 갭 이벤트)
 

@@ -157,6 +157,9 @@ aaa-critic 반려(REVIEW_M0 MT0-02 라운드 1, 결함 D-1~D-3)의 해소이며,
    > **무효(inert)**이며 실효 최소 체류는 demote_below_ticks+1(서버 7틱)이다 — 랜덤 4만+전수 48.8만
    > 시퀀스 실측으로 확인. **BT-03 규율**: min_dwell 스윕에서 `min_dwell ≤ demote_below` 구간은 거동
    > 동일 구간이므로 하나의 값으로 취급하고, 평탄한 응답을 "보정 완료"로 오독하지 말 것.
+   > **부기(2026-08-03, MT0-05④ BT-03 선정)**: 0.3.0-rc에서 mobile_daily가 `min_dwell_ticks 5 >
+   > demote_below_ticks 3`으로 확정되어 이 프로파일에서 min_dwell은 더 이상 inert가 아니다 —
+   > §6 플래핑 게이트를 지탱하는 활성 노브다. server_intraday(4<6)는 여전히 inert.
 3. **전 지표 결측은 GREEN이 아니라 평가 불능이다.** composite 계산은 (score, coverage=유효가중/전체가중)을
    함께 산출하고, 유효 가중 0(분모 0)이면 score는 None이다. 상태기계는 score None 틱에서 국면·스트릭·
    카운터를 동결한다(전이 없음, 틱 미소비). 근거: D-23 §23.3의 커버리지 규율, PRINCIPLES
