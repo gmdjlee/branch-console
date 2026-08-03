@@ -1,0 +1,194 @@
+# =============================================================================
+# f06_variants.yaml — BT-04 F-06(해상도) 대응안 3종 설계 초안 (Stage A, SSOT 후보값)
+# branch-console M0 | schema: backtest-f06-variants/1
+# -----------------------------------------------------------------------------
+# 지위: **설계 초안뿐이다. 미구현·미실행·미반영.** 이 파일을 읽는 코드는 아직 없다
+# (engine_ref·backtest 어디에도 파서 없음 — Stage B에서 하니스 갭 해소 후 소비 대상).
+# configs/indicators.yaml·configs/statemachine.yaml에는 어떤 값도 아직 반영하지 않았다.
+# 채택은 사용자 승인 사항이며(BACKTEST_PLAN §BT-04), 승인 전 configs 반영을 금지한다.
+#
+# 근거: docs/journal/2026-08-03_MT0-06_bt04_design.md §3(설계)·§5(리스크)·§6(구현 요건).
+# 값의 출처는 전부 그 문서 §2의 실측(backtest/fixtures 리플레이, 근사-PIT)이다 — 추측 금지.
+#
+# 근사-PIT — C1에서 실측 확정 (docs/BACKTEST_PLAN.md §5). 이 파일의 후보값은 9창 소급
+# 수집 근사 위에서 도출된 1차 가설이며, 실제 채택 시에도 C1 재보정이 필요하다(D-04).
+# =============================================================================
+
+schema: backtest-f06-variants/1
+
+meta:
+  problem_ref: "CONSISTENCY_AUDIT_2026-08.md F-06 / BACKTEST_PLAN.md §BT-04"
+  status: proposal_not_implemented
+  golden_hard_constraint: true # D-08 2케이스 x 2프로파일 무회귀는 세 안 모두에 하드 제약
+  # 골든 양성 창(w2024_carry_unwind) kospi_drawdown_from_high(60) 관측 최댓값(2024-08-05,
+  # 근사-PIT 실측) — 세 안의 골든 안전 상한 계산에 공통으로 쓰이는 기준값.
+  golden_positive_kospi_drawdown_max_pct: 15.557
+  golden_negative_kospi_drawdown_max_pct: 2.520 # w2024_05_calm, 2024-05-24
+  holdout_negative_kospi_drawdown_max_pct: 12.04 # w2023_11_rally, 참고(진단, 선정 미반영 — R-03/AD-6)
+  # O-j: Advisor 결정 반영 이력(값 변경 없음 — 설계 저널 §0.3 AD-10/AD-11의 SSOT 반영).
+  advisor_decisions_applied: "AD-10(or_any_extreme ORANGE 한정, RED target 제거) / AD-11(mobile 플래핑 하드 게이트 승격 — 아래 selection.gate.flapping)"
+
+# -----------------------------------------------------------------------------
+# selection — backtest/sweep.yaml의 selection.gate/rank 형식을 승계(C-1a). 게이트 상수
+# (6·2·0·3)의 유일한 저장소 — run_f06_variants.py(Stage B)는 여기서만 로드한다(CLAUDE.md
+# §1, 코드 하드코딩 금지). 값은 설계 저널 §4.1·§4.3·AD-11의 표기 전환일 뿐 — 새 수치 없음.
+# -----------------------------------------------------------------------------
+selection:
+  gate:
+    golden:
+      enforce: true
+      hard: true
+      applies_to: [A_threshold_ladder_extension] # AD-7: 사전 필터(하드 게이트)는 A(선정 후보)에만. B는 계량 전용(비적용, 대조 결과만 표에 기록). C는 리플레이 비관여 — 골든 무관
+      measurement: run_f06_variants.py 내부 샌드박스 골든 대조 — run_sweep.py golden_pass() 판정 로직 재사용(재구현 금지). pytest backtest/test_golden.py(프로덕션 configs 대상)와는 별개 — 후자는 Stage B 전 과정 내내 green이어야 한다(AD-7)
+    false_positive:
+      orange_or_above_ticks_max: 0
+      amber_ticks_max: 3
+      profiles: [server_intraday, mobile_daily]
+      windows: [w2024_05_calm, w2023_11_rally] # 홀드아웃 포함 2음성창(BT-04 §1.1 — R-03 "BT-04는 편향 없는 최종 판정처")
+    flapping:
+      positive_transitions_max: 6
+      negative_transitions_max: 2
+      profiles: [mobile_daily]
+      applies_to: [A_threshold_ladder_extension] # gate.golden과 동일 패턴 — D-1
+      hard: true # AD-11(i): 저널 §4.1 "확인"에서 "하드 제약"으로 승격. w2026_structural mobile 전이 = 6 = 상한 그 자체(여유 0, §2.3) — O-g: 음성측도 w2023_11_rally mobile 전이 = 2 = 음성 상한(여유 0)
+      except_profiles: [server_intraday] # AD-5 승계(sweep.yaml selection.gate.flapping과 동일 except_reason/except_evidence 패턴)
+      except_reason: statemachine_config_contradiction_out_of_sweep_scope
+      report_delta_transitions: true # AD-11(iii): 게이트 제외해도 후보별·창별 Δ전이수(기준선 대비 악화량)는 보고 의무
+  rank: # 저널 §4.3 규칙의 기계 판독화(C-1b) — 계량 방법 표기 전환일 뿐, §4.3 고정 문언은 불변
+    applies_to: [A_threshold_ladder_extension] # §4.3(5)/AD-7: B는 채택 후보가 아니므로 랭킹 대상 아님(참고 행만). C는 §4.1 목표 지표와 무관한 별도 산출물
+    steps:
+      - step: 1
+        key: hard_gate
+        rule: golden_pass AND mobile_flapping_pass # 위반 시 성능과 무관하게 즉시 제외(§4.3-1, AD-11 ii로 골든과 동렬)
+      - step: 2
+        key: w2026_target
+        rule: detected_orange_or_above AND first_orange_before_2026_07_28 # §4.3-2
+        order: desc # 목표 달성 후보 우선
+      - step: 3
+        key: tie_break
+        order: asc
+        tuple:
+          - other_6_positive_windows_damage # (a) 나머지 6양성 창(w2026 제외) 무손상
+          - holdout_negative_new_false_positive # (b) 홀드아웃 음성창 신규 오탐 없음
+          - kotlin_parity_burden # (c) 구현/Kotlin 패리티 부담 최소(§3-D 등급)
+    proposal_only: true # §4.3-4: 제안 순위일 뿐 자동 채택 아님 — 최종 채택은 사용자 승인 후 configs/*.yaml 반영(BACKTEST_PLAN §BT-04 "임의 구현 금지")
+
+variants:
+  # --------------------------------------------------------------- A
+  A_threshold_ladder_extension:
+    plan_ref: "BACKTEST_PLAN §BT-04 ① 임계 사다리 확장 / CONSISTENCY_AUDIT F-06 ① 임계 상향 재조정"
+    summary: >-
+      severity 0~3 스케일과 composite 분모(D-02, 3*Sigma w)는 불변. 상태기계 승격 규칙에
+      기존 upgrade.AMBER.or_any_crit와 같은 형태의 새 이스케이프 조건(or_any_extreme)을
+      ORANGE 승격에 한정해 추가한다(AD-10, 라운드 2 — RED 적용은 철회했다: 후보 3값
+      전부를 초과하는 창이 w2026 외에 w2011(21.55%)·w2020(35.71%)로 확인돼(F-5) RED
+      이스케이프가 목표 외 신규 RED 승격 부작용만 낳는다는 사실이 드러났다). 이스케이프는
+      개별 지표의 원값(raw value, severity 아님)이 지표별 extreme 임계를 넘을 때만
+      켜진다 — severity 자체를 바꾸지 않으므로 composite 계산식은 100% 불변이다.
+    scope: [kospi_drawdown] # 최소 확장 범위(§3 근거) — usdkrw_z/vkospi_z는 미포함(사유는 설계 저널 §3-A)
+    target:
+      - file: configs/indicators.yaml
+        path: "indicators[id=kospi_drawdown].thresholds.extreme" # 신규 선택 키
+      - file: configs/statemachine.yaml
+        path: "upgrade.ORANGE.or_any_extreme" # 신규 선택 키. upgrade.RED는 대상 아님(AD-10)
+    candidate_grid:
+      kospi_drawdown_extreme_pct: [16.0, 18.0, 20.0]
+    constraint:
+      golden_safe_lower_bound_pct: 15.557 # meta.golden_positive_kospi_drawdown_max_pct — 이 값보다 커야
+      golden_safe_lower_bound_basis: >-
+        골든 양성 창의 kospi_drawdown 관측 전 틱 중 최댓값이 15.557%(2024-08-05)다. extreme
+        임계가 이 값 이하이면 골든 창 내부에서 이스케이프가 발화해 golden_mobile.yaml의
+        틱별 phase 판정 경로가 바뀔 위험이 있다(그 틱은 이미 정상 composite 경로로도
+        RED이므로 실무 영향은 없을 가능성이 높지만, "절대 발화하지 않음"이 가장 단순하고
+        검증 비용이 낮은 안전 조건이다). candidate_grid의 세 값 모두 이 하한을 충족한다.
+      holdout_negative_safe: true # 12.04% < 16.0%, 세 후보 모두 자동 충족(진단 확인, 선정 아님)
+    also_fires_in_windows: # F-5 실측(설계 저널 §7 [D]) — w2026 외에 후보 3값 전부를 초과하는 양성 창
+      w2011_us_downgrade: 21.55 # % dd 최댓값
+      w2020_covid: 35.71
+      note: >-
+        AD-10(ORANGE 한정)으로 두 창의 RED 부작용 경로는 제거됐다. ORANGE 승격에서는
+        여전히 발화하며, 두 창의 타임라인 무손상 확인은 Stage B 필수 항목이다
+        (저널 §4.1).
+    projected_w2026_first_trigger_date: # 산술 투사(실 상태기계 미실행) — 설계 저널 §2/§7 [H]
+      "16.0": "2026-07-02" # dd=16.09%, distinct_axes=2 동시 충족, 트리거 시점 composite=31.52
+      "18.0": "2026-07-08" # dd=20.49%, distinct_axes=2, 트리거 시점 composite=21.21
+      "20.0": "2026-07-08" # 트리거 시점 composite=21.21
+    composite_formula_impact: none
+    golden_composite_impact_estimate: none (severity/분모 불변 — §3-A 산술 확인)
+    engine_gap: >-
+      (1) engine_ref.scoring에 (severity, is_extreme) 판정 함수 추가 또는 classify_severity
+      확장 (2) engine_ref.statemachine.Tick에 any_extreme: bool 필드 추가, _rule_satisfied가
+      or_any_extreme 키를 or_any_crit과 동일 패턴으로 처리 (3) engine_ref.registry.
+      IndicatorSpec에 선택적 extreme 임계 파싱 추가 (4) backtest/run_replay.py의
+      resolve_severity가 any_extreme도 함께 산출해 Tick 생성에 전달.
+      전부 설정 주입형(값은 이 파일→configs로만), 기본 거동 비트 동일(extreme 키 부재 시
+      기존과 완전히 같음), 프로덕션 미사용(configs/*.yaml 무반영) 조건으로 설계.
+    kotlin_parity_burden: moderate # 기존 or_any_crit 패턴의 자연스러운 확장 — 신규 개념 아님
+
+  # --------------------------------------------------------------- B
+  B_severity_4_level:
+    plan_ref: "BACKTEST_PLAN §BT-04 ② severity 4단계 / CONSISTENCY_AUDIT F-06 ② severity 4단계 확장"
+    summary: >-
+      severity 스케일을 0~4로 확장(신규 4번째 tier). composite 분모(D-02)를 지표별
+      max_severity_i(기본 3, extreme tier 정의 지표만 4)로 재정의: composite = 100 *
+      Sigma(w_i*s_i) / Sigma(w_i*max_i). 설계 저널 §3-B의 산술 검증: 이 "지표별 상한"
+      설계조차 골든 08-05 틱 composite를 62.42 -> 60.59로 이동시켜(kospi_drawdown이 4에
+      도달하지 않아도 분모만 커짐) golden_mobile.yaml의 frozen 값과 어긋난다 — **골든
+      무회귀(D-08)가 원리적으로 불가능**하다.
+    scope: [kospi_drawdown] # AD-7(라운드 2): 계량 목적으로 샌드박스 실행은 한다 — 채택만 불가, 실행은 요구됨(골든 재생성 없이 실행 → 샌드박스 골든 대조 FAIL이 예정된 측정 결과)
+    candidate_grid:
+      kospi_drawdown_extreme_pct: [20.0] # 설계 참고치, §3-B 산술 예시에 사용한 값
+    composite_formula_impact: high
+    golden_composite_impact_estimate:
+      window: w2024_carry_unwind
+      date: "2024-08-05"
+      profile: mobile_daily
+      baseline_composite: 62.42
+      variant_composite_naive_global_scale: 46.82 # 분모를 전 지표 균일 *4로 바꾸는 오설계(함정) — §3-B. delta -15.61
+      variant_composite_per_indicator_max: 60.59 # "올바른" 지표별 상한 설계에서도 여전히 golden 위반. delta -1.84
+    golden_regeneration_required: true # AD-1 계열 "골든 무회귀는 하드 제약" 원칙과 정면 충돌 — 채택 시에만 필요, AD-7 계량 실행에는 불필요
+    engine_gap: >-
+      scoring.classify_severity 4-tier 확장 + scoring.compute_composite 분모를
+      Sigma(w_i*max_i)로 재정의(지표별 max_severity 도입) + registry.IndicatorSpec에
+      max_severity 필드 + contracts/*.py가 severity·composite를 노출한다면 그 스키마도
+      영향 검토 필요. golden_mobile.yaml 재생성(및 D-08 재확인) 없이는 배선 불가.
+    kotlin_parity_burden: high # 분모 공식 자체가 Python/Kotlin 두 엔진에서 항상 정확히 일치해야 함 — 드리프트 위험 큰 영역
+    recommendation_note: >-
+      §3-B/§5 리스크 참조 — 골든 재생성이라는 별도 거버넌스 결정(현재 GM0 승인 범위 밖)
+      없이는 채택 불가. A안이 유사한 목표를 더 낮은 비용으로 달성하는 이상 우선순위 낮음.
+
+  # --------------------------------------------------------------- C
+  C_red_sublevel:
+    plan_ref: "BACKTEST_PLAN §BT-04 ③ RED 서브레벨 / CONSISTENCY_AUDIT F-06 ③ RED 하위 강도 서브레벨"
+    summary: >-
+      severity/composite/상태기계 전이 규칙 전부 불변. phase=="RED"인 틱에서만 이미 계산된
+      연속값 composite를 그대로 이용해 표시/보고 계층에서만 파생 라벨을 매긴다. 기존
+      승격표(20/40/60)의 20단위 진행을 승계해 80을 분기점으로 제안(근거 재구축은 F-1/F-2
+      해소 — 아래 empirical_basis).
+    target:
+      - file: (report.py 또는 신규 표시 계층 함수 — configs/*.yaml 무관, engine_ref 무관)
+    candidate_split:
+      red_1_label: "RED-1 (심각)"
+      red_1_range: "[60, 80)"
+      red_2_label: "RED-2 (재난)"
+      red_2_range: "[80, 100]"
+    empirical_basis: # 설계 저널 §3-C(b) — F-1/F-2 정정판. 파라미터 결정은 홀드아웃을 배제한 4창만 쓴다(R-03/AD-6)
+      windows_reaching_red_mobile_non_holdout: # 선정 근거(이 4값만 80.0 도출에 사용)
+        w2018_q4_tightening: 60.54
+        w2024_carry_unwind: 66.06 # 골든
+        w2011_us_downgrade: 81.63
+        w2020_covid: 87.76
+      max_gap_non_holdout: "66.06 -> 81.63 (15.57p) -- 80.0은 이 구간 안(66.06 < 80.0 < 81.63)"
+      diagnostic_only_not_used_for_selection: # R-03/AD-6 라벨 규율 — 선정에 미반영, 참고 기록만
+        w2015_cny_deval: 76.19 # 홀드아웃. 라운드 1은 이 값을 경계로 "5.44p 최대 간극"을 주장했으나
+          # 그 서술 자체가 거짓이었고(실측 최대는 66.06->76.19의 10.13p) 홀드아웃 되먹임(R-03 위반)이었다 — F-1/F-2
+    composite_formula_impact: none
+    golden_composite_impact_estimate: none (라벨은 판정에 입력되지 않는 파생값)
+    engine_gap: 없음 또는 극소 — engine_ref/statemachine.py·scoring.py 무변경. 표시 계층에
+      composite -> label 매핑 함수 하나만 추가.
+    kotlin_parity_burden: negligible # Kotlin도 이미 composite를 계산하므로 동일 매핑 함수만 이식
+    caveat: >-
+      w2026_structural의 §6 미탐지 문제(ORANGE 미도달, composite 최고 35.15)를 전혀
+      해결하지 못한다 — CONSISTENCY_AUDIT F-06 원래 우려("RED 내부 나쁨/재난 구분 불가")를
+      겨눈 안이며, MT0-05가 진단한 "w2026 composite 과소" 문제와는 다른 방향의 증상이다.
+      §2/§5에 이 구분을 명시한다.
