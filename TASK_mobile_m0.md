@@ -32,8 +32,23 @@
 - 9창 전량 재실행 → 수용 기준표(§6) 판정, F-06 대응안 3종 비교 시뮬 + 제안서.
 - `docs/gates/GATE_GM0.md`: 판정표, 레지스트리 0.2.0→0.3.0 diff 요약, 사용자 결정 안건(① D-14 승격 ② F-04 활성/비활성 ③ F-06 대응안 채택 ④ 데모 픽스처 교체 여부).
 
+### MT0-07 이스케이프-이탈 짝지음(D-26) + ① 변형 재시뮬 (GM0 승인 후속 — 2026-08-03 신설)
+- 근거: GATE_GM0 안건 3(a)·5 사용자 승인(2026-08-03), D-26. GM0 게이트 승인이 본 서브태스크의
+  configs/statemachine 관련 수정을 허가한다(SSOT 예외 아님 — 승인된 범위만).
+- 범위: (a) D-26 방향 A(이스케이프 지속 중 이탈 차단)의 실행 의미론 설계 — 스트릭·dwell·
+  cooldown 상호작용, 영구 고착 상한 규율 필요 여부(실측 근거) 확정, D-25 부기 형식으로 D-26에
+  역참조 (b) engine_ref 구현 + `configs/statemachine.yaml` 반영(두 이스케이프 공통) (c) 골든
+  무회귀 재확인 — 위반 시 중단·보고 (d) BT-04 하니스로 ① 변형(or_any_extreme + 짝지음) 재시뮬:
+  §6 게이트 재판정(mobile 플래핑 포함) + server distinct_axes 미탐지 문제의 실측 검토 —
+  **① 변형의 프로덕션 채택은 별도 사용자 결정**(본 서브태스크는 측정·제안까지) (e) server
+  플래핑 FAIL(§6) 해소 여부 실측 보고.
+- 함정: K-07, K-11(홀드아웃 재튜닝 금지 — AD-8 승계), 완료 보고 git status 원문 첨부 규율.
+- 완료: `uv run ruff check . && uv run pytest -q` green + 골든 6 green + qa-verifier →
+  aaa-critic 2단 PASS + BT_REPORT 부기(재시뮬 결과) + 사용자 보고(① 변형 채택 여부 상신).
+
 ## 완료 기준 (GM0)
 `ruff`+`pytest` 전부 green / BT 수용 기준 전 항목 충족 / aaa-critic 전 서브태스크 PASS / GATE_GM0.md + **사용자 승인**.
+(2026-08-03 게이트 승인 — §6 FAIL 3건은 GATE_GM0 §7 결정에 따라 조건부 수용, MT0-07·C1 경로로 이관.)
 
 ## Advisor 시작 프롬프트 (Claude Code 메인 세션)
 ```
