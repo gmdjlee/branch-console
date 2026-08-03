@@ -25,7 +25,17 @@
 - [x] MT0-05 보정 스윕 → configs 0.3.0-rc (BT-03)
   - 2026-08-03: O-3 해소(0b6d9ba). 설계(sweep.yaml+저널)는 aaa 4라운드 수렴(R1 결함 13 → R2 3: server 플래핑 "일봉 아티팩트" 귀속이 **statemachine 설정 모순**(`or_any_crit` 진입 ⊕ `exit_AMBER` 동시 영구 충족 → 입력 불변 영구 진동)으로 반증·재귀속 → R3 CONDITIONAL → R4 **PASS**, b84d3f7). AD-1~6 물질화(저널 §0). 핵심 실측: w2026 ORANGE는 스윕 ①~④로 구조적 불가(전 조합 35.15 불변 — 해상도 F-06 소관), F-04 비활성 유지(픽스처 9/9 미수집+수집 경로 부재+켜도 리드 0), server 스테일·플래핑은 스윕 무감.
   - Stage B: run_sweep(리터럴 0)+하니스 path 오버라이드+증인 8테스트, S1~S5=154평가. 선정: ①④·promote·demote 무변경, **min_dwell 2→5(O3-1 비무효 영역), reentry_cooldown →2 확정, confirm_time →17:00**(하니스 무감·물리 논증, M1 재확인). qa FAIL(동어반복 단언 등 5건)→수정→PASS, aaa CONDITIONAL(SB-1·SB-2 1줄씩)→커밋 동반 해소로 **PASS**. 153 green+골든 6 green(0.3.0-rc 반영 후). §6 판정표: w2026 탐지·리드 FAIL(F-06)·server 플래핑 FAIL(설정 모순) verbatim 유지 — "0.3.0-rc (조건부)". **GM0 안건 2건 인계**: ① w2026 해상도 갭(BT-04 대응안 비교) ② `or_any_crit ⊕ exit_AMBER` 충돌(프로덕션 재현성, mobile 주기 2영업일 — 우선 안건). BT-04 승계: metrics.json 재생성 절차 명시, S1~S3 완화 게이트 무영향은 이번 실행 한정.
-- [ ] MT0-06 성능·해상도 리포트 + F-06 대응 제안 (BT-04)
+- [x] MT0-06 성능·해상도 리포트 + F-06 대응 제안 (BT-04)
+  - 2026-08-03: Stage A 설계(저널+f06_variants.yaml) aaa 5라운드 PASS(ce09062, AD-7~11 물질화)
+    → Stage B 실행 aaa 4라운드 PASS(0c93647, 총 9라운드). 173 green·골든 6·engine_ref 커버리지
+    99%. **홀드아웃 포함 §6 판정: 신규 FAIL 1**(w2023_11 mobile AMBER 18틱 오탐 — R-1 예측
+    실현, AD-8로 GM0 상신) + 기존 FAIL 2(w2026 탐지·리드, server 플래핑 20→25 악화) verbatim.
+    **F-06 대응안 3종 실측: 채택 가능 후보 0** — ①or_any_extreme는 w2026 탐지 성공(리드
+    17/13)하나 mobile 플래핑 6→9로 하드 게이트 탈락(AD-11 여유 0 발동+안건 2 구조 동형성
+    실증), ②4단계는 골든 비호환+w2026 악화(35.15→34.12)로 이중 실격, ③RED 서브레벨은 다른
+    증상 대상. **유일 실효 경로 = ① 변형(이스케이프-이탈 짝지음, 안건 2 수정 방향 A와 동일
+    기전) — GM0 상신.** 절차 사건 1(허위 완료 보고 → qa 적발·독립 재산출 검증 종결, 재발
+    방지 규율 2건 신설). BT_REPORT §BT4 게이트 인용 적격(aaa 확정).
 - [ ] 게이트 GM0: 수용 기준표 충족 + GATE_GM0.md + 사용자 승인(안건: D-14 / F-04 / F-06 / 픽스처 교체)
 
 ### M1 모바일 코어 (대기) — TASK_mobile_m1.md
