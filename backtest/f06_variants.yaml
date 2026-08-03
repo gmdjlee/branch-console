@@ -62,7 +62,8 @@ selection:
         rule: golden_pass AND mobile_flapping_pass # 위반 시 성능과 무관하게 즉시 제외(§4.3-1, AD-11 ii로 골든과 동렬)
       - step: 2
         key: w2026_target
-        rule: detected_orange_or_above AND first_orange_before_2026_07_28 # §4.3-2
+        rule: detected_orange_or_above AND first_orange_before_2026_07_28 # §4.3-2, 서술용(rule 문자열은 정본이 아니다 — 아래 first_orange_before가 기계 판독 정본, R5 비구속 권고 이행, 저널 §8.7-2)
+        first_orange_before: 2026-07-28 # 기계 판독 정본(date 타입). run_f06_variants.py는 이 키만 로드한다(CLAUDE.md §1) — sweep.yaml 크로스 파일 참조 제거
         order: desc # 목표 달성 후보 우선
       - step: 3
         key: tie_break

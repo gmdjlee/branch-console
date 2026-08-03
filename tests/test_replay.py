@@ -424,10 +424,11 @@ def test_resolve_severity_hy_oas_level_missing_skips_boost() -> None:
         "known": rr.KnownSeries([d], [visible_at], [delta_val]),
         "level_series": pd.Series(dtype="float64"),  # 그 날짜의 레벨 결측
     }
-    severity = rr.resolve_severity(
+    severity, is_extreme = rr.resolve_severity(
         spec, runtime, visible_at, "server_intraday", hy_rule, fx_rule, _STALE_WINDOWS
     )
     assert severity == 2  # 부스트 미적용 -> delta만의 severity(2)
+    assert is_extreme is False  # hy_oas_delta는 thresholds에 extreme 키가 없음(AD-7 scope 밖)
 
 
 def test_resolve_severity_usdkrw_ohlc_missing_skips_intraday_force() -> None:
@@ -447,10 +448,11 @@ def test_resolve_severity_usdkrw_ohlc_missing_skips_intraday_force() -> None:
         "low": pd.Series(dtype="float64"),
         "prev_close": pd.Series(dtype="float64"),
     }
-    severity = rr.resolve_severity(
+    severity, is_extreme = rr.resolve_severity(
         spec, runtime, visible_at, "server_intraday", hy_rule, fx_rule, _STALE_WINDOWS
     )
     assert severity == 0  # intraday_force 미적용 -> z만의 severity(0)
+    assert is_extreme is False  # usdkrw_z는 thresholds에 extreme 키가 없음(AD-7 scope 밖)
 
 
 # ---------------------------------------------------------------------------
@@ -587,18 +589,15 @@ def test_resolve_severity_always_none_for_uncollected_indicators() -> None:
     for ind_id in ("krx_credit_spread_delta", "kr_cds_5y_delta"):
         spec = registry.indicator_spec(ind_id)
         runtime = {"kind": "always_none"}
-        assert (
-            rr.resolve_severity(
-                spec,
-                runtime,
-                datetime(2024, 1, 1, tzinfo=UTC),
-                "server_intraday",
-                hy,
-                fx,
-                _STALE_WINDOWS,
-            )
-            is None
-        )
+        assert rr.resolve_severity(
+            spec,
+            runtime,
+            datetime(2024, 1, 1, tzinfo=UTC),
+            "server_intraday",
+            hy,
+            fx,
+            _STALE_WINDOWS,
+        ) == (None, False)
 
 
 def test_global_corr_break_missing_one_leg_entirely_yields_no_crash_and_none() -> None:

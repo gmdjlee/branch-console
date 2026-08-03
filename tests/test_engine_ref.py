@@ -401,6 +401,66 @@ def test_combine_max_severity_spx_drawdown_momentum() -> None:
 
 
 # ---------------------------------------------------------------------------
+# MT0-06/BT-04 Stage B(AD-7) — classify_severity(max_severity=)·is_extreme() 확장
+# 증인 테스트. AD-9(a)(i): 확장 키 부재/기본 호출은 확장 이전과 비트 동일.
+# ---------------------------------------------------------------------------
+
+
+def test_classify_severity_extreme_key_ignored_at_default_max_severity() -> None:
+    """AD-9(a)(i) 증인: max_severity를 생략(기본값 3)하면 thresholds에 "extreme" 키가
+    있어도 무시된다 — 옵션 A(or_any_extreme)의 sandbox candidate가 같은 키를 쓰더라도
+    severity 사다리 자체는 영향받지 않는다는 격리 불변식(모듈 docstring 참조)."""
+    spec = registry.indicator_spec("kospi_drawdown")
+    assert "extreme" not in spec.thresholds  # 프로덕션 설정엔 실제로 없다
+    fake_thresholds = dict(spec.thresholds, extreme=5.0)  # crit(7.0)보다도 낮은 극단값
+
+    # extreme=5.0이 max_severity=4에서라면 발화했을 값(10.0 >= 5.0)인데도, 기본 호출은
+    # 여전히 3-tier 결과(crit=3)만 낸다.
+    assert (
+        scoring.classify_severity(10.0, fake_thresholds, direction=spec.direction) == 3
+    )
+
+
+def test_classify_severity_max_severity_4_adds_extreme_tier() -> None:
+    """AD-7 옵션 B: max_severity=4를 명시하면 thresholds["extreme"] 이상에서 4를 반환한다
+    (등호 포함 — O-a 관례와 동일 >=). extreme 미만 crit 이상 구간은 여전히 3."""
+    spec = registry.indicator_spec("kospi_drawdown")
+    t = dict(spec.thresholds, extreme=20.0)
+    assert scoring.classify_severity(20.0, t, max_severity=4) == 4
+    assert scoring.classify_severity(19.99, t, max_severity=4) == 3
+    assert scoring.classify_severity(t["crit"], t, max_severity=4) == 3
+
+
+def test_classify_severity_max_severity_4_without_extreme_key_falls_back_to_3tier() -> (
+    None
+):
+    """max_severity=4를 넘겨도 thresholds에 extreme 키 자체가 없으면(다른 지표) 원래
+    3-tier 그대로다 — KeyError가 아니라 조용히 무시(existing "extreme" in thresholds 가드)."""
+    spec = registry.indicator_spec("vix_level_z")
+    assert "extreme" not in spec.thresholds
+    assert scoring.classify_severity(spec.thresholds["crit"], spec.thresholds, max_severity=4) == 3
+
+
+def test_is_extreme_absent_key_always_false() -> None:
+    """AD-9(a)(i) 증인: extreme 키가 없는 지표는 원값이 아무리 커도 is_extreme=False —
+    엔진 기본 거동에 영향을 줄 수 없다."""
+    spec = registry.indicator_spec("kospi_drawdown")
+    assert "extreme" not in spec.thresholds
+    assert scoring.is_extreme(1000.0, spec.thresholds, direction=spec.direction) is False
+    assert scoring.is_extreme(None, spec.thresholds, direction=spec.direction) is False
+
+
+def test_is_extreme_boundary_inclusive_and_direction_abs() -> None:
+    """O-a 등호 포함 관례(>=)는 is_extreme에도 동일 적용. direction="abs"는 usdkrw_z류에서
+    음의 극단값도 잡는다(classify_severity와 동일 규약)."""
+    t = {"watch": 1.0, "warn": 2.0, "crit": 3.0, "extreme": 5.0}
+    assert scoring.is_extreme(5.0, t) is True
+    assert scoring.is_extreme(4.999, t) is False
+    assert scoring.is_extreme(-5.0, t, direction="abs") is True
+    assert scoring.is_extreme(-4.999, t, direction="abs") is False
+
+
+# ---------------------------------------------------------------------------
 # composite (D-02, D-25 §3) + distinct_axes
 # ---------------------------------------------------------------------------
 
@@ -455,6 +515,70 @@ def test_distinct_axes_counts_unique_axes_at_warn_or_above() -> None:
     rates_ids = [i for i, a in axes.items() if a == "rates_fx"]
     severities[rates_ids[0]] = 2
     assert scoring.distinct_axes(severities, axes) == 2
+
+
+# ---------------------------------------------------------------------------
+# MT0-06/BT-04 Stage B(AD-7) — compute_composite(max_severities=) 확장 증인.
+# AD-9(a)(i): 기본 호출(max_severities 생략)은 원래 3-tier 산식과 비트 동일한 연산
+# 경로를 탄다(별도 if-분기, engine_ref/scoring.py 참조) — approx가 아니라 == 로 확인한다.
+# ---------------------------------------------------------------------------
+
+
+def test_compute_composite_max_severities_none_is_bit_identical_to_original_formula() -> (
+    None
+):
+    weights = {"a": 2.0, "b": 3.0}
+    severities: dict[str, int | None] = {"a": 2, "b": 3}
+
+    result = scoring.compute_composite(severities, weights)
+
+    # 원래 산식(연산 순서까지 그대로): num = sum(w*s), den = sum(w*3.0) 개별 누적 후
+    # total = sum(weights.values())*3.0 — compute_composite의 max_severities=None 분기와
+    # 정확히 같은 연산 순서로 손으로 재현.
+    num = 0.0
+    den = 0.0
+    for iid, s in severities.items():
+        num += weights[iid] * s
+        den += weights[iid] * 3.0
+    total = sum(weights.values()) * 3.0
+    expected_score = 100.0 * num / den
+    expected_coverage = den / total
+
+    assert result.score == expected_score  # == (근사 아님) — 비트 동일 주장의 실제 검증
+    assert result.coverage == expected_coverage
+
+
+def test_compute_composite_max_severity_naive_global_vs_per_indicator_trap() -> None:
+    """AD-9(c) 함정 회귀 — 설계 저널 §3-B(b) "순진한 vs 올바른" 분모 함정의 구조적 재현.
+    지표 a 하나만 4-tier로 확장되고(max_severity=4) b는 그대로 3인 상황에서, 올바른
+    설계(지표별 상한)는 a의 분모만 4로 반영해야 한다 — 전 지표를 동시에 4로 취급하는
+    "순진한" 설계(§3-B(b): 62.42->46.82, delta -15.61)는 분모를 필요 이상으로 부풀려
+    올바른 설계(62.42->60.59, delta -1.84)보다 훨씬 크게 composite를 끌어내린다. severity
+    자체(3,3 — 아직 4에 도달하지 않음)는 두 설계에서 동일하다는 전제도 함께 재현한다."""
+    weights = {"a": 1.0, "b": 1.0}
+    severities: dict[str, int | None] = {"a": 3, "b": 3}  # 둘 다 crit, 아직 4 미도달
+
+    baseline = scoring.compute_composite(severities, weights)
+    assert baseline.score == pytest.approx(100.0)  # 100*(3+3)/(3+3)
+
+    correct = scoring.compute_composite(severities, weights, max_severities={"a": 4, "b": 3})
+    assert correct.score == pytest.approx(100.0 * 6 / (4 + 3))  # ~85.71 — a만 분모 확장
+
+    naive_wrong = scoring.compute_composite(severities, weights, max_severities={"a": 4, "b": 4})
+    assert naive_wrong.score == pytest.approx(100.0 * 6 / (4 + 4))  # 75.0 — 전역 스케일(오설계)
+
+    assert correct.score != pytest.approx(naive_wrong.score)
+    assert correct.score > naive_wrong.score  # 올바른 설계가 분모를 덜 부풀림 -> 덜 하락
+
+
+def test_compute_composite_max_severities_missing_key_defaults_to_3() -> None:
+    """max_severities 맵에 없는 지표는 3(하위 호환 기본값)으로 취급 — registry.IndicatorSpec
+    .max_severity의 기본값과 정합."""
+    weights = {"a": 1.0, "b": 1.0}
+    severities: dict[str, int | None] = {"a": 3, "b": 3}
+    partial_map = {"a": 4}  # b는 맵에 없음 -> 3 취급
+    result = scoring.compute_composite(severities, weights, max_severities=partial_map)
+    assert result.score == pytest.approx(100.0 * 6 / (4 + 3))
 
 
 # ---------------------------------------------------------------------------
@@ -641,6 +765,53 @@ def test_any_crit_triggers_amber_even_at_low_composite() -> None:
     ticks = [statemachine.Tick(composite=0.0, distinct_axes=0, any_crit=True)]
     timeline = statemachine.run(ticks, profile, config)
     assert timeline == ["AMBER"]
+
+
+# ---------------------------------------------------------------------------
+# MT0-06/BT-04 Stage B(AD-7/AD-10) — or_any_extreme(옵션 A) 증인.
+# AD-9(a)(i): configs/statemachine.yaml 프로덕션엔 or_any_extreme 키가 없다 — 그 상태에서
+# Tick.any_extreme 값이 무엇이든(True를 넣어도) 결과가 바뀌지 않아야 한다(엔진 기본 거동
+# 비영향, 확장 이전과 비트 동일).
+# ---------------------------------------------------------------------------
+
+
+def test_or_any_extreme_absent_from_production_config_is_a_noop() -> None:
+    config = registry.load_statemachine()
+    assert "or_any_extreme" not in config.upgrade["ORANGE"]  # AD-10 미반영 상태 확인
+    profile = config.profiles["mobile_daily"]
+    orange = config.upgrade["ORANGE"]
+    ticks = [
+        statemachine.Tick(
+            composite=0.0,  # AMBER(composite_gte:20)도 함께 미충족시켜야 GREEN이 검증됨
+            distinct_axes=orange["distinct_axes_gte"],
+            any_extreme=True,  # 키가 없으므로 이 값은 결과에 영향을 줄 수 없어야 한다
+        )
+    ]
+    timeline = statemachine.run(ticks, profile, config)
+    assert timeline == ["GREEN"]  # any_extreme=True가 무시됨(엔진 기본 거동 비영향)
+
+
+def test_or_any_extreme_orange_only_rule_escapes_composite_gate() -> None:
+    """or_any_extreme:true가 upgrade.ORANGE에 명시되면(AD-10: ORANGE 한정), distinct_axes_gte
+    는 여전히 요구하되(_rule_satisfied의 base 조건 유지 원칙) composite_gte만 우회한다."""
+    config = registry.load_statemachine()
+    orange_rule = dict(config.upgrade["ORANGE"], or_any_extreme=True)
+    assert statemachine._rule_satisfied(
+        orange_rule, composite=0.0, distinct_axes=orange_rule["distinct_axes_gte"],
+        any_crit=False, any_extreme=True,
+    )
+    # distinct_axes 미달이면 any_extreme=True여도 여전히 불충족(AMBER의 or_any_crit이
+    # distinct_axes 요건 자체가 없는 레벨에서만 정의된 것과 달리, ORANGE는 distinct_axes
+    # 요건을 유지 — 설계 저널 §3-A(a)).
+    assert not statemachine._rule_satisfied(
+        orange_rule, composite=0.0, distinct_axes=orange_rule["distinct_axes_gte"] - 1,
+        any_crit=False, any_extreme=True,
+    )
+    # any_extreme=False면 정상 composite_gte/distinct_axes_gte 요건 그대로.
+    assert not statemachine._rule_satisfied(
+        orange_rule, composite=orange_rule["composite_gte"] - 1,
+        distinct_axes=orange_rule["distinct_axes_gte"], any_crit=False, any_extreme=False,
+    )
 
 
 def test_promote_streak_is_per_level_not_any_level_above_current_d25() -> None:

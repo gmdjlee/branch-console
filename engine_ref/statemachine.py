@@ -27,7 +27,16 @@ from dataclasses import dataclass
 
 from engine_ref.registry import ProfileParams, StatemachineConfig
 
-_KNOWN_UPGRADE_KEYS = {"composite_gte", "distinct_axes_gte", "or_any_crit"}
+# AD-7 옵션 A(MT0-06/BT-04 Stage B): "or_any_extreme" — or_any_crit과 동일 패턴의 이스케이프
+# 조건. AD-10에 따라 configs/statemachine.yaml에는 upgrade.ORANGE에만 실제로 쓰이지만(RED는
+# 대상 아니다), 엔진 자체는 어느 레벨에 이 키가 와도 동일하게 처리한다(레벨별 제약은 config가
+# 진다 — CLAUDE.md §1, 엔진은 임의 설정을 기계적으로 실행할 뿐).
+_KNOWN_UPGRADE_KEYS = {
+    "composite_gte",
+    "distinct_axes_gte",
+    "or_any_crit",
+    "or_any_extreme",
+}
 
 
 @dataclass(frozen=True)
@@ -37,10 +46,15 @@ class Tick:
     )  # None = 전 지표 결측("평가 불능", D-25 §3) — 그 틱은 완전 동결
     distinct_axes: int
     any_crit: bool = False
+    any_extreme: bool = False  # AD-7 옵션 A: or_any_extreme 이스케이프 입력(원값 기반, severity 아님)
 
 
 def _rule_satisfied(
-    rule: dict, composite: float, distinct_axes: int, any_crit: bool
+    rule: dict,
+    composite: float,
+    distinct_axes: int,
+    any_crit: bool,
+    any_extreme: bool = False,
 ) -> bool:
     # O-1: 알려진 키가 하나도 없는 규칙은 설정 오류다 — 조용히 "항상 충족"으로 빠지지 않고
     # 즉시 실패한다(PRINCIPLES "Fail Fast / Never Suppress Silently").
@@ -48,7 +62,13 @@ def _rule_satisfied(
         raise ValueError(f"upgrade rule has no recognized keys: {rule!r}")
     conditions = []
     if "composite_gte" in rule:
-        conditions.append(composite >= rule["composite_gte"])
+        # AD-10/설계 저널 §3-A(a): or_any_extreme은 composite_gte "만" 우회한다 —
+        # or_any_crit(AMBER, distinct_axes_gte 자체가 없는 레벨에서만 쓰임)과 달리
+        # ORANGE의 distinct_axes_gte는 이 우회로 면제되지 않는다(아래 별도 유지).
+        composite_ok = composite >= rule["composite_gte"]
+        if rule.get("or_any_extreme"):
+            composite_ok = composite_ok or any_extreme
+        conditions.append(composite_ok)
     if "distinct_axes_gte" in rule:
         conditions.append(distinct_axes >= rule["distinct_axes_gte"])
     base = all(conditions) if conditions else True
@@ -96,7 +116,7 @@ def run(
             for level in levels:
                 rule = config.upgrade[level]
                 if _rule_satisfied(
-                    rule, tick.composite, tick.distinct_axes, tick.any_crit
+                    rule, tick.composite, tick.distinct_axes, tick.any_crit, tick.any_extreme
                 ):
                     promote_streaks[level] += 1
                 else:

@@ -626,7 +626,12 @@ def resolve_severity(
     hy_rule: HyLevelBoost,
     fx_rule: UsdkrwIntradayForce,
     stale_windows: dict[tuple[str, str], timedelta],
-) -> int | None:
+) -> tuple[int | None, bool]:
+    """반환: (severity, is_extreme). is_extreme은 AD-7 옵션 A(or_any_extreme) 전용 부가
+    신호 — spec.thresholds에 "extreme" 키가 없으면(프로덕션/옵션 B 기본) 항상 False다
+    (엔진 기본 거동 비영향, AD-9(a)(i) 증인). "combine_max" kind(spx_drawdown_momentum,
+    F-06 대응안 scope 밖)는 단일 원값이 없어 is_extreme을 정의하지 않고 항상 False —
+    thresholds 구조 자체가 중첩(drawdown/neg_z)이라 최상위 "extreme" 키가 있을 수 없다."""
     kind = runtime["kind"]
     cadence = spec.source.get("cadence", "")
 
@@ -634,15 +639,18 @@ def resolve_severity(
         return is_stale_check(cadence, visible_at, evaluated_at, profile, stale_windows)
 
     if kind == "always_none":
-        return None
+        return None, False
 
     if kind == "simple":
         looked = lookup_known(runtime["known"], evaluated_at)
         if looked is None or _stale(looked[1]):
-            return None
-        return scoring.classify_severity(
-            looked[2], spec.thresholds, direction=spec.direction
+            return None, False
+        raw = looked[2]
+        severity = scoring.classify_severity(
+            raw, spec.thresholds, direction=spec.direction, max_severity=spec.max_severity
         )
+        extreme = scoring.is_extreme(raw, spec.thresholds, direction=spec.direction)
+        return severity, extreme
 
     if kind == "combine_max":
         a = lookup_known(runtime["known_a"], evaluated_at)
@@ -650,38 +658,43 @@ def resolve_severity(
         a_val = a[2] if a is not None and not _stale(a[1]) else None
         b_val = b[2] if b is not None and not _stale(b[1]) else None
         if a_val is None and b_val is None:
-            return None
-        return scoring.combine_max_severity(
+            return None, False
+        severity = scoring.combine_max_severity(
             a_val,
             spec.thresholds["drawdown"],
             b_val,
             spec.thresholds["neg_z"],
             direction=spec.direction,
         )
+        return severity, False
 
     if kind == "hy_oas":
         looked = lookup_known(runtime["known"], evaluated_at)
         if looked is None or _stale(looked[1]):
-            return None
+            return None, False
         row_date, _visible_at, delta_val = looked
         severity = scoring.classify_severity(
-            delta_val, spec.thresholds, direction=spec.direction
+            delta_val, spec.thresholds, direction=spec.direction, max_severity=spec.max_severity
         )
+        extreme = scoring.is_extreme(delta_val, spec.thresholds, direction=spec.direction)
         level = runtime["level_series"].get(row_date)
         if level is None or pd.isna(level):
             return (
-                severity  # hy_oas_level 결측 -> boost 미적용, delta만의 severity 그대로
-            )
-        return modifiers.apply_hy_level_boost(severity, float(level), hy_rule)
+                severity,
+                extreme,
+            )  # hy_oas_level 결측 -> boost 미적용, delta만의 severity 그대로
+        boosted = modifiers.apply_hy_level_boost(severity, float(level), hy_rule)
+        return boosted, extreme
 
     if kind == "usdkrw":
         looked = lookup_known(runtime["known"], evaluated_at)
         if looked is None or _stale(looked[1]):
-            return None
+            return None, False
         row_date, _visible_at, z_val = looked
         severity = scoring.classify_severity(
-            z_val, spec.thresholds, direction=spec.direction
+            z_val, spec.thresholds, direction=spec.direction, max_severity=spec.max_severity
         )
+        extreme = scoring.is_extreme(z_val, spec.thresholds, direction=spec.direction)
         high = runtime["high"].get(row_date)
         low = runtime["low"].get(row_date)
         prev_close = runtime["prev_close"].get(row_date)
@@ -693,11 +706,12 @@ def resolve_severity(
             or pd.isna(low)
             or pd.isna(prev_close)
         ):
-            return severity  # high/low/prev_close 결측 -> intraday_force 미적용
+            return severity, extreme  # high/low/prev_close 결측 -> intraday_force 미적용
         range_pct = modifiers.usdkrw_intraday_range(
             float(high), float(low), float(prev_close)
         )
-        return modifiers.apply_usdkrw_intraday_force(severity, range_pct, fx_rule)
+        boosted = modifiers.apply_usdkrw_intraday_force(severity, range_pct, fx_rule)
+        return boosted, extreme
 
     raise ValueError(f"unknown runtime kind: {kind!r}")  # pragma: no cover - defensive
 
@@ -749,7 +763,10 @@ def replay_window_profile(
     statemachine_config: registry.StatemachineConfig,
     stale_windows: dict[tuple[str, str], timedelta],
     fixtures_dir: Path = FIXTURES_DIR,
+    max_severities: dict[str, int] | None = None,
 ) -> dict[str, Any]:
+    """max_severities(AD-7 옵션 B, 계량 전용): None(기본)이면 scoring.compute_composite에
+    전달하지 않아 원래 3-tier 분모 산식과 비트 동일(AD-9(a)(i))."""
     fixture_path = fixtures_dir / f"{window.window_id}.parquet"
     df = pd.read_parquet(fixture_path) if fixture_path.exists() else pd.DataFrame()
 
@@ -765,7 +782,7 @@ def replay_window_profile(
     tick_records: list[dict[str, Any]] = []
 
     for evaluated_at, kst_date, kst_label in tick_grid:
-        severities = {
+        resolved = {
             spec.id: resolve_severity(
                 spec,
                 runtimes[spec.id],
@@ -777,16 +794,24 @@ def replay_window_profile(
             )
             for spec in indicator_specs
         }
+        severities = {iid: sev for iid, (sev, _ext) in resolved.items()}
+        # s>=3(원래는 ==3과 동치 — 기본 3-tier에서 severity는 3을 넘지 못한다. AD-7 옵션
+        # B(max_severity=4)에서만 실제로 갈라지며, 그때는 4(더 심각)도 "crit 이상"으로
+        # 계속 or_any_crit 이스케이프에 잡혀야 한다는 게 자연스러운 일반화다.
+        any_crit = any(s is not None and s >= 3 for s in severities.values())
+        any_extreme = any(ext for _sev, ext in resolved.values())
         distinct = scoring.distinct_axes(severities, axes)
-        any_crit = any(s == 3 for s in severities.values())
-        composite = scoring.compute_composite(severities, weights)
+        composite = scoring.compute_composite(severities, weights, max_severities)
         fired_axes = sorted(
             {axes[i] for i, s in severities.items() if s is not None and s >= 2}
         )
 
         engine_ticks.append(
             statemachine.Tick(
-                composite=composite.score, distinct_axes=distinct, any_crit=any_crit
+                composite=composite.score,
+                distinct_axes=distinct,
+                any_crit=any_crit,
+                any_extreme=any_extreme,
             )
         )
         tick_records.append(
@@ -798,6 +823,7 @@ def replay_window_profile(
                 "coverage": composite.coverage,
                 "distinct_axes": distinct,
                 "any_crit": any_crit,
+                "any_extreme": any_extreme,
                 "fired_axes": fired_axes,
             }
         )
@@ -860,6 +886,15 @@ def run_replay(
         ("server_intraday", "mobile_daily"), cadences, indicators_path
     )
 
+    # AD-7 옵션 B(계량 전용): max_severity가 전 지표 기본값(3)이면 None으로 정규화해
+    # compute_composite가 원래 산식과 완전히 동일한 연산 순서를 taken 하도록 한다(비트
+    # 동일, AD-9(a)(i)) — indicators.yaml에 max_severity 키를 쓴 지표가 실제로 하나라도
+    # 있을 때만(옵션 B 샌드박스 후보) 지표별 맵을 실제로 넘긴다.
+    max_severities_raw = registry.max_severity_map(enabled_only=True, path=indicators_path)
+    max_severities = (
+        None if all(v == 3 for v in max_severities_raw.values()) else max_severities_raw
+    )
+
     all_windows = {w.window_id: w for w in load_windows()}
     targets = [all_windows[wid] for wid in window_ids]
 
@@ -881,6 +916,7 @@ def run_replay(
                 statemachine_config,
                 stale_windows,
                 fixtures_dir=fixtures_dir,
+                max_severities=max_severities,
             )
 
     return {

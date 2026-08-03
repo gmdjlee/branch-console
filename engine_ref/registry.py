@@ -65,6 +65,7 @@ class IndicatorSpec:
     transform: str
     source: dict[str, Any]
     optional: bool = False
+    max_severity: int = 3  # AD-7 옵션 B(계량 전용) — indicators.yaml에 없으면 3(하위 호환)
 
 
 def load_indicator_specs(
@@ -85,6 +86,7 @@ def load_indicator_specs(
                 transform=item["transform"],
                 source=item["source"],
                 optional=bool(item.get("optional", False)),
+                max_severity=int(item.get("max_severity", 3)),
             )
         )
     return specs
@@ -109,6 +111,18 @@ def weight_map(
 def axis_map(*, enabled_only: bool = True, path: Path | None = None) -> dict[str, str]:
     return {
         s.id: s.axis for s in load_indicator_specs(enabled_only=enabled_only, path=path)
+    }
+
+
+def max_severity_map(
+    *, enabled_only: bool = True, path: Path | None = None
+) -> dict[str, int]:
+    """AD-7 옵션 B(계량 전용) — scoring.compute_composite(max_severities=...)에 그대로
+    전달할 지표별 분모 상한 맵. indicators.yaml에 max_severity 키가 없는 지표는 3(기본,
+    하위 호환)."""
+    return {
+        s.id: s.max_severity
+        for s in load_indicator_specs(enabled_only=enabled_only, path=path)
     }
 
 
