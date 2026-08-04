@@ -107,9 +107,11 @@ def test_with_kospi_extreme_threshold_only_touches_kospi_drawdown() -> None:
         "warn": 2.0,
         "crit": 3.0,
     }  # 다른 지표는 무변화
-    # BASE_IND 자체는 변형되지 않았어야 한다(copy.deepcopy 확인).
+    # BASE_IND 자체는 변형되지 않았어야 한다(copy.deepcopy 확인) — MT0-08 채택 후
+    # BASE_IND는 이미 프로덕션값 extreme:20.0을 갖는다(부재가 아니다), 그래서 격리는
+    # 후보값(16.0)과 값이 다름으로 확인한다.
     base_by_id = {item["id"]: item for item in RS.BASE_IND["indicators"]}
-    assert "extreme" not in base_by_id["kospi_drawdown"]["thresholds"]
+    assert base_by_id["kospi_drawdown"]["thresholds"]["extreme"] == 20.0
 
 
 def test_with_kospi_max_severity_4_sets_both_extreme_and_max_severity() -> None:
@@ -124,8 +126,10 @@ def test_with_or_any_extreme_orange_only_touches_orange_not_red() -> None:
     assert sm["upgrade"]["rules"]["ORANGE"]["or_any_extreme"] is True
     assert "or_any_extreme" not in sm["upgrade"]["rules"]["RED"]  # AD-10
     assert "or_any_extreme" not in sm["upgrade"]["rules"]["AMBER"]
-    # BASE_SM 자체는 변형되지 않았어야 한다.
-    assert "or_any_extreme" not in RS.BASE_SM["upgrade"]["rules"]["ORANGE"]
+    # BASE_SM 자체는 변형되지 않았어야 한다 — MT0-08 채택 후 BASE_SM의 ORANGE도 이미
+    # or_any_extreme:true다(값은 후보와 같아져 값 비교로는 격리를 증명할 수 없다), 그래서
+    # deepcopy 격리는 객체 동일성으로 확인한다.
+    assert sm["upgrade"]["rules"]["ORANGE"] is not RS.BASE_SM["upgrade"]["rules"]["ORANGE"]
 
 
 # -----------------------------------------------------------------------------

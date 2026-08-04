@@ -153,7 +153,7 @@ def with_or_any_extreme_orange(base_sm: dict) -> dict:
 
 
 # -----------------------------------------------------------------------------
-# baseline (0.3.0-rc as-is, in-process, no file writes — Stage A §0.1/bt04_repro.py 패턴)
+# baseline (프로덕션 registry as-is, in-process, no file writes — Stage A §0.1/bt04_repro.py 패턴)
 # -----------------------------------------------------------------------------
 
 
@@ -429,7 +429,10 @@ def main() -> int:
 
     tmp_dir = Path(tempfile.mkdtemp(prefix="bt04_f06_"))
 
-    print("computing baseline (0.3.0-rc, 9 windows incl. holdout, in-process, no writes) ...")
+    print(
+        f"computing baseline (registry {RS.BASE_IND['registry_version']}, 9 windows incl. "
+        "holdout, in-process, no writes) ..."
+    )
     baseline_result, baseline_stats = compute_baseline()
     print(
         f"  w2023_11_rally mobile amber={baseline_stats[('w2023_11_rally','mobile_daily')]['amber_ticks']} "
@@ -439,6 +442,10 @@ def main() -> int:
     a_candidates = F06["variants"]["A_threshold_ladder_extension"]["candidate_grid"][
         "kospi_drawdown_extreme_pct"
     ]
+    # MT0-08(2026-08-04): 20.0% 후보는 이미 프로덕션 baseline 자체에 반영돼 있다 —
+    # 이 후보 행은 "프로덕션 vs 프로덕션"이 돼 델타 열(other_6_positive_windows_damage 등)이
+    # 항등 0으로 나오는 것이 정상이다(변형 효과가 아니라 동일 config 재확인). 16.0/18.0%만
+    # 실제 대조(프로덕션과 다른 임계값) 의미가 있다.
     print(f"\n[A] threshold ladder extension (or_any_extreme, ORANGE only) — {a_candidates} ...")
     a_results = [evaluate_variant_a(tmp_dir, v, baseline_stats) for v in a_candidates]
     for r in a_results:

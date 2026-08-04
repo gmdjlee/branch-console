@@ -12,6 +12,13 @@
 > ⑥ CT-02b 포화 점검은 BT-04 실측(BT_REPORT §BT4)을 선행 입력으로 삼는다 — 포화-과다는 9창
 >   미관측(최고 87.76), 실측 문제는 포화-과소(w2026 35.15<40)였고 severity 4단계(②) 경로는
 >   실측 역효과(35.15→34.12)로 후보 제외가 결정됐다.
+> ⑦ **[MT0-07·08 승계(2026-08-04)]** 초기값 상속 대상은 **0.3.1-rc**다(0.3.0-rc + D-26
+>   이스케이프-이탈 짝지음(엔진 의미론, D-25 §4 부기) + ① 변형 채택: kospi_drawdown
+>   extreme 20.0·upgrade.ORANGE.or_any_extreme — GATE_GM0 후속 결정, **C1 재확정 조건부**).
+>   잔여 §6 FAIL 3건(server w2026 탐지(AD-10 distinct_axes)·server 플래핑 13·mobile 오탐
+>   w2023_11 18틱)이 C1 판정 대상이며, extreme 임계(20.0)는 w2026 역산 in-sample 값(K-11)
+>   이라 실측 재보정 필수. `tests/test_configs_schema.py`의 registry_version "0.3.1-rc"
+>   리터럴 가드는 버전 승격 시 동반 갱신할 것.
 
 근거: D-04, D-07, D-08 · 선행: P1 게이트 G1 통과 · 규칙: CLAUDE.md
 

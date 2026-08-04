@@ -46,6 +46,19 @@
 - 완료: `uv run ruff check . && uv run pytest -q` green + 골든 6 green + qa-verifier →
   aaa-critic 2단 PASS + BT_REPORT 부기(재시뮬 결과) + 사용자 보고(① 변형 채택 여부 상신).
 
+### MT0-08 ① 변형 프로덕션 채택 반영 (2026-08-04 사용자 결정 — GATE_GM0 후속 결정 기록)
+- 근거: GATE_GM0 후속 결정(2026-08-04) — ① 변형 채택(20.0%, C1 재확정 조건부). 이 결정이
+  configs 수정을 허가한다.
+- 범위: (a) `configs/indicators.yaml` `kospi_drawdown.thresholds.extreme: 20.0` 추가 +
+  `registry_version` 0.3.0-rc → **0.3.1-rc**(형상 변경 구분 스탬프, C1 재확정 조건부 라벨
+  유지) (b) `configs/statemachine.yaml` `upgrade.ORANGE.or_any_extreme: true` 추가(D-26
+  짝지음은 엔진 의미론으로 자동 적용) (c) 스키마 검증 테스트 갱신(신규 키) (d) 골든
+  무회귀 재확인(재시뮬 실측상 PASS 예상 — 위반 시 중단·보고) (e) metrics.json 재생성
+  (AD-13 절차 준용, note에 0.3.1-rc 반영) + §6 판정표 갱신(BT_REPORT 부기 — mobile 탐지
+  7/7 전환, server 측 FAIL 잔존 verbatim) (f) f06_variants.yaml에 채택 사실 부기.
+- 완료: `uv run ruff check . && uv run pytest -q` green + 골든 6 green + qa-verifier →
+  aaa-critic 2단 PASS + 완료 보고 git status 원문.
+
 ## 완료 기준 (GM0)
 `ruff`+`pytest` 전부 green / BT 수용 기준 전 항목 충족 / aaa-critic 전 서브태스크 PASS / GATE_GM0.md + **사용자 승인**.
 (2026-08-03 게이트 승인 — §6 FAIL 3건은 GATE_GM0 §7 결정에 따라 조건부 수용, MT0-07·C1 경로로 이관.)

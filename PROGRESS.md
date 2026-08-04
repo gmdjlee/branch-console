@@ -48,8 +48,14 @@
     (여유 회복), w2023_11 오탐 18 불변(C1 이관 유지), 탐지·리드 불변. ① 변형 재시뮬: 하드
     게이트 생존 0/3→3/3, mobile w2026 탐지(리드 17/13), server는 distinct_axes(AD-10)로
     미탐지 — 목표 미달성 verbatim. F2 뮤테이션 7/7 복원(중대 반려 1회 경유), 176 green.
-    **① 채택 여부 사용자 상신 대기.** 절차: Stage B에서 비평가 처방 오류 2건을 Worker 실증
-    반박으로 정정(REVIEW_M0 기록).
+    절차: Stage B에서 비평가 처방 오류 2건을 Worker 실증 반박으로 정정(REVIEW_M0 기록).
+    **① 채택 상신 → 사용자 결정(2026-08-04): 채택 — 20.0% + C1 재확정 조건부**(GATE_GM0
+    후속 결정 기록).
+- [x] MT0-08 ① 변형 프로덕션 채택 반영 (20.0% + or_any_extreme, registry 0.3.1-rc — TASK_mobile_m0 §MT0-08)
+  - 2026-08-04: qa PASS(발견 0) → aaa PASS(결함 0 — M0 유일 무반려 통과). **mobile 탐지
+    6/7→7/7 PASS**(w2026 첫 ORANGE 07-08, 리드 15거래일), server 전 항목 불변, 골든 발화 0회
+    구조 확인, F2 7/7 유지, 177 green. 잔여 §6 FAIL 3건 C1 이관 verbatim(C1 TASK ⑦ 승계
+    부기). **M0 트랙 전체 마감 — M1 plan council 착수 가능**(GATE_GM0 안건 7 기승인).
 
 ### M1 모바일 코어 (대기) — TASK_mobile_m1.md
 - [ ] plan council(3관점) 통과 → TASK 확정

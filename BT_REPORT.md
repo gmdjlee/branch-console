@@ -532,3 +532,111 @@ uv run python backtest/run_f06_variants.py                       # ① 재시뮬
   0→3, w2026 미달성은 유지).
 - `engine_ref/statemachine.py`·`tests/test_engine_ref.py`·`backtest/run_replay.py` —
   코드 변경분(D-26 짝지음 구현 + 증인 3종 + note 문구).
+
+---
+
+# MT0-08 — ① 변형 프로덕션 채택 (2026-08-04 사용자 결정)
+
+> **근사-PIT — C1에서 실측 확정.** 이 절도 §0 고지를 상속한다. 근거: GATE_GM0 후속
+> 결정(2026-08-04, ① 변형 20.0% 채택·C1 재확정 조건부) → `TASK_mobile_m0.md`
+> §MT0-08. MT0-06/BT-04(설계·실측)·MT0-07(D-26 짝지음 프로덕션 반영)의 결과 위에서
+> `kospi_drawdown` extreme 임계를 처음으로 **configs에 실반영**한다 — 이전까지는
+> 전부 샌드박스 후보였다.
+
+## MT0-08.1 반영 요약
+
+- `configs/indicators.yaml`: `kospi_drawdown.thresholds.extreme: 20.0` 추가(보수
+  후보 — 골든 안전 상한 15.557%보다 큼). `registry_version: 0.3.0-rc → 0.3.1-rc`.
+- `configs/statemachine.yaml`: `upgrade.ORANGE.or_any_extreme: true` 추가. **D-26
+  짝지음은 엔진 의미론(`engine_ref/statemachine.py` D-25 §4)으로 자동 적용** —
+  configs에 짝지음 전용 키를 별도로 두지 않는다(MT0-07 §3 결정 그대로 승계).
+- 스키마 가드: `tests/test_configs_schema.py::test_mt0_08_variant_a_adoption_reflected_in_ssot`
+  신설(registry_version·extreme 값·or_any_extreme 위치를 SSOT에서 직접 확인, AMBER/RED엔
+  없음을 AD-10대로 재확인).
+- 기존 5개 테스트(`kospi_drawdown`/`ORANGE`가 이 값을 **아직 갖지 않는다**는 전제로
+  작성됐던 것들)를 채택 사실에 맞춰 갱신했다 — 재조정이 아니라 전제 자체가 바뀐
+  것을 반영: `test_classify_severity_extreme_key_ignored_at_default_max_severity`
+  (실제 프로덕션 값 20.0으로 재작성), `test_is_extreme_absent_key_always_false`
+  (대상 지표를 `vix_level_z`로 교체 — "부재" 경로는 여전히 다른 지표로 유효),
+  `test_or_any_extreme_present_in_production_orange_escapes_composite_gate`(구
+  "부재 시 noop" 자리 — 이제 반대 방향인 "실재 시 실제로 작동"을 프로덕션 config로
+  직접 확인), `backtest/test_f06_variants.py`의 deepcopy 격리 증인 2건(값 비교 →
+  객체 동일성 비교로 전환, BASE가 이미 후보와 같은 값을 갖게 됐으므로).
+- `uv run ruff check . && uv run pytest -q` **177 green**(기존 176 + 신규 스키마
+  가드 1), `pytest backtest/test_golden.py -q` **6 green**(반영 전후 모두 재확인 —
+  D-08 골든은 예측대로 무손상, §MT0-08.2).
+
+## MT0-08.2 골든 무회귀
+
+반영 **전**(0.3.0-rc, D-26 짝지음만 있던 상태) 6 green, 반영 **후**(0.3.1-rc, ①
+포함) 6 green — 위반 0. 예측 근거 그대로 성립: `extreme: 20.0`은 골든 양성 창
+(`w2024_carry_unwind`)의 `kospi_drawdown` 관측 최댓값(15.557%, 2024-08-05)보다
+크므로 골든 구간 내에서 이스케이프 자체가 발화하지 않는다(MT0-06 §3-A(b) 안전
+조건). 중단·보고 조건(예상 밖 골든 위반)은 발생하지 않았다.
+
+## MT0-08.3 `metrics.json` 재생성 — §6 판정표 갱신 (AD-13 절차 준용)
+
+`note` 필드: "registry 0.3.1-rc(① 변형 채택, GATE_GM0 후속 결정 2026-08-04, MT0-08)
++ D-26 pairing semantics 적용(MT0-07, AD-13 절차 준용)."(`backtest/run_replay.py`
+하드코딩 문자열 갱신 — registry_version 자체는 `configs/indicators.yaml`에서
+동적으로 읽으므로 무변경).
+
+### 재생성 전후 §6 diff (예상 vs 실측)
+
+| 항목 | 반영 전(0.3.0-rc+D-26) | 반영 후(0.3.1-rc, ①) | MT0-07 재시뮬 예상(§MT0-07.3) | 일치 |
+|---|---|---|---|---|
+| mobile 탐지율(9창 양성 7/7) | 6/7(w2026 FAIL) | **7/7 PASS** | 7/7 전환 | **정확히 일치** |
+| mobile `w2026` 첫 ORANGE | 미도달 | **2026-07-08** | 07-08(18/20% 후보 실측값) | **정확히 일치** |
+| mobile `w2026` 전이수 | — | **5**(하드 게이트 ≤6 여유 1) | 5 | **정확히 일치** |
+| mobile 플래핑(양성 최대, 9창) | 5 | 5(불변, `w2026`이 최대는 아님) | — | — |
+| server `w2026` 탐지 | FAIL(None) | **FAIL(None) 그대로** | 변화 0 | **정확히 일치** |
+| server `w2026` 전이수 | 8 | **8**(Δ=0) | server 측 변화 0 | **정확히 일치** |
+| server 플래핑(양성 최대) | 13(`w2020`) | 13(불변) | 변화 0 | 일치 |
+| mobile 오탐(`w2023_11_rally` AMBER틱) | 18(FAIL) | **18**(불변) | — | 일치 — 정직 보고, 지우지 않음 |
+| 리드타임 중앙값(mobile) | 7.5 | **12**(`w2026`의 큰 리드가 표본에 편입) | — | 신규 정보(중앙값 계산 표본 변화) |
+| 골든 무회귀 | PASS | PASS | 무손상 | 일치 |
+
+**최종 §6 판정표 (verbatim, C1 이관 대상 명기)**:
+
+| 항목 | server_intraday | mobile_daily | 판정 |
+|---|---|---|---|
+| 탐지율(9창 양성 7/7) | 6/7 (`w2026` 미탐지) | **7/7 PASS** | server **FAIL**(distinct_axes_gte 미면제, AD-10) / mobile **PASS** |
+| 플래핑(양성≤6/음성≤2) | 양성 최대 13(`w2020`) → **FAIL** | 양성 최대 5·음성 최대 2 → PASS | server FAIL 잔존(원인: 상태기계 설정 모순, GM0 안건 2 — 스윕 대상 밖) |
+| 오탐(홀드아웃 포함, AMBER≤3틱) | 0 → PASS | `w2023_11_rally` AMBER 18 → **FAIL** | mobile FAIL 잔존(AD-8, 재보정 금지) |
+| 골든 무회귀 | PASS | PASS | PASS |
+
+**server 탐지 FAIL의 원인은 ①로 해소되지 않는다** — `or_any_extreme`이 `distinct_axes_gte`
+를 우회하지 않으므로(AD-10, 단일 축 급변만으로 ORANGE 승격되는 것을 막는 의도적
+안전장치) server 그리드에서 raw drawdown이 extreme을 넘는 순간에도 `distinct_axes>=2`가
+동시 충족되지 않으면 진입하지 못한다. 이 문제와 server 플래핑·mobile 오탐 FAIL
+3건 전부 **C1 실측(30분 데이터)으로 이관**한다 — 근사-PIT 9창 표본으로는 추가
+보정 근거가 없다(AD-8 정직성 조항, K-11).
+
+## MT0-08.4 run_f06_variants 해석 주석
+
+`backtest/run_f06_variants.py`를 재실행하면 A 후보 20.0%는 이제 "프로덕션 vs
+프로덕션" 비교가 된다(baseline 자체가 이미 20.0%를 포함) — `other_6_positive_
+windows_damage=0`·`holdout_negative_new_false_positive=0`·`server_delta_
+transitions` 전 창 0이 **변형 효과가 아니라 항등 재확인**이다. 16.0/18.0% 두
+후보만 실제 대조(프로덕션과 다른 임계값) 의미가 있으며, C1 재보정 시 이 두
+후보 + 20.0%를 다시 비교 기준으로 쓴다(그리드 무변경, `backtest/f06_variants.yaml`
+meta에 채택 사실만 부기).
+
+## MT0-08.5 재현·검증
+
+```bash
+uv run ruff check . && uv run pytest -q                          # 177 green (기존 176 + 스키마 가드 1)
+uv run pytest backtest/test_golden.py -q                          # 6 green (반영 전후 모두 재확인)
+uv run python backtest/run_replay.py --profile both --window all  # metrics.json 재생성(AD-13 절차 준용)
+uv run python backtest/run_f06_variants.py                        # 해석 주석 포함 재확인, metrics.json 불변
+```
+
+산출물:
+- `configs/indicators.yaml`·`configs/statemachine.yaml` — ① 변형 값 실반영(SSOT).
+- `backtest/results/metrics.json` — **재생성됨**(registry 0.3.1-rc). SHA-256
+  변경(의도된 변경, `note`로 사유 명시).
+- `backtest/results/f06/f06_variants_result.json` — 20.0% 후보가 baseline과
+  동일해지는 점 반영해 재생성(§MT0-08.4).
+- `tests/test_configs_schema.py`·`tests/test_engine_ref.py`·`backtest/test_f06_variants.py`
+  — 신규 가드 1 + 전제 갱신 5.
+- `backtest/f06_variants.yaml` — meta에 채택 사실 부기(candidate_grid 등 값 무변경).

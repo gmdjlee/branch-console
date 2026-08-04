@@ -11,9 +11,11 @@
 # =============================================================================
 
 schema: indicator-registry/1
-registry_version: 0.3.0-rc   # BT-03 스윕 선정 반영(MT0-05④, docs/journal/2026-08-03_MT0-05_sweep_design.md,
+registry_version: 0.3.1-rc   # MT0-08(2026-08-04) — ① 변형(kospi_drawdown extreme:20.0%)
+                              # 프로덕션 채택, GATE_GM0 후속 결정 기록. 이전: 0.3.0-rc(BT-03
+                              # 스윕 선정, MT0-05④, docs/journal/2026-08-03_MT0-05_sweep_design.md,
                               # backtest/results/sweep/sweep_result.json). 근사-PIT — C1에서 실측 확정.
-                              # "조건부": w2026_structural 탐지·리드타임 FAIL, server 플래핑 FAIL 잔존(GM0 안건).
+                              # "조건부": w2026_structural server 탐지·플래핑 FAIL, mobile 오탐 FAIL 잔존(C1 이관).
 
 axes:
   vol_global:      { name_kr: 글로벌 변동성 }
@@ -160,7 +162,11 @@ indicators:
     source: { provider: pykrx, dataset: index_ohlcv, symbol: "1001", cadence: intraday_30m }
     transform: drawdown_from_high(window=60)
     direction: higher_is_risk
-    thresholds: { watch: 3.0, warn: 4.5, crit: 7.0 }
+    # extreme: MT0-08(2026-08-04 사용자 결정, GATE_GM0 후속 결정 기록 — ① 변형 채택,
+    # C1 재확정 조건부). severity 사다리(watch/warn/crit)와는 별도 채널 — statemachine.yaml
+    # upgrade.ORANGE.or_any_extreme의 입력(engine_ref.scoring.is_extreme, AD-7 옵션 A).
+    # 골든 안전 상한(15.557%, MT0-06 설계 저널 §3-A(b)) 위 보수 후보값.
+    thresholds: { watch: 3.0, warn: 4.5, crit: 7.0, extreme: 20.0 }
 
   - id: foreign_net_sell_kospi
     name_kr: 외국인 KOSPI 5일 누적 순매수 z (매도 방향)

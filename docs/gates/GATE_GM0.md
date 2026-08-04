@@ -176,3 +176,11 @@ aaa-critic → 사용자 승인, AAA §3). M1 회귀 게이트는 ①②(ruff/py
   MT0-07) 6. 신규 오탐 FAIL **(b)+(c) 병행**(조건부 유지 + C1 재보정 명시 이관 —
   TASK_calibration_c1.md 부기) 7. **M0 종결 승인, M1 착수 승인**(MT0-07 완결 후 plan council).
   PROGRESS.md 게이트 항목 체크 완료.
+- **후속 결정(2026-08-04, MT0-07 재시뮬 결과 상신)**: ① 변형 **채택 — `kospi_drawdown`
+  `thresholds.extreme: 20.0`(보수 후보) + `upgrade.ORANGE.or_any_extreme: true`(D-26 짝지음
+  동반), C1 실측 재확정 조건부.** 근거: 재시뮬 하드 게이트 3/3 생존(골든·mobile 플래핑·오탐·
+  6창 무손상), mobile w2026 탐지(리드 13거래일), 60일 -20% 낙폭의 원리적 extreme 정당성,
+  M1 Kotlin 단일 구현. server 미탐지(distinct_axes, AD-10)는 잔존 — AD-10 재검토는 별도
+  결정으로 보류. 반영 = MT0-08(TASK_mobile_m0 §MT0-08), **registry 0.3.1-rc로 스탬프**
+  (§6 첫 행의 "0.3.0-rc 라벨 유지·0.3.0 승격" 서술은 이 후속 결정 이전 기준 — 현행 승격
+  경로는 0.3.1-rc → C1 재확정 → 0.4.0).

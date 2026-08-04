@@ -925,7 +925,8 @@ def run_replay(
         "generated_at": datetime.now(UTC).isoformat(),
         "note": (
             "근사-PIT — C1에서 실측 확정 (docs/BACKTEST_PLAN.md §5). "
-            "registry 0.3.0-rc configs 불변 + D-26 pairing semantics 적용(MT0-07, AD-13)."
+            "registry 0.3.1-rc(① 변형 채택, GATE_GM0 후속 결정 2026-08-04, MT0-08) "
+            "+ D-26 pairing semantics 적용(MT0-07, AD-13 절차 준용)."
         ),
         "profiles_run": profiles,
         "windows": windows_out,

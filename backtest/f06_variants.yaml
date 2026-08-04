@@ -2,10 +2,14 @@
 # f06_variants.yaml — BT-04 F-06(해상도) 대응안 3종 설계 초안 (Stage A, SSOT 후보값)
 # branch-console M0 | schema: backtest-f06-variants/1
 # -----------------------------------------------------------------------------
-# 지위: **설계 초안뿐이다. 미구현·미실행·미반영.** 이 파일을 읽는 코드는 아직 없다
-# (engine_ref·backtest 어디에도 파서 없음 — Stage B에서 하니스 갭 해소 후 소비 대상).
-# configs/indicators.yaml·configs/statemachine.yaml에는 어떤 값도 아직 반영하지 않았다.
-# 채택은 사용자 승인 사항이며(BACKTEST_PLAN §BT-04), 승인 전 configs 반영을 금지한다.
+# 지위(MT0-08, 2026-08-04 갱신): **후보 A의 20.0%가 프로덕션 채택됐다**(GATE_GM0 후속
+# 결정, C1 재확정 조건부) — configs/indicators.yaml kospi_drawdown.thresholds.extreme:20.0
+# + configs/statemachine.yaml upgrade.ORANGE.or_any_extreme:true로 반영 완료. 이 파일
+# 자체의 값(candidate_grid 등)은 **무변경** — 16.0/18.0 후보와 B/C 안은 여전히 제안
+# 단계이며 C1 재보정 시 재사용을 위해 그리드를 그대로 존치한다(값 변경 없음, 채택
+# 사실만 부기).
+# 이 파일을 읽는 코드는 `backtest/run_f06_variants.py`(selection 블록)뿐이다 —
+# `engine_ref`는 이 파일을 직접 읽지 않고, configs/*.yaml(위 두 곳)만 읽는다.
 #
 # 근거: docs/journal/2026-08-03_MT0-06_bt04_design.md §3(설계)·§5(리스크)·§6(구현 요건).
 # 값의 출처는 전부 그 문서 §2의 실측(backtest/fixtures 리플레이, 근사-PIT)이다 — 추측 금지.
@@ -18,7 +22,12 @@ schema: backtest-f06-variants/1
 
 meta:
   problem_ref: "CONSISTENCY_AUDIT_2026-08.md F-06 / BACKTEST_PLAN.md §BT-04"
-  status: proposal_not_implemented
+  status: "A_20.0pct_adopted_production_mt0-08 / A_16.0_18.0pct_and_B_C_still_proposal"
+  mt0_08_adoption: # 2026-08-04 사용자 결정, GATE_GM0 후속 결정 기록. 값 변경 없음(부기만).
+    decision: "variants.A_threshold_ladder_extension의 20.0% 후보 채택(보수 후보, C1 재확정 조건부)"
+    reflected_in: [configs/indicators.yaml, configs/statemachine.yaml]
+    registry_version: "0.3.1-rc"
+    not_adopted: "A의 16.0/18.0% 및 B(severity 4단계)·C(RED 서브레벨) — 이 파일 그리드 그대로 존치, C1 재보정용"
   golden_hard_constraint: true # D-08 2케이스 x 2프로파일 무회귀는 세 안 모두에 하드 제약
   # 골든 양성 창(w2024_carry_unwind) kospi_drawdown_from_high(60) 관측 최댓값(2024-08-05,
   # 근사-PIT 실측) — 세 안의 골든 안전 상한 계산에 공통으로 쓰이는 기준값.

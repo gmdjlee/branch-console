@@ -595,6 +595,34 @@
   목표 미달성 정직 보고). 176 green·골든 6·F2 7/7. 이월: ① 채택 여부(사용자), AD-10 재검토
   (별도 결정), 상한 규율(AD-12 이월), server 플래핑 잔여 FAIL 13(C1).
 
+## MT0-08 — ① 변형 프로덕션 채택 반영 (2026-08-04, GATE_GM0 후속 결정)
+
+### 라운드 1 (2026-08-04) — **PASS (결함 0, M0 유일 무반려 통과)**
+- **권한**: 사용자 결정(2026-08-04) — 채택 20.0%(보수 후보) + C1 재확정 조건부. GATE_GM0
+  후속 결정 기록 + TASK §MT0-08 물질화가 configs 수정을 허가.
+- **산출**: indicators.yaml extreme 20.0 + **registry 0.3.1-rc** / statemachine.yaml
+  `upgrade.ORANGE.or_any_extreme: true`(AMBER·RED 미추가 — AD-10 유지) / 스키마 가드 신설 /
+  기존 5테스트 갱신(완화 아님 — qa 뮤테이션 실증 + aaa 개별 판정: 격리 증인은 identity
+  비교로 강화) / metrics.json 재생성(note 출처) / BT_REPORT §MT0-08 / f06_variants meta 부기
+  (candidate_grid 무변경 — C1 재사용).
+- **qa-verifier: PASS**(발견 0). **aaa-critic: PASS**(결함 0) — §6 diff 독립 재현: **mobile
+  탐지 6/7→7/7 PASS**(w2026 첫 ORANGE 07-08, 전이 4→5, 리드 15거래일, 리드 중앙값 7.5→12),
+  server 전 창 전 항목 불변, 유일 변동이 목표 창 1개(최소 개입). 골든 발화 0회 구조 확인
+  (골든 max dd 15.557%<20). F2 7/7 유지. AD-10 실동작 실증(axes=1이면 승격 없음).
+- 관찰(비구속): 게이트 라벨·저널 조건절 부기, MASTER_PLAN 버전 계획 차이(실무 무영향),
+  **스키마 가드의 0.3.1-rc 리터럴은 C1 버전 승격 시 동반 갱신 필요(C1 승계)**.
+
+### 상태 (MT0-08) — **M0 트랙 전체 마감**
+- **완료(PASS).** 레지스트리 최종 형상: **0.3.1-rc**(0.2.0→0.3.0-rc 스윕 3파라미터→0.3.1-rc
+  ① 채택), 엔진 의미론 D-25 §1~4(짝지음 포함), configs 신규 키 2. §6 최종: PASS — mobile
+  탐지 7/7·mobile 플래핑 5/2·골든 무회귀·리드 중앙값 7.0/12 / **FAIL 3건 C1 이관 verbatim** —
+  server w2026 탐지(AD-10)·server 플래핑 13(안건 2 설정 모순은 D-26로 완화, 잔여는 C1)·
+  mobile 오탐 18(AD-8). 품질: 177 green·골든 6·커버리지 99%·F2 7/7·SSOT 리터럴 0.
+- **M1 승계 4건**(aaa 종결 소견): ① BT-05 패리티 범위 확대(or_any_extreme + D-26 짝지음
+  레벨-로컬·reset을 Kotlin 동일 구현, 신규 키 2 파싱) ② Kotlin 측 F2-2류 증인도 합성 config
+  필수(프로덕션 config로 구성 불가 — 전수 탐색 확정) ③ 확정 틱 17:00은 M1 실제 설계와 동시
+  재확인(AD-3 b) ④ 잔여 FAIL 3건은 C1 소관 — M1에서 재보정 금지(K-11·AD-8).
+
 ## GATE_GM0 — 게이트 리포트 검토 (2026-08-03)
 
 - 작성: Advisor(docs/gates/GATE_GM0.md, gate-report 스킬 양식). 대상: M0 게이트 상신.

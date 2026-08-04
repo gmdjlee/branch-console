@@ -13,7 +13,11 @@ initial_phase: GREEN
 upgrade:                      # 조건 충족이 promote_sustain_ticks(profiles.*) 연속이어야 승격 (D-16)
   rules:
     AMBER:  { composite_gte: 20, or_any_crit: true }
-    ORANGE: { composite_gte: 40, distinct_axes_gte: 2 }
+    # or_any_extreme: MT0-08(2026-08-04) — ① 변형 채택(GATE_GM0 후속 결정). distinct_axes_gte는
+    # 우회 대상이 아니다(AD-10, composite_gte만 우회). D-26 짝지음(engine_ref/statemachine.py
+    # D-25 §4)이 엔진 의미론으로 자동 적용돼 any_extreme 지속 중 exit_ORANGE를 차단한다 —
+    # 이 파일에는 별도 짝지음 키가 없다(설계 확정, configs 노출 없음).
+    ORANGE: { composite_gte: 40, distinct_axes_gte: 2, or_any_extreme: true }
     RED:    { composite_gte: 60, distinct_axes_gte: 3 }
 
 downgrade:                    # 히스테리시스: 진입선보다 낮은 이탈선 + 긴 유지

@@ -56,6 +56,21 @@ def test_sources_new_providers_present() -> None:
     assert "stooq" in providers
 
 
+def test_mt0_08_variant_a_adoption_reflected_in_ssot() -> None:
+    """MT0-08(2026-08-04, GATE_GM0 후속 결정) — ① 변형(kospi_drawdown extreme:20.0% +
+    upgrade.ORANGE.or_any_extreme) 채택 값이 SSOT에 실제로 반영됐는지 가드. D-26 짝지음
+    자체는 엔진 의미론(engine_ref/statemachine.py)이라 이 파일에 별도 키가 없다."""
+    ind = _load("indicators.yaml")
+    assert ind["registry_version"] == "0.3.1-rc"
+    kospi = next(i for i in ind["indicators"] if i["id"] == "kospi_drawdown")
+    assert kospi["thresholds"]["extreme"] == 20.0
+
+    sm = _load("statemachine.yaml")
+    assert sm["upgrade"]["rules"]["ORANGE"]["or_any_extreme"] is True
+    assert "or_any_extreme" not in sm["upgrade"]["rules"]["RED"]  # AD-10: RED는 대상 아님
+    assert "or_any_extreme" not in sm["upgrade"]["rules"]["AMBER"]
+
+
 def test_contracts_importable() -> None:
     import contracts.evidence
     import contracts.snapshot

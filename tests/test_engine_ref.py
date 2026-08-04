@@ -409,16 +409,15 @@ def test_combine_max_severity_spx_drawdown_momentum() -> None:
 
 def test_classify_severity_extreme_key_ignored_at_default_max_severity() -> None:
     """AD-9(a)(i) 증인: max_severity를 생략(기본값 3)하면 thresholds에 "extreme" 키가
-    있어도 무시된다 — 옵션 A(or_any_extreme)의 sandbox candidate가 같은 키를 쓰더라도
+    있어도 무시된다 — MT0-08 채택 후 kospi_drawdown은 실제로 extreme(20.0%)을 갖지만,
     severity 사다리 자체는 영향받지 않는다는 격리 불변식(모듈 docstring 참조)."""
     spec = registry.indicator_spec("kospi_drawdown")
-    assert "extreme" not in spec.thresholds  # 프로덕션 설정엔 실제로 없다
-    fake_thresholds = dict(spec.thresholds, extreme=5.0)  # crit(7.0)보다도 낮은 극단값
+    assert spec.thresholds["extreme"] == 20.0  # MT0-08 프로덕션 값(실제로 존재)
 
-    # extreme=5.0이 max_severity=4에서라면 발화했을 값(10.0 >= 5.0)인데도, 기본 호출은
-    # 여전히 3-tier 결과(crit=3)만 낸다.
+    # extreme(20.0) 이상인 값 — max_severity=4였다면 4(extreme tier)였을 값인데도, 기본
+    # 호출(max_severity=3)은 여전히 3-tier 결과(crit=3)만 낸다.
     assert (
-        scoring.classify_severity(10.0, fake_thresholds, direction=spec.direction) == 3
+        scoring.classify_severity(25.0, spec.thresholds, direction=spec.direction) == 3
     )
 
 
@@ -444,8 +443,10 @@ def test_classify_severity_max_severity_4_without_extreme_key_falls_back_to_3tie
 
 def test_is_extreme_absent_key_always_false() -> None:
     """AD-9(a)(i) 증인: extreme 키가 없는 지표는 원값이 아무리 커도 is_extreme=False —
-    엔진 기본 거동에 영향을 줄 수 없다."""
-    spec = registry.indicator_spec("kospi_drawdown")
+    엔진 기본 거동에 영향을 줄 수 없다. kospi_drawdown은 MT0-08 채택 후 extreme을 가지므로
+    (다른 테스트가 그 경로를 커버, 아래 test_or_any_extreme_present...), 여기는 아직
+    extreme이 없는 지표(vix_level_z)로 "부재" 경로를 확인한다."""
+    spec = registry.indicator_spec("vix_level_z")
     assert "extreme" not in spec.thresholds
     assert scoring.is_extreme(1000.0, spec.thresholds, direction=spec.direction) is False
     assert scoring.is_extreme(None, spec.thresholds, direction=spec.direction) is False
@@ -776,20 +777,24 @@ def test_any_crit_triggers_amber_even_at_low_composite() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_or_any_extreme_absent_from_production_config_is_a_noop() -> None:
+def test_or_any_extreme_present_in_production_orange_escapes_composite_gate() -> None:
+    """MT0-08 채택 후 증인(구 "부재 시 noop" 자리 — 이제는 반대 방향, 실제 채택이 정확히
+    설계대로 작동하는지를 프로덕션 config로 직접 확인한다). `config.upgrade["ORANGE"]`에
+    `or_any_extreme:true`가 실재하고, `any_extreme=True`는 `composite_gte`(40)를 우회해
+    ORANGE 승격을 허용한다 — `distinct_axes_gte`는 AD-10에 따라 여전히 요구된다."""
     config = registry.load_statemachine()
-    assert "or_any_extreme" not in config.upgrade["ORANGE"]  # AD-10 미반영 상태 확인
+    assert config.upgrade["ORANGE"].get("or_any_extreme") is True  # MT0-08 실제 반영 확인
     profile = config.profiles["mobile_daily"]
     orange = config.upgrade["ORANGE"]
     ticks = [
         statemachine.Tick(
-            composite=0.0,  # AMBER(composite_gte:20)도 함께 미충족시켜야 GREEN이 검증됨
-            distinct_axes=orange["distinct_axes_gte"],
-            any_extreme=True,  # 키가 없으므로 이 값은 결과에 영향을 줄 수 없어야 한다
+            composite=0.0,  # composite_gte(40) 미충족 — 이스케이프 없이는 승격 불가
+            distinct_axes=orange["distinct_axes_gte"],  # distinct_axes_gte는 여전히 요구(AD-10)
+            any_extreme=True,
         )
     ]
     timeline = statemachine.run(ticks, profile, config)
-    assert timeline == ["GREEN"]  # any_extreme=True가 무시됨(엔진 기본 거동 비영향)
+    assert timeline == ["ORANGE"]  # composite_gte 우회로 즉시 승격(mobile promote_sustain=1)
 
 
 def test_or_any_extreme_orange_only_rule_escapes_composite_gate() -> None:
