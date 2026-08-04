@@ -980,3 +980,51 @@ if __name__ == "__main__":
 ```bash
 uv run ruff check . && uv run pytest -q     # 173 green (기존과 동일 — Stage A는 코드 미변경)
 ```
+
+## 9. Stage B 실측 기록 (2026-08-03, 예측 대비)
+
+§7.0 순서대로 실행했다. 상세 표는 `BT_REPORT.md` "MT0-07 — 이스케이프-이탈 짝지음
+(D-26, Stage B)" 절이 정본이다 — 여기는 예측(§1·§5·§6.2) 대비 차이만 요약한다.
+
+- **구현**(§7.1): `engine_ref/statemachine.py`에 `_escape_blocks_exit()` 신설 +
+  이탈 평가 분기 수정(레벨-로컬·reset, §1.4 D-25 §4 부기 그대로) — `configs/*.yaml`
+  무변경. 증인 3종(§7.1 (a)(b)(c)) 추가. **부수 발견**: 기존
+  `test_f2_2_cooldown_stops_and_resets_all_promote_streaks`가 강등 압박 틱에
+  `any_crit=True`를 얹어 두고 있었는데(D-26 이전엔 무해한 우연), pairing 도입 후
+  이 조합 자체가 AMBER의 이탈을 영구 차단해 그 테스트가 검증하려던 강등이 전혀
+  일어나지 않게 됐다. **라운드 1 구성(강등용 틱과 재승격용 틱을 `test_f2_4a`와
+  동일 패턴으로 분리)은 F2-2 뮤테이션(cooldown 리셋 루프 → `pass`)을 죽이지
+  못해 aaa-critic SB-1로 반려됐다** — 강등 압박 틱(`composite<exit_AMBER` ∧
+  `any_crit=False`)이 AMBER 자신의 승격 조건을 불충족시켜 강등 시점
+  `promote_streaks[AMBER]`가 이미 0이었기 때문이다(얼릴 스트릭이 없어 뮤테이션이
+  무해해진다). 참고로 비평가가 대안으로 제시했던 ORANGE→AMBER 구성은 스트릭은
+  살아 있으나 강등 후 `AMBER`가 `idx>phase_idx` 자격 필터 밖이라 역시 무해했다 —
+  두 실패의 기전은 다르다.
+  합성 `StatemachineConfig`(레벨 `LOW`의 승격 조건을 `distinct_axes_gte`로만
+  정의해 composite 기반 강등 압박과 자기 스트릭 누적을 이스케이프 없이 동시
+  충족)로 재구성해 해결했고, F2 뮤테이션 7종 전수를 개별 적용·복원하며
+  재사멸을 확인했다(7/7 KILLED — SB-1 완료 보고). `uv run pytest -q` **176
+  green**(기존 173 + 신규 3), 골든 6 green(반영 전후 모두 재확인).
+- **`metrics.json` 재생성**(§7.2, AD-13): §5 예측과 실측이 **모든 항목에서 정확히
+  일치**했다 — server 플래핑 25→13, mobile 6→5, `w2023_11_rally` AMBER 18(불변),
+  탐지·리드타임 완전 불변. Stage A의 in-process 몽키패치 재구현(§8 M-2 대조군,
+  0/18 불일치)이 실제 프로덕션 엔진과 완전히 같은 결과를 낸다는 것의 최종 확인이다.
+- **① 재시뮬**(§6.3): `backtest/run_f06_variants.py`를 **무변경으로 재실행**했다 —
+  엔진에 짝지음이 이미 영구 반영됐으므로 재실행 자체가 "① + 짝지음" 조건이 된다
+  (§6.3 항목 2가 예상한 "하니스 확장" 없이도 됐다 — 실측으로 확인된 단순화, YAGNI).
+  결과: **플래핑 하드 게이트 생존자 0/3 → 3/3**(3후보 전부 PASS로 반전 — §6.2
+  프리뷰의 단일 후보(20%) 관찰이 3후보 전부로 확인됨). w2026 목표(양쪽 프로파일
+  달성)는 **여전히 미달성** — `server_intraday`가 `w2026_structural`을 전혀
+  탐지하지 못하는 문제(distinct_axes_gte 미면제, AD-10)가 유일한 잔여 장벽으로,
+  §6.2가 예고한 그대로다. 3후보는 tie-break까지 내려가도 완전 동점(other_damage
+  0·new_fp 0·kotlin_burden 전부 moderate 동일).
+- **예측-실측 차이**: 수치 차원에서는 **없음** — §5·§6.2가 산출한 모든 값이 Stage B
+  프로덕션 실행과 소수점까지 일치했다. 유일한 신규 정보는 ① 랭킹 결과 자체다(§6.2는
+  하드 게이트 생존 여부만 미리 봤고, 생존자가 3개로 늘면서 처음으로 tie-break
+  로직까지 실행됐다 — 완전 동점이라는 결과는 Stage A에는 없던 정보).
+- **미해결로 남긴 것**(설계 그대로, 범위 확대 없음): 상한(escape hold ceiling,
+  AD-12 — Stage B 미구현·이월), server distinct_axes 미탐지(AD-10 재검토가 필요한
+  별도 결정, 이 재시뮬은 측정만 함), ① 변형 프로덕션 채택 여부(사용자 결정,
+  BACKTEST_PLAN §BT-04 "임의 구현 금지").
+- **재현**: `BT_REPORT.md` "MT0-07.4 재현·검증" 절의 4개 명령으로 이 절 전체가
+  재생성된다.

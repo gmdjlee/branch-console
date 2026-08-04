@@ -19,6 +19,17 @@ D-25 확정 의미론(docs/P0_DESIGN_DECISIONS.md D-25 — MT0-02 라운드 1 �
   3. **전 지표 결측(Tick.composite is None)은 평가 불능이다.** 국면·모든 스트릭·dwell
      카운터·cooldown을 그 틱에서 완전히 동결한다(전이 없음, 틱 미소비) — GREEN으로
      떨어뜨리지 않는다.
+  4. **D-26 이스케이프-이탈 짝지음(레벨-로컬, reset).** 레벨 L의 upgrade 규칙이
+     `or_any_*` 키를 가지면, 그 키에 대응하는 입력(`or_any_crit`→`any_crit`,
+     `or_any_extreme`→`any_extreme`)이 참인 동안 `exit_L`은 **그 자신의 조건과
+     무관하게 미충족**으로 취급된다(다른 레벨의 이탈에는 영향 없음 — 현재 국면의
+     이탈 규칙 하나만 매 틱 평가되므로 "레벨-로컬"은 자연스러운 범위다). 이 미충족은
+     "이탈 조건이 그냥 거짓인 틱"과 동일한 코드 경로(강등 스트릭 리셋)를 탄다 — 위
+     §1의 승격 스트릭이 `or_any_crit`으로 수정된 진리값을 그대로 누적하는 것과
+     대칭이다. `upgrade.RED`에는 `or_any_*` 키가 없으므로 `exit_RED`는 이 결정의
+     영향을 받지 않는다. cooldown·dwell은 무수정 — 두 게이트는 이 수정된 이탈
+     진리값 위에서 기존과 동일하게 합성된다(docs/P0_DESIGN_DECISIONS.md D-25 §4,
+     설계 근거: docs/journal/2026-08-03_MT0-07_pairing_design.md §1).
 """
 
 from __future__ import annotations
@@ -79,6 +90,17 @@ def _rule_satisfied(
 
 def _exit_satisfied(rule: dict, composite: float) -> bool:
     return composite < rule["composite_lt"]
+
+
+def _escape_blocks_exit(rule: dict, any_crit: bool, any_extreme: bool) -> bool:
+    """D-26 짝지음(레벨-로컬): 이탈을 평가 중인 레벨 자신의 upgrade 규칙에 or_any_*
+    키가 있고 그 입력이 참이면, 그 레벨의 이탈은 이번 틱에 차단된다. `rule`은
+    이탈이 아니라 **같은 레벨의 upgrade 규칙**이다 — or_any_crit/or_any_extreme는
+    그 규칙에만 선언되므로 그것이 짝지어야 할 이탈의 정본이다(RED는 이 키가 없어
+    자동으로 영향받지 않는다, docs/P0_DESIGN_DECISIONS.md D-25 §4)."""
+    return bool(rule.get("or_any_crit")) and any_crit or (
+        bool(rule.get("or_any_extreme")) and any_extreme
+    )
 
 
 def run(
@@ -145,7 +167,12 @@ def run(
 
         if not transitioned and phase != order[0]:
             exit_rule = config.downgrade[f"exit_{phase}"]
-            if _exit_satisfied(exit_rule, tick.composite):
+            # D-25 §4 / D-26: 현재 레벨 자신의 upgrade 규칙에 활성 or_any_* 이스케이프가
+            # 있으면 이탈은 이번 틱에 미충족으로 취급된다(레벨-로컬 짝지음).
+            escape_blocks = _escape_blocks_exit(
+                config.upgrade[phase], tick.any_crit, tick.any_extreme
+            )
+            if _exit_satisfied(exit_rule, tick.composite) and not escape_blocks:
                 demote_streak += 1
                 if (
                     demote_streak >= profile.demote_below_ticks

@@ -15,6 +15,7 @@ from __future__ import annotations
 import dataclasses
 import re
 from datetime import UTC, datetime, timedelta
+from itertools import pairwise
 from pathlib import Path
 
 import numpy as np
@@ -23,7 +24,7 @@ import pytest
 import yaml
 
 from engine_ref import modifiers, registry, scoring, statemachine, transforms
-from engine_ref.registry import ProfileParams
+from engine_ref.registry import ProfileParams, StatemachineConfig
 
 # ---------------------------------------------------------------------------
 # helpers
@@ -814,6 +815,110 @@ def test_or_any_extreme_orange_only_rule_escapes_composite_gate() -> None:
     )
 
 
+# ---------------------------------------------------------------------------
+# MT0-07 Stage B (D-26/D-25 §4) — 이스케이프-이탈 짝지음 증인 (설계 저널 §7.1 (a)(b)(c)).
+# ---------------------------------------------------------------------------
+
+
+def test_d26_pairing_is_level_local_lower_level_escape_does_not_block_higher_exit() -> (
+    None
+):
+    """(a) 레벨-로컬 스코프 증인. AMBER의 `or_any_crit`이 참이어도 현재 국면이 ORANGE면
+    `exit_ORANGE`에는 아무 영향이 없다 — ORANGE 자신의 upgrade 규칙엔 `or_any_crit`이
+    없으므로(프로덕션 configs) 레벨-로컬 짝지음은 그 레벨을 건드리지 않는다. "이스케이프가
+    참인 동안 상위 국면의 이탈까지 계속 막는다"는 스태킹 해석은 설계 저널 §1.1에서
+    기각됐다 — 이 테스트는 그 채택이 실제로 그렇게 동작함을 고정한다."""
+    config = registry.load_statemachine()
+    profile = config.profiles["server_intraday"]
+    orange = config.upgrade["ORANGE"]
+    exit_orange = config.downgrade["exit_ORANGE"]
+
+    up_tick = statemachine.Tick(
+        composite=orange["composite_gte"], distinct_axes=orange["distinct_axes_gte"]
+    )
+    # exit_ORANGE를 충족시키는 낮은 composite에 AMBER의 이스케이프(any_crit=True)를 얹는다
+    # — ORANGE 자신의 규칙엔 or_any_crit이 없으므로 레벨-로컬이면 이 틱은 그냥 평범한
+    # 이탈 압박 틱이어야 한다.
+    down_tick_amber_escape = statemachine.Tick(
+        composite=exit_orange["composite_lt"] - 1, distinct_axes=0, any_crit=True
+    )
+
+    ticks = [up_tick] * profile.promote_sustain_ticks + [down_tick_amber_escape] * (
+        profile.demote_below_ticks + profile.min_dwell_ticks + 2
+    )
+    timeline = statemachine.run(ticks, profile, config)
+
+    assert "ORANGE" in timeline  # 승격이 실제로 일어났다
+    # ORANGE의 이탈이 차단되지 않아 강등이 일어나 AMBER로 내려온다. 그 이후는 AMBER
+    # 자신의 or_any_crit이 any_crit=True로 계속 참이라(exit_AMBER가 이번엔 레벨-로컬로
+    # 정확히 차단돼) AMBER에 머문다 — 이것 자체가 pairing이 "그 레벨에는" 작동한다는
+    # 대조 증거이기도 하다.
+    assert timeline[-1] == "AMBER"
+    assert timeline.index("AMBER", timeline.index("ORANGE")) > timeline.index("ORANGE")
+
+
+def test_d26_pairing_reset_streak_requires_full_demote_below_after_escape_clears() -> (
+    None
+):
+    """(b) reset 스트릭 정책 증인. 이스케이프가 활성인 틱은 "이탈 조건이 그냥 거짓인 틱"과
+    동일하게 강등 스트릭을 0으로 되돌린다 — 이스케이프가 풀린 뒤에도 이전에 쌓아 둔
+    스트릭이 이어지지 않고 `demote_below_ticks` 전체를 처음부터 다시 채워야 강등이
+    커밋된다. (설계 저널 §1.2의 "accumulate" 대안이었다면 이스케이프 틱 자체가 이미
+    최종 스트릭에 도달해 그 바로 다음 틱에 커밋됐을 것이다 — 이 테스트는 그것과 정확히
+    구별되는 시점에 커밋됨을 고정한다.)"""
+    config = registry.load_statemachine()
+    amber = config.upgrade["AMBER"]
+    exit_amber = config.downgrade["exit_AMBER"]
+    profile = ProfileParams(
+        promote_sustain_ticks=1,
+        demote_below_ticks=3,
+        min_dwell_ticks=0,
+        reentry_cooldown_ticks=0,
+    )
+
+    up_tick = statemachine.Tick(composite=amber["composite_gte"], distinct_axes=0)
+    down_tick = statemachine.Tick(composite=exit_amber["composite_lt"] - 1, distinct_axes=0)
+    escape_tick = statemachine.Tick(
+        composite=exit_amber["composite_lt"] - 1, distinct_axes=0, any_crit=True
+    )
+
+    # AMBER 진입 -> 강등 스트릭 2/3까지 쌓음 -> 이스케이프 1틱(reset이면 스트릭 0으로) ->
+    # 다시 3틱을 채워야 커밋.
+    ticks = [up_tick, down_tick, down_tick, escape_tick, down_tick, down_tick, down_tick]
+    timeline = statemachine.run(ticks, profile, config)
+
+    assert timeline == ["AMBER"] * 6 + ["GREEN"]  # 이스케이프 이후 정확히 3틱 뒤에 커밋
+    assert timeline[3] == "AMBER"  # 이스케이프 틱 자체는 아직 AMBER(즉시 커밋 아님)
+
+
+def test_d26_pairing_kills_mt0_05_constant_input_limit_cycle() -> None:
+    """(c) MT0-05 §9.2(b) 상수 입력 한계진동 회귀 증인. `composite=12.8205`(고정)·
+    `any_crit=True` 100틱을 pairing 이전 엔진에 넣으면 영구 진동했다(설계 저널 §0 인용,
+    AD-5의 근거 반증 사례) — `upgrade.AMBER{composite_gte:20, or_any_crit:true}`와
+    `downgrade.exit_AMBER{composite_lt:14}`가 이 입력에서 동시에 영구 충족됐기
+    때문이다. **수치 시점 표기(SB-2)**: "server 15전이(주기 6.7틱)·mobile 49전이
+    (주기 2.0틱)"는 0.2.0 프로파일(min_dwell_ticks=2·reentry_cooldown_ticks=0) 기준
+    MT0-05 §9.2b 기록이다 — 현행 0.3.0-rc 프로파일(mobile min_dwell 5·cooldown 2)
+    에서 pairing을 제거하고 재실측하면 server 15·mobile **24**(주기 4.2)다. D-26
+    짝지음 적용 후에는 이 정확히 같은 입력이 **단 1회 전이**(GREEN -> AMBER, 이후
+    영구 AMBER)로 끝나야 한다 — 짝지음이 고치려던 병리 그 자체의 직접 회귀 테스트."""
+    config = registry.load_statemachine()
+    ticks = [
+        statemachine.Tick(composite=12.8205, distinct_axes=1, any_crit=True) for _ in range(100)
+    ]
+    for profile_name in ("server_intraday", "mobile_daily"):
+        profile = config.profiles[profile_name]
+        timeline = statemachine.run(ticks, profile, config)
+        n_transitions = sum(1 for a, b in pairwise(timeline) if a != b)
+        # mobile_daily(promote_sustain_ticks=1)은 첫 틱부터 즉시 AMBER(전이 0회),
+        # server_intraday(promote_sustain_ticks=2)는 GREEN 1틱을 거쳐 AMBER(전이 1회) —
+        # 어느 쪽이든 그 뒤로는 다시 GREEN으로 내려가는 진동이 전혀 없어야 한다
+        # (0.2.0 기준 15/49 — 현행 프로파일 기준 15/24, docstring 참조).
+        assert n_transitions <= 1, (profile_name, n_transitions, timeline)
+        assert set(timeline) <= {"GREEN", "AMBER"}
+        assert timeline[-1] == "AMBER"
+
+
 def test_promote_streak_is_per_level_not_any_level_above_current_d25() -> None:
     """D-1 재현 ①(aaa-critic 라운드1): [AMBER조건만, RED조건] 서버 프로파일(sustain=2) —
     AMBER 자신의 조건만 2틱 연속 충족되므로 AMBER 승격이 정답이다. RED는 1틱만 충족돼
@@ -1046,39 +1151,55 @@ def test_f2_1_promote_streak_resets_on_non_consecutive_miss() -> None:
 
 
 def test_f2_2_cooldown_stops_and_resets_all_promote_streaks() -> None:
-    """F2-2 증인: cooldown 분기의 스트릭 리셋 루프를 `pass`로 바꾸면(정지·리셋 안 됨), 강등
-    직전까지 쌓인 스트릭이 쿨다운 내내 얼어붙은 채로 남아 쿨다운 해제 직후 첫 틱에 조기
-    재승격이 일어난다. any_crit=True로 AMBER 자신의 조건은 계속 충족시키면서 동시에
-    composite는 exit_AMBER 미만으로 유지해 강등 압박도 함께 거는 구성(server, 실제 SSOT 값)."""
-    config = registry.load_statemachine()
-    profile = config.profiles["server_intraday"]
-    amber = config.upgrade["AMBER"]
-    exit_amber = config.downgrade["exit_AMBER"]
+    """F2-2 증인(SB-1 재구성): cooldown 분기의 스트릭 리셋 루프를 `pass`로 바꾸면(정지·
+    리셋 안 됨), 강등 직전까지 쌓인 스트릭이 쿨다운 내내 얼어붙은 채로 남아 쿨다운 해제
+    직후 첫 틱에 조기 재승격이 일어난다.
 
-    up_tick = statemachine.Tick(composite=amber["composite_gte"], distinct_axes=0)
-    down_crit_tick = statemachine.Tick(
-        composite=exit_amber["composite_lt"] - 1, distinct_axes=0, any_crit=True
+    프로덕션 configs(`registry.load_statemachine()`)로는 이 증인을 더 이상 구성할 수
+    없다 — D-26 짝지음 도입 후, 강등 압박(exit_L, composite 낮음)과 그 레벨 자신의
+    승격 스트릭 누적(L의 upgrade 규칙 충족)을 한 틱에서 동시에 만족시키는 유일한 수단은
+    `or_any_crit` 이스케이프뿐인데(그 외 레벨은 진입 임계가 이탈 임계보다 항상 높아
+    composite만으로는 자연 중첩이 없다), 그 이스케이프가 켜진 틱은 이제 그 레벨 자신의
+    이탈을 pairing이 영구 차단해 강등 자체가 일어나지 않는다(SB-1 실측: composite<
+    exit_AMBER·any_crit=True 조합은 AMBER를 벗어나지 못한다). 그래서 이 증인은 **엔진
+    메커니즘 자체**(스트릭 승격/동결)를 프로덕션 규칙과 무관하게 격리 검증하는 합성
+    `StatemachineConfig`를 쓴다 — `LOW`의 승격 조건을 `distinct_axes_gte`(composite와
+    무관)로 정의해, `composite<exit_LOW`(강등 압박)와 `distinct_axes>=5`(LOW 자신의
+    승격 스트릭 누적)를 이스케이프 없이 동시에 만족시킨다. `LOW`에는 `or_any_*` 키가
+    없으므로 D-26 짝지음은 애초에 관여하지 않는다(레벨-로컬 스코프, §1.1)."""
+    config = StatemachineConfig(
+        phases=["GREEN", "LOW"],
+        initial_phase="GREEN",
+        upgrade={"LOW": {"distinct_axes_gte": 5}},
+        downgrade={"exit_LOW": {"composite_lt": 14}},  # O-3: 프로덕션 exit_AMBER와 값이
+        # 같은 것은 우연 — 이 합성 config는 configs/statemachine.yaml과 무관하다.
+        skip_levels=True,
+    )
+    profile = ProfileParams(
+        promote_sustain_ticks=2,
+        demote_below_ticks=3,
+        min_dwell_ticks=0,
+        reentry_cooldown_ticks=4,
     )
 
-    n_down = (
-        profile.demote_below_ticks
-        + profile.reentry_cooldown_ticks
-        + profile.promote_sustain_ticks
+    up_tick = statemachine.Tick(composite=0.0, distinct_axes=5)
+    # composite<exit_LOW(14)과 distinct_axes>=5(LOW 자신의 승격 조건)를 한 틱에서 동시에
+    # 만족 — LOW 체류 중 강등 압박을 쌓으면서 LOW 자신의 스트릭도 계속 누적시킨다.
+    prime_tick = statemachine.Tick(composite=13.0, distinct_axes=5)
+
+    ticks = (
+        [up_tick] * profile.promote_sustain_ticks  # GREEN -> LOW
+        + [prime_tick] * profile.demote_below_ticks  # 강등 커밋(LOW -> GREEN), 커밋 직전 LOW 스트릭=demote_below_ticks
+        + [prime_tick] * profile.reentry_cooldown_ticks  # cooldown: 정상이면 매 틱 0으로 리셋
+        + [prime_tick]  # 해제 직후 첫 틱: 정상=스트릭 1(재승격 아직), 뮤테이션=frozen+1(즉시 재승격)
     )
-    ticks = [up_tick] * profile.promote_sustain_ticks + [down_crit_tick] * n_down
     timeline = statemachine.run(ticks, profile, config)
 
     demote_idx = profile.promote_sustain_ticks + profile.demote_below_ticks - 1
-    still_frozen_through = (
-        demote_idx + profile.reentry_cooldown_ticks + 1
-    )  # 쿨다운 + 첫 해제틱(streak=1)
-    assert timeline[demote_idx : still_frozen_through + 1] == ["GREEN"] * (
-        still_frozen_through - demote_idx + 1
-    )
-    assert timeline[still_frozen_through + 1] == "AMBER"  # sustain(2)틱째에만 재승격
-    assert (
-        len(timeline) == still_frozen_through + 2
-    )  # 시퀀스 길이가 정확히 이 지점에서 끝남
+    release_idx = demote_idx + profile.reentry_cooldown_ticks + 1  # cooldown 해제 직후 첫 틱
+    assert timeline[demote_idx:release_idx] == ["GREEN"] * (release_idx - demote_idx)
+    assert timeline[release_idx] == "GREEN"  # 정상: LOW 스트릭이 리셋돼 sustain(2)에 미달
+    assert len(timeline) == release_idx + 1  # 시퀀스 길이가 정확히 이 지점에서 끝남
 
 
 def test_f2_3_promote_streak_survives_transition_across_levels() -> None:

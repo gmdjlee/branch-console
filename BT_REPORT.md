@@ -420,3 +420,115 @@ uv run python backtest/run_f06_variants.py                       # ~15초 -> res
   variant_a·variant_b·variant_c)
 - `backtest/results/metrics.json` — **불변**(SHA-256 실행 전후 동일, 스크립트 자체가
   검증해 종료 코드로 확인)
+
+---
+
+# MT0-07 — 이스케이프-이탈 짝지음 (D-26, Stage B)
+
+> **근사-PIT — C1에서 실측 확정.** 이 절도 위 §0의 고지를 그대로 상속한다. 설계
+> (Stage A, aaa-critic 2라운드 PASS): `docs/journal/2026-08-03_MT0-07_pairing_design.md`
+> — 레벨-로컬 짝지음(reset 스트릭 정책), configs 키 신설 없음(엔진 의미론 확정,
+> `engine_ref/statemachine.py` D-25 §4), AD-12(상한 이월)·AD-13(`metrics.json`
+> 재생성 사전 승인) 반영.
+
+## MT0-07.1 프로덕션 반영 요약
+
+`engine_ref/statemachine.py`에 D-25 §4(D-26 짝지음)를 구현했다 — `configs/
+statemachine.yaml`·`configs/indicators.yaml`은 **무변경**(값 복제 0, 새 스키마 키
+0개). 레벨 L의 upgrade 규칙에 `or_any_*` 키가 있으면 그 입력이 참인 동안 `exit_L`은
+그 자신의 조건과 무관하게 미충족으로 취급되고(레벨-로컬 — 다른 레벨 이탈에 영향
+없음), 강등 스트릭은 "이탈 조건이 거짓인 틱"과 동일한 코드 경로로 리셋된다(reset
+정책). `upgrade.RED`엔 `or_any_*` 키가 없어 `exit_RED`는 이 결정의 영향을 받지
+않는다. 신규 증인 3종(설계 저널 §7.1 (a)(b)(c)) 포함 `tests/test_engine_ref.py`
+176 green, `pytest backtest/test_golden.py -q` 6 green(반영 전후 모두 재확인).
+기존 `test_f2_2_...`(cooldown 스트릭 리셋 F2 뮤테이션 증인)는 pairing 도입으로
+원 구성이 무력화돼 합성 `StatemachineConfig`로 재구성했다(SB-1, 설계 저널 §9) —
+F2 뮤테이션 7종 재사멸 확인(7/7 KILLED).
+
+## MT0-07.2 `backtest/results/metrics.json` 재생성 (AD-13)
+
+AD-13 조건 3건 전부 충족:
+1. **note 출처 명기** — 재생성본 `note` 필드: "근사-PIT — C1에서 실측 확정
+   (docs/BACKTEST_PLAN.md §5). registry 0.3.0-rc configs 불변 + D-26 pairing
+   semantics 적용(MT0-07, AD-13)." (`backtest/run_replay.py`의 하드코딩 문자열을
+   이 문구로 갱신 — D-26 짝지음은 이제 엔진의 영구 거동이므로 앞으로의 모든
+   재생성에도 이 출처가 자동으로 붙는다.)
+2. **재생성 전후 §6 지표 diff 표** — 아래.
+3. **골든 전후 green** — 재생성 **전**(구 `metrics.json`, pairing 반영 직후 코드
+   기준) `pytest backtest/test_golden.py -q` 6 green 확인 → 재생성 **후** 동일
+   6 green 재확인(둘 다 이 세션에서 직접 실행).
+
+`registry_version`은 AD-13 결정대로 **0.3.0-rc 그대로**(configs 무변경이므로
+스탬프를 올릴 근거가 없다) — 의미론 변경은 `note`로만 구분한다.
+
+### §6 재판정 diff (Stage A §5 예측 vs Stage B 실측 — 9창, 홀드아웃 포함)
+
+| 항목 | 재생성 전(pairing 반영 전 엔진 기준값) | 재생성 후(pairing 적용) | Stage A §5 예측 | 일치 여부 |
+|---|---|---|---|---|
+| server 플래핑(양성 최대) | 25(`w2015`) | **13**(`w2020`) | 13 | **정확히 일치** |
+| server 플래핑(음성 최대) | 0 | 0 | 0 | 일치 |
+| mobile 플래핑(양성 최대) | 6(`w2026`, 여유 0) | **5** | 5 | **정확히 일치** |
+| mobile 플래핑(음성 최대) | 2(`w2023_11`) | 2 | 2 | 일치 |
+| mobile 오탐(`w2023_11_rally` AMBER틱) | 18(FAIL, 상한 3) | **18**(불변) | 18(불변) | **정확히 일치** — 짝지음이 이 창의 AMBER 체류를 늘리지도 줄이지도 않음(재확인) |
+| 탐지율(양성, `w2026` 제외) | 6/6 두 프로파일 | 6/6 두 프로파일 | 불변 | 일치 |
+| 리드타임 중앙값 | server 7.0 / mobile 7.5 | server 7.0 / mobile 7.5 | 불변 | **완전 일치** |
+| 골든 무회귀 | PASS | PASS | 무손상 | 일치 |
+
+**server 플래핑은 25→13으로 개선됐으나 여전히 §6 FAIL이다** — "해소됐다"고 서술하지
+않는다(AD-1 iv 정직성 조항). 원인 귀속(설정 모순, MT0-05 §9.2b)이 부분적으로만
+해소됐고(플래핑 방식 자체는 여전히 §6 상한 6을 넘는다), GM0 안건 2(server 플래핑
+게이트 명시적 축소)는 그대로 유지된다.
+
+## MT0-07.3 ① 변형(`or_any_extreme` + 짝지음) 재시뮬 — 설계 저널 §6.3 프로토콜 실행
+
+`backtest/f06_variants.yaml` `selection` 블록(그리드·게이트·랭킹 SSOT, 무수정)을
+그대로 승계해 `backtest/run_f06_variants.py`를 **재실행**했다(스크립트 자체는
+무변경 — 엔진에 짝지음이 이미 영구 반영됐으므로 재실행 자체가 "① + 짝지음" 조건이
+된다). 결과(3후보 16.0/18.0/20.0%):
+
+| 후보 | 골든 | mobile 플래핑(하드 게이트, ≤6) | w2026 mobile 첫 ORANGE | w2026 server 첫 ORANGE | w2026 달성(양쪽) | 나머지 6창 손상 | 홀드아웃 신규 오탐 | server Δ전이(전 창) |
+|---|---|---|---|---|---|---|---|---|
+| 16.0% | PASS | **PASS**(5, 이전 9→FAIL이었음) | 2026-07-02 | **None(미탐지)** | **미달성** | 0/12 | 0 | 전 창 0 |
+| 18.0% | PASS | **PASS**(5) | 2026-07-08 | **None** | **미달성** | 0/12 | 0 | 전 창 0 |
+| 20.0% | PASS | **PASS**(5) | 2026-07-08 | **None** | **미달성** | 0/12 | 0 | 전 창 0 |
+
+**랭킹(§4.3 규칙 1, 하드 게이트)**: **생존자 = 3/3**(BT-04 원 결과 0/3에서 반전 —
+AD-11(iv)/O-i 구조 동형성 경고가 예고한 병리를 짝지음이 실제로 없앤 것이 실측으로
+확인된다). 2단계(w2026 목표 달성) 기준으로는 **3후보 전부 미달성**이다 — mobile은
+달성하지만 `server_intraday`가 여전히 `w2026_structural`을 전혀 탐지하지 못한다
+(`distinct_axes_gte: 2`가 AD-10에 따라 `or_any_extreme`의 우회 대상이 아니기 때문 —
+설계 저널 §6.3(3)이 예고한 정확한 지점). §4.3 3단계(tie-break)까지 내려가도 세 후보의
+`other_6_positive_windows_damage`(0)·`holdout_negative_new_false_positive`(0)가
+동률이라 `kotlin_parity_burden`(전부 `moderate`, f06_variants.yaml 동일 값)까지도
+동률 — **3후보가 완전히 동점**이다.
+
+**server distinct_axes 미탐지 문제**: 설계 저널 §6.3(3)이 명시한 대로 이번 재시뮬은
+이 문제를 **측정만** 하고 해소를 시도하지 않았다(스코프 확대 금지). 대안(`or_any_
+extreme`도 `distinct_axes_gte`를 우회하도록 확장)은 AD-10이 의도적으로 막은 안전장치
+(단일 축 급변만으로 ORANGE 승격되는 경로)를 여는 것이라 이 재시뮬 범위 밖이며,
+채택하려면 AD-10 자체의 재검토라는 별도 결정이 필요하다 — 제안으로만 기록한다.
+
+**결론(정직 보고, AD-1 iv)**: 짝지음은 ①의 **플래핑 하드 게이트 탈락**(BT-04의
+유일한 실격 사유)을 완전히 해소했다. 그러나 ①의 원래 목표(w2026 조기 탐지, 양
+프로파일)는 **여전히 미달성**이다 — server의 distinct_axes 미탐지라는 별개 문제가
+남아 있기 때문이다. **① 변형의 프로덕션 채택 여부는 이 재시뮬로 결정되지 않는다 —
+사용자의 별도 결정 사항이다**(BACKTEST_PLAN §BT-04 "임의 구현 금지" 원칙, 설계
+저널 §6.1). 채택 시에도 server 문제 해소 없이는 §6("두 프로파일 모두 통과") 자체를
+충족하지 못한다.
+
+## MT0-07.4 재현·검증
+
+```bash
+uv run ruff check . && uv run pytest -q                        # 176 green (기존 173 + D-26 증인 3)
+uv run pytest backtest/test_golden.py -q                        # 6 green (pairing 반영 전후 모두 재확인)
+uv run python backtest/run_replay.py --profile both --window all  # metrics.json 재생성(AD-13)
+uv run python backtest/run_f06_variants.py                       # ① 재시뮬(샌드박스, metrics.json 불변 재확인)
+```
+
+산출물:
+- `backtest/results/metrics.json` — **재생성됨**(AD-13 사전 승인, §MT0-07.2). 이전
+  버전과 SHA-256 다름(의도된 변경) — `note` 필드로 사유 명시.
+- `backtest/results/f06/f06_variants_result.json` — ① 재시뮬 갱신(랭킹 생존자
+  0→3, w2026 미달성은 유지).
+- `engine_ref/statemachine.py`·`tests/test_engine_ref.py`·`backtest/run_replay.py` —
+  코드 변경분(D-26 짝지음 구현 + 증인 3종 + note 문구).

@@ -923,7 +923,10 @@ def run_replay(
         "schema": "backtest-replay-metrics/1",
         "registry_version": indicators_cfg.get("registry_version", "?"),
         "generated_at": datetime.now(UTC).isoformat(),
-        "note": "근사-PIT — C1에서 실측 확정 (docs/BACKTEST_PLAN.md §5)",
+        "note": (
+            "근사-PIT — C1에서 실측 확정 (docs/BACKTEST_PLAN.md §5). "
+            "registry 0.3.0-rc configs 불변 + D-26 pairing semantics 적용(MT0-07, AD-13)."
+        ),
         "profiles_run": profiles,
         "windows": windows_out,
     }

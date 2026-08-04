@@ -554,7 +554,46 @@
   증인 3종 필수(특히 (c) 상수 입력 한계진동 회귀) / 정직 보고(server 25→13 "개선이나 여전히
   FAIL", ① 재시뮬 생존자 0이어도 그대로 — AD-1 iv).
 - **Advisor 이행(M-3)**: D-25 말미 부기 물질화 + D-26 제약 ③ 역참조 추가 완료
-  (docs/P0_DESIGN_DECISIONS.md).
+  (docs/P0_DESIGN_DECISIONS.md, 커밋 d3ba17f — Stage B 라운드 4 종결 소견의 "미이행" 인계는
+  이 커밋을 반영하지 못한 stale 항목).
+
+### Stage B 라운드 1 (2026-08-03) — 구현·재시뮬
+- **산출**: engine_ref/statemachine.py `_escape_blocks_exit`(레벨-로컬·reset·RED 무영향,
+  configs 키 0 신설), 증인 3종, metrics.json 재생성(AD-13 조건 3), ① 재시뮬(run_f06_variants
+  무수정 재실행). 실측 = Stage A §5 예측 전 항목 일치: server 플래핑 25→13(여전히 FAIL),
+  mobile 6→5(여유 회복), w2023_11 오탐 18 불변, 탐지·리드·첫ORANGE 불변, 상수 입력 한계진동
+  server 15→1·mobile 24→0 소멸. ① 재시뮬: 하드 게이트 생존 0/3→**3/3**, mobile w2026 탐지
+  (07-02/07-08), server는 distinct_axes(AD-10 유지)로 전 후보 미탐지 → 목표 미달성 정직 보고.
+- **qa-verifier: PASS**(발견 0 — 보고-저장소 일치·뮤테이션 2종 Edit 원복·test_f2_2 수정
+  정당성 프로브 실증·SSOT clean). **aaa-critic: FAIL**(중대 1·경미 1): SB-1 — test_f2_2
+  재구성이 F2-2 뮤테이션 사멸력 상실(7/7→6/7 퇴행, 스위트 81건 전체 생존 — MT0-02 라운드 2
+  "증인 부재" 유형 재발) / SB-2 — 증인 (c) docstring 수치 시점 오기(49는 0.2.0 기준, 현행 24).
+- **Advisor 조치**: SB-1·SB-2 재위임(비평가 제시 수정 방향 포함).
+
+### Stage B 라운드 2 (2026-08-04) — SB-1·SB-2 해소
+- Worker가 **비평가 제시 구성(ORANGE→AMBER)을 실증 반박**(DIFFER=False — 강등 후 해당 레벨
+  스트릭이 `idx>phase_idx` 자격 필터 밖) + 구조적 사실 증명(D-26 이후 프로덕션 config로는
+  F2-2 성질 구성 불가 — 전수 탐색으로 비평가 재확인: 가능 쌍 0, pairing 제거 시 (AMBER,AMBER)
+  1개만). 해소 = 합성 StatemachineConfig(distinct_axes 기반 프라이밍·이스케이프 무관)로
+  test_f2_2 재설계, **F2 7종 전수 재사멸(7/7 KILLED) 복원**.
+- **aaa-critic: CONDITIONAL**(경미 2 — 저널 §9 폐기 해법 서술 잔존·인라인 주석 수치).
+  **비평자 정정 기록**: 라운드 1 처방(ORANGE→AMBER)은 오류 — 반려 사유는 유효, 처방은
+  Worker가 옳음.
+
+### Stage B 라운드 3~4 (2026-08-04) — 서술 정합 → **PASS (MT0-07 종결)**
+- R3: C-1 해소가 도입한 §9 인과 오귀속(두 실패 기전 뒤바뀜) CONDITIONAL(경미 1) → C-3
+  분리 귀속 정정 → **라운드 4 PASS**(신규 결함 0, F2 7/7·md5 불변·176 green·골든 6 재확인).
+- **종결 소견(확정)**: 총 6라운드(A 2+B 4), 층위 실체→서술→인과 단조 하강, 구조 문제 아님.
+  비평자 정정 2건 기록. 확정 사실: 골든 100% 유지 / AD-5 병리 제거 확증 / §6 재판정(server
+  25→13 FAIL 유지·mobile 6→5·오탐 18 불변·탐지 리드 불변) / SSOT 무변경·AD-13 3조건 /
+  AD-12 준수 / F2 7/7 + "D-26 이후 F2-2류 증인은 합성 config가 유일 수단"(Kotlin BT-05 동일
+  제약). ① 변형 채택 상신 요약 8행은 판정문 정본 참조 — **채택은 사용자 결정**.
+
+### 상태 (MT0-07)
+- **완료(PASS).** D-26 이스케이프-이탈 짝지음 프로덕션 반영(engine 의미론, configs 무변경),
+  metrics.json 0.3.0-rc+D-26 재생성, ① 변형 재시뮬(생존 3/3·mobile 탐지·server 미탐지 —
+  목표 미달성 정직 보고). 176 green·골든 6·F2 7/7. 이월: ① 채택 여부(사용자), AD-10 재검토
+  (별도 결정), 상한 규율(AD-12 이월), server 플래핑 잔여 FAIL 13(C1).
 
 ## GATE_GM0 — 게이트 리포트 검토 (2026-08-03)
 
