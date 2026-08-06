@@ -35,7 +35,17 @@ providers:
       계열 특성) — intraday_30m 용도로는 폴백 불가(부분). DTWEXBGS(DX-Y.NYB 대응 시도)는 지수
       구성(통화 바스켓)이 달라 일간 변화율 부호가 표본 4일 중 2일 불일치 — 폴백 부적격(다른
       지표로 판단, 동일 지연 문제도 있음). ^MOVE·^VIX3M는 FRED series/search 결과 0건(검색어
-      2종) — 대체 없음, R-01(결측 분모 제외)로 흡수. 상세: docs/journal/2026-08-07_MT1-00a_yahoo_stooq.md §9"
+      2종) — 대체 없음, R-01(결측 분모 제외)로 흡수. 상세: docs/journal/2026-08-07_MT1-00a_yahoo_stooq.md §9.
+      2026-08-07 A-6② 보완 실측(BAMLH0A0HYM2·T10Y2Y 본계열): BAMLH0A0HYM2는 실측 T+1 확인,
+      observation_start가 2023-08-07로 나오는 이유는 FRED가 2026-04부터 이 계열을 '최근 3년
+      롤링 윈도우'만 공개하는 정책 도입 때문(메타데이터 notes에 명시, 매달 전진) — 과거 구간은
+      API 재수집 불가, lake 적재분에만 의존. T10Y2Y는 예상과 달리 T+0(당일 값 당일 조회 가능,
+      재정정 가능성 있어 기존 lag_days:1 유지 권장). 결측 표기 실측: 주말은 응답 배열에 행 자체가
+      없음(문자열 '.' 아님), 평일 공휴일(Juneteenth 실측)에는 T10Y2Y만 '.'로 정직 결측 처리하고
+      BAMLH0A0HYM2는 전일값을 반복 출력(결측 아님, 신규 정보 없는 유효 관측) — 두 계열을 동일
+      로직으로 파싱하면 안 됨. vintage 캐시 함정(DEXKOUS·DTWEXBGS에서 발견)은 이 2계열에는
+      재현되지 않았으나 방어적으로 realtime_start/end를 항상 명시하는 것을 구현 기본값으로
+      권장. 상세: docs/journal/2026-08-07_MT1-00a_yahoo_stooq.md §12"
 
   ecos:
     kind: rest
