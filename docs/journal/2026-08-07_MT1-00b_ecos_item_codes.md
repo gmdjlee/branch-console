@@ -82,3 +82,5 @@ ecos:
 
 - `docs/journal/2026-08-07_MT1-00b_ecos_item_codes.md` (본 문서)
 - 그 외 파일 변경 없음.
+
+> **이관 부기(2026-08-07, aaa R2 권고)**: 계획상 본 과업(00b)에 속하던 FRED 절반(BAMLH0A0HYM2·T10Y2Y 응답 계약 실측)은 MT1-00a 저널 §12로 이관되어 **완료**됐다. 본 문서의 차단 범위는 ECOS item_code 실측에 한정된다.

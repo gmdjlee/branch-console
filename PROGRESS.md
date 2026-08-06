@@ -64,9 +64,23 @@
     해소, 구조 재분류 2회 모두 처방 작동(REVIEW_M1.md). 병합 확정본 docs/plans/M1_PLAN_FINAL.md
     (필수 결정 11+3건, 정규 매핑, 서브태스크 합집합 W0~W5, SSOT 변경 제안·착수 선행 2건).
     승인 시 확정: KIS 미보유 → 04e M2 이연 / 스모크 필수만+S9. 커밋 m1-00.
-- [ ] W0 실측 선행: 00a 야후·Stooq / 00b ECOS item_code / 00c kotlin_krx / 00d CDS(G-4) /
-  00g 확정시각(3거래일 폴링 — 계기 구축 후 진행) / 00f SQLite 플랜(성능용, W2 이월 가능)
-  + 착수 선행 SSOT 2키(preview_coverage_min·warmup_padding_days)
+- W0 실측 선행 (판정: qa R1 PASS→aaa R1 FAIL(D-1~5·A-1~6)→수정→qa R2 PASS→**aaa R2 PASS** — REVIEW_M1)
+  - [x] SSOT 선행 2키(preview_coverage_min 0.80·warmup_padding_days 550) — ea14a87, 가드 테스트 포함
+  - [x] MT1-00a 야후·Stooq·FRED — 완료. 야후 chart v8 UA만으로 OK / **Stooq 전면 PoW 차단(K-18
+    폴백 무효, A-2 미결)** / FRED 폴백: VIX·SPX 가능, KRW·DXY 불가 / HY OAS **3년 롤링 정책**·
+    공휴일 결측 표기 이원성 / MT1-04a·04b 계약 인도
+  - [~] MT1-00b ECOS item_code — **차단(BLOCKED, 워커 귀책 아님)**: ECOS_API_KEY 미발급, VERIFY
+    2건 유지. 재개 조건 저널 §4. MT1-04d 블록 유지. FRED 절반은 00a §12로 이관·완료
+  - [x] MT1-00c kotlin_krx — 완료. login·VKOSPI 모바일 조회 성공(M-19(c) 물질화) / **D-1 투자자
+    필드 오정렬 적발·정본 확정(외국인=TRDVAL10+11)** — 벤더링 승계 의무 3건 → MT1-01g PROVENANCE
+  - [x] MT1-00d CDS(G-4) — 완료. **(b) 미수집 확정** → GM1 기록 항목
+  - [ ] MT1-00e 툴체인 호환 매트릭스 — 미착수(MT1-01a 블로커)
+  - [ ] MT1-00f SQLite 인덱스 플랜 — 미착수(성능 확인용, M-44 미사용은 기결정)
+  - [~] MT1-00g 확정 시각 — **부분 완료**: 계기+1차 표본+range 상한(캐치업 20 병목 아님) 인도.
+    **3거래일×6시점 폴링 미완** → confirm_time_kst SSOT 미기입, MT1-06 블록 유지.
+    잔여: 08-07 16:00~19:00(모니터 자동) / 08-10 / 08-11
+  - GM1 기록 누적: 무폴백 4계열(KRW=X·DXY·MOVE·VIX3M) / credit 축 이중 차단(ECOS+CDS) /
+    A-1 프리뷰 커버리지 상한(ECOS 차단 시 0.792<0.80, 키 발급 시 0.847 — **MT1-07 착수 게이트**)
 - [ ] MT1-01 스캐폴드+syncConfigs / [ ] MT1-02 계약 미러+스냅샷 / [ ] MT1-03 Room append-only
 - [ ] MT1-04 collectors a야후 b FRED c KRX d ECOS e KIS(옵션) f CDS 판정(G-4)
 - [ ] MT1-05 엔진·상태기계 + 패리티(BT-05) / [ ] MT1-06 일일 확정 틱+캐치업
