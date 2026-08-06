@@ -263,4 +263,36 @@ A(A-16)·C(C-20): M-43b 표에 "반환 계층" 열 추가 + ③을 tick_input.se
 ## 병합 (AAA §3-4)
 
 Advisor 병합 결정·정규 참조 매핑·서브태스크 합집합: `docs/plans/M1_PLAN_FINAL.md` (2026-08-07).
-사용자 승인(AAA §3-5) 후 착수.
+사용자 승인(AAA §3-5) 후 착수. 승인 시 확정: KIS 미보유→04e M2 이연 / 스모크 필수만+S9.
+
+---
+
+## 구현 단계 판정 로그
+
+### W0 실측 선행 묶음 (MT1-00a~d·g + SSOT 선행 2키) — 커밋 ea14a87·63d4cf0·87e059c·30195ef·3012100·a7b0322·523065d
+
+**라운드 1 (2026-08-07)**: qa-verifier **PASS**(발견 0, 경미 관찰 2 — probe 저장 KST-aware·기존
+ruff format 드리프트) → aaa-critic **FAIL** (치명 1·중 1·증인 1·SSOT 1·경미 1):
+
+| # | 결함 | 요지 |
+|---|---|---|
+| D-1 | 치명 — 00c 투자자 순매수 필드 오정렬 | MDCSTAT02203 TRDVAL8~11이 한 칸씩 밀림(TRDVAL8=기타법인). 저널이 "외국인"으로 인증한 값 = 실제 기타외국인(부호 반대·~203배). 외국인합계=TRDVAL10+11. kotlin_krx 자신의 fromTickerJson KDoc이 정답 명기. pykrx 독립 대조로 반증. weight 2.0 foreign_net_sell_kospi 직결. 시장 스코프도 spec=KOSPI vs 실측=ALL |
+| D-2 | 중 — total=0 오단정 | 순매수 11분류 합=0이 참값(pykrx 대조 확인). "필드 매핑 결측" 단정·재계산 처방은 검산 시 +3,938억(≠0)으로 자기모순 |
+| D-3 | 증인 — 00g 뮤턴트 생존 | df.index[-1]→[0] 변이가 6/6 통과(픽스처 전부 1행). 파손 시 영구 not_yet_today → confirm_time SSOT 오염 경로 |
+| D-4 | SSOT — 00g 레이트리밋 하드코딩 | PYKRX_MIN_INTERVAL_S=1.0 리터럴. 정본은 sources.yaml(선례 build_fixtures.py:193) |
+| D-5 | 경미 — 00g 저널 표본 계획 오기 | 6시점 사전등록을 7/8시점으로 3회 상이 기재 — 게이트 인용 부적격 |
+
+정상 확인(반려 아님): 00a·00d 전 수치 재현(바이트 길이까지), 00b 차단 정직성, VKOSPI 값 타당성
+(KOSPI 실현변동성 100% 환경 정합), SSOT 2키 무영향.
+
+**Advisor 처리 필요 6건(비평가 식별)**: A-1 preview_coverage_min 0.80 ↔ 구조적 결측 충돌(ECOS
+차단 시 상한 0.792<0.80 — 매 틱 억제. ECOS 키 발급 시 0.847로 해소) / A-2 K-18 Stooq 무효
+(문구 개정·04a 스텁·fred.series 추가 허가·무폴백 4계열 GM1 기록) / A-3 VKOSPI 스코프 명시+
+M-19(c) 구현 제약 명문화(패리티 보호) / A-4 credit 축 이중 차단 GM1 기록 / A-5 00c 계약 결함
+3건 — 벤더링 시 fromJson 수정+PROVENANCE 등재 / A-6 미인도 2건(00g range 상한→MT1-06b 블록
+유지, 00b FRED 절반→04b·04d 블록 유지).
+
+처리: 00c(D-1·D-2+A-3, 원시 JSON 증거 의무) / 00g(D-3·D-4·D-5+A-6① — 다행 픽스처 뮤턴트
+사망 확인 조건) / 00a(A-6② FRED HY OAS·T10Y2Y 실측) 재위임. A-1은 ECOS 키 발급(사용자 조치
+대기)으로 우선 해소 경로 — 불가 시 MT1-07 착수 전 D-23 개정 상신. GM1 기록 항목은 PROGRESS
+W0 절에 누적.
