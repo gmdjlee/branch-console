@@ -47,11 +47,17 @@ providers:
 
   scrape_wgb:
     kind: scrape
-    # consumers: server (모바일 v1은 CDS 미수집 — G-4)
+    # consumers: server (모바일 v1은 CDS 미수집 확정 — G-4, M-20)
     enabled: true
     optional: true
     target: "worldgovernmentbonds KR CDS 5Y"
-    notes: "구조 변경 잦음. 실패 시 조용히 결측 처리 (indicator optional=true)"
+    notes: "구조 변경 잦음. 실패 시 조용히 결측 처리 (indicator optional=true).
+      2026-08-07 모바일 접근성 실측(MT1-00d, G-4): /cds-country/south-korea/ 404 →
+      /sovereign-cds/ 는 200이나 정적 HTML에 국가 데이터 0건(테이블 없음, 클라이언트 JS가
+      인라인 선언된 wp-json/cds/v1/main REST 엔드포인트를 fetch로 채움) — 해당 엔드포인트
+      직접 GET도 rest_no_route 404(추가 컨텍스트 필요, 미해결). council 기준
+      '정적 GET+정규식 1개 수준' 미충족 → 모바일 v1 미수집 (b) 확정. 상세:
+      docs/journal/2026-08-07_MT1-00d_cds_feasibility.md"
 
   news_pipeline:                # P2에서 구현
     kind: internal
