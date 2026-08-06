@@ -16,7 +16,11 @@ providers:
     # consumers: server (모바일은 동일 야후 엔드포인트를 네이티브 REST로 직접 호출)
     symbols: ["^VIX", "^VIX3M", "^MOVE", "^GSPC", "DX-Y.NYB", "KRW=X"]
     retry: { attempts: 3, backoff_s: [5, 30, 120] }
-    notes: "비공식 API. 결측·지연 흔함 — stale 정책은 indicators.engine 참조 (함정 K-01)"
+    notes: "비공식 API. 결측·지연 흔함 — stale 정책은 indicators.engine 참조 (함정 K-01).
+      2026-08-07 실측(MT1-00a, query1.finance.yahoo.com/v8/finance/chart): crumb/쿠키 불요
+      (UA 헤더만으로 6개 심볼 전부 200) — 모바일 네이티브 REST 직접 호출 가능 확인. ^MOVE·^VIX3M는
+      2026-07-17 이후 일별 종가 갱신 정지 지속(중간 구간 null, 최신 타임스탬프는 라이브 스냅샷
+      1건뿐) — M0 관측과 동일 절단 재확인. 상세: docs/journal/2026-08-07_MT1-00a_yahoo_stooq.md"
 
   fred:
     kind: rest
@@ -73,7 +77,11 @@ providers:
     kind: rest
     consumers: mobile
     usage: yahoo_fallback
-    notes: "K-18 폴백. MT1-04a에서 실측"
+    notes: "K-18 폴백. 2026-08-07 실측(MT1-00a): stooq.com/q/d/l/ 벌크 CSV 엔드포인트가 JS
+      PoW 안티봇 챌린지로 차단됨(HTTP 200이지만 body가 text/html 챌린지 페이지 — CSV 아님).
+      심볼 무관 전체 차단 확인(^spx/^vix/usdkrw 3종 동일 패턴) — 심볼 매핑표 작성 이전에
+      엔드포인트 자체가 불가. 모바일 네이티브(JS 실행 불가)로는 우회 불가능 — 폴백 경로 미작동.
+      대체 폴백 소스 재검토 필요(Advisor 에스컬레이션). 상세: docs/journal/2026-08-07_MT1-00a_yahoo_stooq.md"
 
 delivery:
   telegram:
