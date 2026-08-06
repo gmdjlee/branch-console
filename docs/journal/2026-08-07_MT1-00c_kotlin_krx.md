@@ -13,13 +13,22 @@
   동일 계정이 이미 평문 등록되어 있었음 — 이 파일은 `.gitignore` 대상이라 벤더링 시
   Keystore 이전 대상에서 자동 제외된다).
 
+> **개정 (2026-08-07, aaa-critic FAIL 반영).** 최초본은 `InvestorTrading.fromJson()`이
+> 파싱한 필드명을 그대로 인용해 `foreigner`(TRDVAL11)를 외국인 순매수로 잘못 인증했다.
+> 비평가가 pykrx 독립 대조(2026-08-05, `detail=True` 11열)로 반증했고, 이번 개정에서
+> raw JSON(§3.4)과 pykrx 재조회(§3.4)로 직접 재확인했다 — **TRDVAL8~11의 실제 슬롯이
+> `fromJson()`의 가정과 한 칸씩 밀려 있다(D-1).** `total=0`은 §3.4에서 재확인한 대로
+> 필드 결측이 아니라 참값(항등식)이었다(D-2, 최초본의 §6 #5 재계산 처방은 철회).
+> §3.3(VKOSPI)에는 병행 지시(A-3)로 `configs/sources.yaml` 스코프 주석과 §8(M-19(c))을
+> 추가했다. §3.2(지수 OHLCV 단위)·§4(K-19)·나머지 절은 최초 실측 그대로 유효하다.
+
 ## 0. 결론 요약 (TL;DR)
 
 | # | 질문 | 답 |
 |---|---|---|
 | 1 | `login()`이 실계정으로 성공하는가 | **예.** 1회 시도로 성공(`loginOk=true`), CD011 재시도 분기는 이번 실행에서 관찰되지 않음(재시도 없이 즉시 CD001) |
 | 2 | KOSPI/KOSDAQ 지수 OHLCV 필드·단위 | **실재.** 단, `tradingValue` 필드의 KDoc 주석("백만원")이 **틀렸다** — 실측값은 원(KRW) 단위다(§3) |
-| 3 | 투자자별 순매수 필드·단위 | **실재**, 원(KRW) 단위. 단 시장전체(`mktId=ALL`) 응답의 `total` 필드는 항상 0 — `TRDVAL_TOT` 필드 부재/미매핑 추정(§3) |
+| 3 | 투자자별 순매수 필드·단위 | **필드는 실재하나 kotlin_krx `fromJson()`의 슬롯 매핑이 틀렸다(D-1, 치명).** TRDVAL8~11이 한 칸씩 밀려 있어 현재 `foreigner` getter는 실제로 기타외국인 값을 반환한다. `total=0`은 결측이 아니라 11분류 배타 합산의 참값(항등식, D-2)이다. 단위는 원(KRW). 상세·pykrx 대조·raw JSON은 §3.4 |
 | 4 | `getVkospi()` 실데이터 반환 여부 | **예, 반환한다.** M1_PLAN_A §10 U-3가 제기한 우려("K-02의 서버 측 결론이 모바일에서 성립 안 할 수 있다")가 **사실로 확인**됨 — VKOSPI는 모바일 경로(로그인 후)에서 실제로 조회 가능 |
 | 5 | `getBusinessDays` 계열 동작 | **정상.** 주말을 실제로 걸러낸다(토·일 포함 구간 조회 시 월요일만 반환) |
 | 6 | K-19(파싱 실패와 휴장이 동일한 반환값) | **소스 코드로 확증.** 실거래일 조회로는 재현할 필요가 없는, 구조적으로 결정된 사실(§4) |
@@ -72,6 +81,25 @@ kotlin_krx를 수정하지 않고 실호출하기 위해, **scratchpad에 독립
 없음) + 데이터 호출 5건 = 8건. 항목당 실호출은 모두 1회(≤3회 budget 이내), 호출 간
 1.2초 대기로 K-03(순간 호출 간격 규정)을 준수했다.
 
+### 2.1 재검증 라운드 (D-1/D-2, aaa-critic 지시)
+
+투자자별 거래 항목만 다시 실호출했다(로그인 재수립 1회 + 데이터 호출 2회, 항목 사이
+1.2초 대기). 이번에는 `fromJson()`을 거치지 않고 `KrxClient.post(params)`가 반환하는
+**raw 응답 문자열을 직접 캡처**해 최상위 키와 `TRDVAL1~11`/`TRDVAL_TOT`의 원본 값을
+그대로 확인했다(`fromJson()`이 붙이는 필드명을 신뢰하지 않기 위함 — 그 필드명 자체가
+D-1의 원인이었으므로):
+
+1. `client.login(krxId, krxPw)`
+2. raw POST `bld=MDCSTAT02203, mktId=STK(KOSPI), strtDd=20260803, endDd=20260805, trdVolVal=2(VALUE), askBid=3(NET_BUY)` — 지표 스펙(`configs/indicators.yaml` `foreign_net_sell_kospi`)이 `market: KOSPI`이므로 이 스코프를 1차로 확인
+3. raw POST 동일 파라미터, `mktId=ALL` (최초 실측·비평가 인용값과의 교차검증용)
+
+이어서 같은 3일치(2026-08-03~05)를 **pykrx로 독립 재조회**해(`branch-console` 기존
+의존성, `stock.get_market_trading_value_by_date(fromdate, todate, ticker, detail=True)` —
+`ticker="KOSPI"`/`"ALL"`이 시장 전체 집계를 반환하는 pykrx 관례) kotlin_krx의 raw
+TRDVAL 슬롯과 숫자 단위로 대조했다. pykrx 쪽도 KRX 로그인 세션을 쓰므로 이 재조회
+역시 K-03 실호출 예산에 포함되는 것으로 계산한다(시장 스코프 2회 × 1일치 조회 —
+`fromdate`~`todate` 범위 자체는 1회의 API 호출로 처리됨).
+
 ## 3. 실측 결과
 
 ### 3.1 로그인 (`KrxClient.login`)
@@ -120,24 +148,92 @@ DerivativeIndex(date=20260731, close=84.35)
 모바일(kotlin_krx, 로그인 경로)에는 적용되지 않는다.** M1_PLAN_A §10 U-3에서
 제기한 질문에 대한 실측 답이다.
 
-### 3.4 투자자별 순매수 (`KrxStock.getMarketTradingByInvestor`, MDCSTAT02203)
+### 3.4 투자자별 순매수 (`KrxStock.getMarketTradingByInvestor`, MDCSTAT02203) — D-1/D-2 재검증
+
+**최초본의 인증은 틀렸다.** `fromJson()`이 리턴하는 `InvestorTrading` 객체의 필드명을
+그대로 믿고 "`foreigner=-5,650,577,385원`"을 외국인 순매수로 인증했으나, 이 값은 실제로는
+**기타외국인**이다. 아래는 raw JSON(§2.1 방법)과 pykrx 독립 대조로 재확인한 증거다.
+
+**raw JSON (2026-08-05, `mktId=STK`=KOSPI, 첫 행 그대로, 쉼표 원본 유지):**
 
 ```
-InvestorTrading(date=20260805, financialInvestment=-28799818552, insurance=-7009938372,
-  investmentTrust=165150622478, privateEquity=-511707108428, bank=2405915443,
-  otherFinance=21332394103, pensionFund=-35201697491, institutionalTotal=35576102556,
-  otherCorporation=-790239060348, individual=1154143165996, foreigner=-5650577385, total=0)
-... (4행)
+top-level keys = [output, CURRENT_DATETIME]   ← "OutBlock_1"이 아니라 "output"이었다
+{"TRD_DD":"2026/08/05",
+ "TRDVAL1":"135,740,424,004","TRDVAL2":"-10,517,391,740","TRDVAL3":"110,045,917,508",
+ "TRDVAL4":"-519,354,783,643","TRDVAL5":"1,968,808,079","TRDVAL6":"25,181,552,015",
+ "TRDVAL7":"-26,821,033,593","TRDVAL8":"21,784,531,051","TRDVAL9":"-1,184,395,808,956",
+ "TRDVAL10":"1,451,333,652,408","TRDVAL11":"-4,965,867,133","TRDVAL_TOT":"0"}
 ```
 
-`foreigner`(외국인 순매수) 필드 실재, 단위는 원(KRW)(예: -5,650,577,385원 = 약 -56.5억원,
-`mktId=ALL, valueType=VALUE, askBidType=NET_BUY` 기준). **`total` 필드가 4행 모두
-정확히 0** — `InvestorTrading.fromJson()`이 읽는 `TRDVAL_TOT` 키가 이 응답 형태에는
-없거나 다른 이름으로 오는 것으로 추정(파서의 `?: 0L` 기본값이 조용히 채움 — K-19와
-같은 유형의 "결측이 유효값으로 위장"하는 사례). NET_BUY 총합은 이론상 0에 가까워야
-하므로 우연히 그럴듯해 보이지만, 실제로는 필드 매핑 결측이지 계산 결과가 아니다.
-**MT1-04c 계약에서 `total`/`institutionalNetBuy` 등 파생 getter를 시장전체(ALL) 응답에
-그대로 신뢰하지 말 것.**
+`mktId=ALL` 2026-08-05 첫 행(최초본이 인증했던 것과 동일 호출 스코프):
+
+```
+{"TRD_DD":"2026/08/05",
+ "TRDVAL1":"-28,799,818,552","TRDVAL2":"-7,009,938,372","TRDVAL3":"165,150,622,478",
+ "TRDVAL4":"-511,707,108,428","TRDVAL5":"2,405,915,443","TRDVAL6":"21,332,394,103",
+ "TRDVAL7":"-35,201,697,491","TRDVAL8":"35,576,102,556","TRDVAL9":"-790,239,060,348",
+ "TRDVAL10":"1,154,143,165,996","TRDVAL11":"-5,650,577,385","TRDVAL_TOT":"0"}
+```
+
+**pykrx 독립 재조회 (`stock.get_market_trading_value_by_date("20260803","20260805", "KOSPI"/"ALL", detail=True)`, 2026-08-05):**
+
+| pykrx 컬럼(명시적 라벨) | KOSPI 값 | ALL 값 |
+|---|---|---|
+| 금융투자 | 135,740,424,004 | -28,799,818,552 |
+| 보험 | -10,517,391,740 | -7,009,938,372 |
+| 투신 | 110,045,917,508 | 165,150,622,478 |
+| 사모 | -519,354,783,643 | -511,707,108,428 |
+| 은행 | 1,968,808,079 | 2,405,915,443 |
+| 기타금융 | 25,181,552,015 | 21,332,394,103 |
+| 연기금 | -26,821,033,593 | -35,201,697,491 |
+| **기타법인** | **21,784,531,051** | **35,576,102,556** |
+| **개인** | **-1,184,395,808,956** | **-790,239,060,348** |
+| **외국인** | **1,451,333,652,408** | **1,154,143,165,996** |
+| **기타외국인** | **-4,965,867,133** | **-5,650,577,385** |
+| 전체 | 0 | 0 |
+
+**대조 결과 — 자릿수까지 정확히 일치, TRDVAL 슬롯은 두 엔드포인트(KOSPI/ALL)에서
+동일한 배치를 쓴다:**
+
+| TRDVAL 슬롯 | kotlin_krx `fromJson()`의 (틀린) 가정 | 실제 분류 (pykrx 대조로 확정) |
+|---|---|---|
+| 1~7 | financialInvestment~pensionFund | **동일 — 맞음** |
+| 8 | `institutionalTotal`(기관합계) | **기타법인**(otherCorporation) |
+| 9 | `otherCorporation`(기타법인) | **개인**(individual) |
+| 10 | `individual`(개인) | **외국인**(foreigner, 본 슬롯) |
+| 11 | `foreigner`(외국인) | **기타외국인**(foreigner, 부속 슬롯) |
+| `TRDVAL_TOT` | (파서가 안 씀 — companion에서 `total`로 매핑) | **0, 참값(항등식)**. 키는 실제로 raw JSON에 명시적으로 존재(`"TRDVAL_TOT":"0"`) — 결측이 아니다(D-2) |
+
+즉 `fromTickerJson()`(개별종목용)의 KDoc이 이미 정확히 서술해 둔 레이아웃
+("TRDVAL8: 기타법인(NOT 기관합계!), TRDVAL9: 개인, TRDVAL10: 외국인, TRDVAL11: 기타외국인,
+외국인합계=TRDVAL10+11")이 **시장전체(MDCSTAT02203) 응답에도 그대로 적용된다** — 두
+엔드포인트가 같은 슬롯 배치를 공유하는데, `fromJson()`만 이 사실을 놓치고 다른(틀린)
+배치를 가정한 것이 D-1의 정체다.
+
+**올바른 값 (2026-08-05, ALL, 원 KRW):**
+- 외국인합계(실제) = TRDVAL10 + TRDVAL11 = 1,154,143,165,996 + (−5,650,577,385) =
+  **+1,148,492,588,611원** — 비평가가 pykrx 대조로 제시한 값과 정확히 일치.
+  (kotlin_krx `fromJson()`의 `foreigner` getter가 실제로 반환하는 값은 이 중
+  TRDVAL11=−5,650,577,385원, 즉 기타외국인 성분 하나뿐이다 — 최초본의 오류.)
+- 기관합계(직접합산, TRDVAL1~7, ALL, 2026-08-05) = −393,829,630,819원 — `fromTickerJson()`과
+  동일 방식(직접 합산)으로 계산해야 하고, `fromJson()`의 `institutionalTotal`(=TRDVAL8 raw)
+  getter는 쓰면 안 된다.
+- `total`(TRDVAL_TOT) = 0 은 11개 배타 분류의 순매수 합이 항등적으로 0이 되는
+  수학적 참값이다 — pykrx `전체` 컬럼도 3일치 전부 정확히 0으로 대조 확인됐다.
+  **최초본 §6 #5의 "필드 매핑 결측 추정 → 직접 재계산 처방"은 철회한다.** 최초본은
+  그 처방에서 `institutionalTotal + otherCorporation + individual + foreigner`
+  (당시 라벨 = TRDVAL8+9+10+11)로 재계산했는데, 항등식(TRDVAL1..11=0)에 의해 이 합은
+  정확히 `−(TRDVAL1~7 합)` = **+393,829,630,819원**(0이 아님)이 나온다 — 이것이 정확히
+  비평가가 지적한 "검산하면 +3,938억 ≠ 0"이다. 원인은 데이터 결측이 아니라 **더한
+  네 슬롯의 라벨이 애초에 틀렸던 것**(TRDVAL8~11의 D-1 오매핑)이며, 올바른 라벨
+  (외국인합계=TRDVAL10+11, 기관합계=TRDVAL1~7 직접합산)로 다시 더하면 항등식이
+  정확히 성립한다(TRDVAL1~11 전체 합 = 0, §3.4 raw 값으로 직접 확인 가능).
+
+**MT1-04c 계약 결론: kotlin_krx의 `InvestorTrading.fromJson()`/getter(`foreigner`,
+`institutionalTotal`, `otherCorporation`, `individual`)는 시장전체(MDCSTAT02203) 응답에
+있는 그대로 쓸 수 없다.** 벤더링(MT1-01g) 시 이 파싱 로직을 `fromTickerJson()`과
+동일한 슬롯 매핑으로 고쳐야 하며, `PROVENANCE.md`의 "우리가 가한 변경" 목록에
+반드시 등재한다(§6 #5 갱신).
 
 ### 3.5 영업일 (`KrxIndex.getBusinessDays`)
 
@@ -170,6 +266,11 @@ getBusinessDays("20260801", "20260803") → [20260803]
 빈 응답 자체는 보조 신호로만 사용**해야 한다는 `M1_PLAN_C.md` RC-10의 처방이 실측으로
 뒷받침된다.
 
+부기(§2.1 재검증에서 확인): `parseOutBlock()`은 `OutBlock_1`·`block1`·`output` 세 키를
+순서대로 시도하는데, 투자자별 거래(MDCSTAT02203)는 실제로는 세 번째인 **`output`**을
+쓴다(§3.4). 세 키 중 무엇이든 배열이 비어 있으면 동일하게 빈 리스트로 수렴하므로
+K-19의 결론(파싱 실패 ≡ 휴장)은 엔드포인트가 어떤 키를 쓰든 그대로 성립한다.
+
 ## 5. MT1-04c 구현 계약 (메서드 × 필드 × 단위 × 오류 거동)
 
 | 메서드 | bld | 필드(반환 타입) | 단위 | 오류/결측 거동 |
@@ -177,7 +278,7 @@ getBusinessDays("20260801", "20260803") → [20260803]
 | `KrxClient.login(id, pw)` | (로그인 3-step) | `Boolean` | — | 실패 시 `false`(예외 아님). 세션 만료 시 이후 `post()`가 `AuthenticationError` — 재로그인 필요 |
 | `KrxIndex.getKospi/getKosdaq(start,end)` | MDCSTAT00301 | date:String(yyyyMMdd), open/high/low/close:Double, volume:Long(주), **tradingValue:Long(원 KRW — KDoc "백만원" 오기, §3.2)**, changeType:Int?(1↑/2↓/3보합), change:Double? | 지수 포인트, KRW | 휴장/파싱실패 모두 빈 리스트(§4) |
 | `KrxIndex.getVkospi(start,end)` | MDCSTAT01201 | date, close:Double | 지수 포인트 | 로그인 필수. 기본 Referer(outerLoader)로 충분 — mdiLoader 전환 불필요(실측, §3.3) |
-| `KrxStock.getMarketTradingByInvestor(start,end,market,valueType,askBidType)` | MDCSTAT02203 | 투자자군별 Long(원 KRW) 11종 + `institutionalTotal`(직접합산, 신뢰 가능) + **`total`(시장전체 응답에서 0 고정, 미신뢰, §3.4)** | KRW (또는 valueType=VOLUME이면 주) | 동일 |
+| `KrxStock.getMarketTradingByInvestor(start,end,market,valueType,askBidType)` | MDCSTAT02203 | **`fromJson()`의 getter를 시장전체 응답에 그대로 쓰지 말 것(D-1, 치명).** raw 슬롯은 TRDVAL1~7=금융투자~연기금(맞음), TRDVAL8=기타법인, TRDVAL9=개인, TRDVAL10=외국인, TRDVAL11=기타외국인(전부 `fromJson()` 가정과 한 칸씩 다름). 외국인합계=TRDVAL10+11. `TRDVAL_TOT`(=`total`)=0은 참값(항등식, §3.4) | KRW (또는 valueType=VOLUME이면 주) | 벤더링 시 `fromTickerJson()`과 동일 매핑으로 파서 수정 필수(MT1-01g 승계, PROVENANCE 등재) |
 | `KrxIndex.getBusinessDays(start,end)` | MDCSTAT00301 재사용 | `List<String>`(yyyyMMdd, 오름차순) | — | "그 구간 시세가 있는 날"을 영업일로 정의(휴장·주말 자동 제외, §3.5) |
 | 공통 | — | — | — | 로그인 세션 없이 `post()` 호출 시 네트워크 요청 없이 즉시 `AuthenticationError`(§1) |
 
@@ -189,8 +290,9 @@ getBusinessDays("20260801", "20260803") → [20260803]
 | 2 | **rate limit/휴장 스킵**: `KrxClient`에는 없음, 전부 호출자 책임 | §2.3 ②와 일치. 어댑터 계층에서 K-03(1초 이상 간격) 삽입 필요 — 이번 실측에서도 어댑터 밖(호출 스크립트)에서 1.2초 delay를 넣어야 했다 |
 | 3 | **`integration/` 테스트 제외**: 실네트워크 의존, 로그인 필수화 이후 절반이 이미 깨진 상태 | §2.3 ③과 일치, 오히려 근거가 하나 더 늘었다(§1의 "구식 테스트는 즉시 AuthenticationError") |
 | 4 | **(신규 발견) `tradingValue` 단위 KDoc 오류** | §2.3에 없던 항목. 벤더링 복사 시 KDoc 주석을 "원(KRW)"로 정정하거나, 최소한 `PROVENANCE.md`의 "우리가 가한 변경" 목록에 주석 정정을 1줄 추가할 것 |
-| 5 | **(신규 발견) 시장전체 `InvestorTrading.total` 필드 결측** | §2.3에 없던 항목. MT1-04c 계약에서 이 필드를 소비하지 않도록 명시(§5) — 필요하면 `institutionalTotal + otherCorporation + individual + foreigner`로 직접 재계산 |
+| 5 | **(치명, D-1) `InvestorTrading.fromJson()`의 TRDVAL8~11 슬롯 매핑 오류** | §2.3에 없던 항목. **벤더링 시 반드시 수정** — `fromTickerJson()`과 동일한 슬롯 배치(TRDVAL8=기타법인, 9=개인, 10=외국인, 11=기타외국인, 외국인합계=10+11)로 고쳐야 한다. 수정 전까지 `foreigner`/`institutionalTotal`/`otherCorporation`/`individual` getter를 시장전체 응답에 소비하지 말 것(§3.4·§5). PROVENANCE.md에 "우리가 가한 변경"으로 등재 필수 |
 | 6 | **(신규 발견) VKOSPI mdiLoader Referer 미사용** | 벤더링 시 "이중 Referer 전략" 관련 코드·주석이 실제로는 단일 경로임을 확인했으니, 향후 유지보수 시 혼동 방지를 위해 PROVENANCE.md에 기록 권고 |
+| 7 | **(A-3, 병행) VKOSPI 스코프 제약 — v1은 수집·저장만** | §8 참조. `configs/sources.yaml` `providers.pykrx.notes`에 모바일 스코프 예외를 주석으로 추가했다(구조 변경 없음) |
 
 ## 7. 재현 절차 (기록용)
 
@@ -207,3 +309,31 @@ temp 디렉터리)에 있으며 이 커밋에는 포함되지 않는다(자격�
 
 이 절차 자체가 MT1-04c의 "어댑터 계층에서 세션·rate limit·자격증명을 감싼다"(§2.3 ①②)
 설계를 미니어처로 선연습한 것이기도 하다.
+
+§2.1(D-1/D-2 재검증)은 같은 프로젝트의 `MyVerify.kt`를 `client.post(params)` raw 캡처
+버전으로 교체해 재실행했고(§3.4 raw JSON이 그 출력), pykrx 대조는 branch-console 자체
+가상환경에서 `uv run python`으로 `stock.get_market_trading_value_by_date(...)`를
+직접 호출해 얻었다(§3.4 표) — 별도 스크립트 파일을 저장소에 남기지 않았다.
+
+## 8. A-3 — VKOSPI 스코프 물질화 (M-19(c))
+
+§3.3의 실측(VKOSPI가 모바일 경로에서 조회된다)을 v1 지표 계산에 곧바로 연결하면 안
+된다. `configs/sources.yaml` `providers.pykrx.notes`에 다음 스코프 주석을 추가했다
+(notes 필드만 수정, 구조 변경 없음 — §5 SSOT 규칙 준수):
+
+> "(서버/pykrx 경로 한정 — 모바일 kotlin_krx MDCSTAT01201은 조회 가능, 2026-08-07 실측:
+> 본 문서 §3.3. v1 지표 계산 입력은 여전히 realized_vol 폴백 유지 — 실 VKOSPI는
+> 모바일에서 수집·저장만 하고 스코어링에는 미배선. 서버·모바일 동시 전환은 C1에서
+> 재평가, BT-05 패리티 파손 방지)"
+
+**M-19(c) 구현 제약 (MT1-04c/06a 승계):**
+
+- 모바일 kotlin_krx 경로로 수집한 실 VKOSPI 값은 **수집·저장만** 한다(lake append,
+  §3.3 스키마). 앱 UI·로그·디버그 화면에서 참고용으로 노출하는 것은 허용.
+- v1의 `vkospi_z` 지표 계산 입력은 **realized_vol_kospi_20d 폴백을 그대로 유지**한다.
+  실 VKOSPI를 스코어링 경로에 배선하면 서버(K-02 폴백 확정)·픽스처·골든 회귀가
+  전부 폴백 기준으로 고정돼 있어 BT-05(Kotlin 패리티) 골든이 즉시 파손된다.
+  실 VKOSPI로 전환하려면 서버·모바일·픽스처·골든을 **동시에** 바꿔야 하고, 이는 M1
+  범위가 아니라 C1(재현성 확정 단계)에서 재평가할 사안이다.
+- 이 제약이 깨지는 조건(예: C1에서 서버 쪽 VKOSPI 대체 경로가 확정되는 경우)이
+  생기면 이 절과 `sources.yaml` 주석을 함께 갱신한다.
