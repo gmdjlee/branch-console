@@ -235,6 +235,10 @@ indicators:
 # -----------------------------------------------------------------------------
 engine:
   missing_data_policy: exclude_from_denominator   # 결측 지표는 분모에서 제외 (optional 포함)
+  preview_coverage_min: 0.80   # 프리뷰 커버리지 억제 임계(D-23 §23.3-3, M1 council M-09b).
+                                # raw(이월 전) coverage 기준.
+  warmup_padding_days: 550     # 웜업/백필 범위(달력일). backtest/windows.yaml padding_days와
+                                # 동수 유지 의무(M-42, 드리프트 시 패리티 파손).
   stale_profiles:                                 # D-16 프로파일 이원화 (CHANGES_V3 §2.2)
     server_intraday: { intraday_30m: 90m, daily_kr: 36h, daily_us: 36h, fred_daily: 72h }   # 기존 값 그대로
     mobile_daily: { daily_kr: 30h, daily_us: 48h, fred_daily: 96h }   # daily_us: BT-03 스윕 선정(3값 중 기준선 48h가 rank 1위) -> 무변경.

@@ -71,6 +71,29 @@ def test_mt0_08_variant_a_adoption_reflected_in_ssot() -> None:
     assert "or_any_extreme" not in sm["upgrade"]["rules"]["AMBER"]
 
 
+def test_indicators_engine_council_prerequisite_keys() -> None:
+    """M1 council 착수 선행 SSOT (M-09b, M-42): preview_coverage_min·warmup_padding_days
+    존재/타입/범위 가드 + backtest/windows.yaml padding_days와의 동수 의무."""
+    ind = _load("indicators.yaml")
+    engine = ind["engine"]
+
+    coverage_min = engine["preview_coverage_min"]
+    assert isinstance(coverage_min, float)
+    assert 0 < coverage_min <= 1
+
+    padding_days = engine["warmup_padding_days"]
+    assert isinstance(padding_days, int)
+    assert padding_days >= 252
+
+    windows_path = CONFIGS_DIR.parent / "backtest" / "windows.yaml"
+    with open(windows_path, encoding="utf-8") as f:
+        windows = yaml.safe_load(f)
+    assert padding_days == windows["padding_days"], (
+        "M-42: indicators.yaml engine.warmup_padding_days must match "
+        "backtest/windows.yaml padding_days (drift breaks parity)"
+    )
+
+
 def test_contracts_importable() -> None:
     import contracts.evidence
     import contracts.snapshot
