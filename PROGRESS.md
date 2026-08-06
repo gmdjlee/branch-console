@@ -57,8 +57,16 @@
     구조 확인, F2 7/7 유지, 177 green. 잔여 §6 FAIL 3건 C1 이관 verbatim(C1 TASK ⑦ 승계
     부기). **M0 트랙 전체 마감 — M1 plan council 착수 가능**(GATE_GM0 안건 7 기승인).
 
-### M1 모바일 코어 (대기) — TASK_mobile_m1.md
-- [ ] plan council(3관점) 통과 → TASK 확정
+### M1 모바일 코어 (진행 중) — TASK_mobile_m1.md
+- [x] plan council 통과 → TASK 확정 → **사용자 승인 2026-08-07**
+  - 2026-08-06~07: 4관점(A 아키텍처/B 데이터·정합성/C UX·운영/D 런타임 경로 — D는 3연속 FAIL
+    구조 재분류에 따른 사용자 결정으로 신설) × 7라운드, **전원 PASS**. 결함 누계 40건 전량
+    해소, 구조 재분류 2회 모두 처방 작동(REVIEW_M1.md). 병합 확정본 docs/plans/M1_PLAN_FINAL.md
+    (필수 결정 11+3건, 정규 매핑, 서브태스크 합집합 W0~W5, SSOT 변경 제안·착수 선행 2건).
+    승인 시 확정: KIS 미보유 → 04e M2 이연 / 스모크 필수만+S9. 커밋 m1-00.
+- [ ] W0 실측 선행: 00a 야후·Stooq / 00b ECOS item_code / 00c kotlin_krx / 00d CDS(G-4) /
+  00g 확정시각(3거래일 폴링 — 계기 구축 후 진행) / 00f SQLite 플랜(성능용, W2 이월 가능)
+  + 착수 선행 SSOT 2키(preview_coverage_min·warmup_padding_days)
 - [ ] MT1-01 스캐폴드+syncConfigs / [ ] MT1-02 계약 미러+스냅샷 / [ ] MT1-03 Room append-only
 - [ ] MT1-04 collectors a야후 b FRED c KRX d ECOS e KIS(옵션) f CDS 판정(G-4)
 - [ ] MT1-05 엔진·상태기계 + 패리티(BT-05) / [ ] MT1-06 일일 확정 틱+캐치업

@@ -3,6 +3,12 @@
 - 선행: GM0 승인(레지스트리 0.3.0 확정) · 게이트: **GM1** · 위치: `mobile/` (모노레포 내 Android 프로젝트)
 - 스택: Kotlin · Compose · Room · WorkManager · Retrofit/OkHttp · kotlinx.serialization · snakeyaml · minSdk 29
 - 착수 전 plan council 필수(AAA_QUALITY_STANDARD §3). 아래 서브태스크는 council이 세분화·보강할 수 있으나 축소는 불가.
+- **plan council 확정(2026-08-07)**: 7라운드 4안(A~D) 전원 PASS(docs/reviews/REVIEW_M1.md).
+  실행 상세의 정본은 **`docs/plans/M1_PLAN_FINAL.md`**(병합 결정·정규 참조 매핑·서브태스크
+  합집합 — 본 문서를 축소 없이 세분화·보강). 실측 선행 묶음 MT1-00, 신설 서브항목
+  (01f·01g·02d·03c·04g·04h·05b2·05k·06h·07e·08c·08d)이 추가됐다. 확정 틱 16:20 표기는
+  가설이며 17:00 채택 + MT1-00g 실측 확정 조건부(AD-3b). 참고: registry 현행은 0.3.1-rc
+  (GM0 후속 결정 — 0.3.0 표기는 그 이전 기준).
 
 ## 서브태스크
 
