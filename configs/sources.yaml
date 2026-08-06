@@ -28,7 +28,14 @@ providers:
     base: "https://api.stlouisfed.org/fred"
     auth: env:FRED_API_KEY
     series: [BAMLH0A0HYM2, T10Y2Y]
-    notes: "T+1 지연. as_of는 FRED observation date로 기록, 지표 계산은 as_of 정렬(as-of join)"
+    notes: "T+1 지연. as_of는 FRED observation date로 기록, 지표 계산은 as_of 정렬(as-of join).
+      2026-08-07 K-18 대체 후보 실측(MT1-00a 후속): VIXCLS(^VIX 대응)·SP500(^GSPC 대응)은
+      야후 종가와 실측 오차 0(동일 소스 재배포로 판단), T+1 그대로 — 폴백 가능. DEXKOUS(KRW=X
+      대응)는 값 오차는 작으나(표본 0.1~0.25%) 실측 지연이 T+1이 아니라 영업일 4일 이상(H.10
+      계열 특성) — intraday_30m 용도로는 폴백 불가(부분). DTWEXBGS(DX-Y.NYB 대응 시도)는 지수
+      구성(통화 바스켓)이 달라 일간 변화율 부호가 표본 4일 중 2일 불일치 — 폴백 부적격(다른
+      지표로 판단, 동일 지연 문제도 있음). ^MOVE·^VIX3M는 FRED series/search 결과 0건(검색어
+      2종) — 대체 없음, R-01(결측 분모 제외)로 흡수. 상세: docs/journal/2026-08-07_MT1-00a_yahoo_stooq.md §9"
 
   ecos:
     kind: rest
@@ -87,7 +94,9 @@ providers:
       PoW 안티봇 챌린지로 차단됨(HTTP 200이지만 body가 text/html 챌린지 페이지 — CSV 아님).
       심볼 무관 전체 차단 확인(^spx/^vix/usdkrw 3종 동일 패턴) — 심볼 매핑표 작성 이전에
       엔드포인트 자체가 불가. 모바일 네이티브(JS 실행 불가)로는 우회 불가능 — 폴백 경로 미작동.
-      대체 폴백 소스 재검토 필요(Advisor 에스컬레이션). 상세: docs/journal/2026-08-07_MT1-00a_yahoo_stooq.md"
+      대체 폴백 소스 재검토 필요(Advisor 에스컬레이션) → 2026-08-07 후속: FRED 미러 계열로 부분
+      대체 확정(^VIX·^GSPC는 가능, KRW=X·DX-Y.NYB는 불가/부적격 — providers.fred.notes 참조).
+      상세: docs/journal/2026-08-07_MT1-00a_yahoo_stooq.md"
 
 delivery:
   telegram:

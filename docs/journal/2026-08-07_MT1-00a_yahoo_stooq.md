@@ -166,15 +166,117 @@ SHA류 해시 challenge-response(작업증명) — 브라우저의 JS 실행 없
 실패 → 결측 기록) Advisor가 대체 소스를 확정할 때까지 보류하는 것 중 택1을 Advisor가 결정해야
 한다 — 이 문서는 그 결정에 필요한 사실만 제공한다.
 
-## 7. 검증
+## 9. 후속 실측(2026-08-07, Advisor 승인) — FRED 미러 계열의 K-18 대체 가능성
 
-- 실호출 총량: 야후 9회, Stooq 5회(계열당 1~3회 제약 준수, 표 §1·§3 참조).
-- `.env`·비밀값 미노출(이번 과업은 인증 불필요 공개 엔드포인트만 사용).
-- `uv run pytest -q` → 178 passed(무변경 확인 — `sources.yaml` notes 문자열 수정은 스키마
-  테스트가 키 존재만 검사하므로 회귀 없음, `tests/test_configs_schema.py:56` 확인).
-- git status는 Advisor 보고에 원문 첨부.
+**배경**: §3~§4에서 Stooq CSV 폴백이 전면 차단(PoW)됨을 확인했고, 지정된 3차 fallback이 없어
+미해결로 남겼다. Advisor가 이미 수집 경로인 FRED(신규 의존 0)를 대체 후보로 지정, 소량 실호출로
+확정하라는 후속 지시를 내렸다.
 
-## 8. 생성/변경 파일 목록
+**대상**: VIXCLS(↔^VIX), SP500(↔^GSPC), DEXKOUS(↔KRW=X), DTWEXBGS(↔DX-Y.NYB 대응 시도),
+^MOVE·^VIX3M 부재 재확인.
 
-- `docs/journal/2026-08-07_MT1-00a_yahoo_stooq.md` (본 문서, 신규)
-- `configs/sources.yaml` (수정 — `yfinance.notes`, `stooq.notes` 실측 결과 추가, 구조 변경 없음)
+### 9.1 실측값 — FRED observations vs 야후 종가 (표본 대조)
+
+| FRED series | 날짜 | FRED 값 | 야후 대응 심볼 | 야후 종가 | 오차 |
+|---|---|---|---|---|---|
+| VIXCLS | 2026-08-05 | 15.81 | ^VIX | 15.81 | 0 |
+| VIXCLS | 2026-08-04 | 16.50 | ^VIX | 16.50 | 0 |
+| VIXCLS | 2026-08-03 | 15.86 | ^VIX | 15.86 | 0 |
+| SP500 | 2026-08-05 | 7723.55 | ^GSPC | 7723.5498 | ≈0 |
+| SP500 | 2026-08-04 | 7736.52 | ^GSPC | 7736.52 | 0 |
+| SP500 | 2026-08-03 | 7600.50 | ^GSPC | 7600.50 | 0 |
+| DEXKOUS | 2026-07-30 | 1424.05 | KRW=X | 1420.60 | 0.24% |
+| DEXKOUS | 2026-07-31 | 1436.81 | KRW=X(08-02) | 1435.70 | 0.08% |
+| DTWEXBGS | 2026-07-28 | 120.6247 | DX-Y.NYB | 101.38 | (지수 정의 상이 — 레벨 비교 무의미) |
+
+VIXCLS·SP500은 **오차 0에 가깝다** — FRED가 CBOE/S&P 원천 데이터를 그대로 재배포하는 것으로
+판단된다(같은 시계열의 다른 배급 경로). DEXKOUS는 레벨은 근접(0.1~0.25%, 스냅샷 시점 차이로
+설명 가능한 정상 범위)하지만 **지연이 다르다**(§9.2). DTWEXBGS는 레벨 자체가 다른 지수(바스켓
+상이)라 레벨 대조가 무의미 — 변화율로만 판단(§9.3).
+
+**FRED 지연 실측**(`realtime_start`/`realtime_end`를 FRED의 실제 "오늘"인 2026-08-06으로
+명시 고정해 캐시된 vintage 오염 배제):
+
+- VIXCLS·SP500: `realtime_start=2026-08-06` 조회에서 최신 관측일 `2026-08-05` → **T+1**,
+  기존 sources.yaml 주석과 일치.
+- DEXKOUS·DTWEXBGS: 동일하게 `realtime_start=2026-08-06`으로 명시 조회해도 최신 관측일이
+  `2026-07-31`에서 멈춤 → **영업일 기준 약 4일 지연**(2026-07-31→08-06: 07-31(금)·08-03(월)·
+  08-04(화)·08-05(수)·08-06(목) 4영업일). 브리프가 가정한 "일별·T+1"과 다르다 — 이 두 계열은
+  연준 H.10 성격의 발표 주기 특성상 T+1이 아니다(실측 사실, 최초 무-파라미터 조회에서
+  `realtime_start=2026-08-03`으로 보이는 값은 CDN 캐시로 판단 — 명시 파라미터 재조회로 대조
+  확인, 최종 확정치는 위 4영업일 지연이다).
+
+### 9.2 DEXKOUS(KRW=X 폴백) 판정: 부분(값은 유효, 지연이 용도에 부적합)
+
+값 정합성은 양호(0.1~0.25%)하지만, `usdkrw_z`의 cadence는 `intraday_30m`이고 `mobile_daily`
+프로파일에서도 가장 느슨한 것이 `fred_daily: 96h`(4일)다. 방금 실측한 DEXKOUS의 지연(≈4영업일
+=약 6일 캘린더 기준)은 **조회 시점에 이미 fred_daily stale 임계에 근접·초과**한다 — 매 순간
+"막 만든 데이터도 이미 stale"인 소스는 실질적으로 폴백 역할을 하지 못한다. 또한 `usdkrw_z`의
+기존 설정에는 이미 `fallback_provider: ecos`가 지정돼 있어(indicators.yaml:98), DEXKOUS는
+애초에 K-18(스투크) 자리가 아니라 ecos마저 막힌 경우의 **3차** 대체 후보 위치다. ecos 경로는
+MT1-00b에서 `ECOS_API_KEY` 부재로 이미 차단 확인(`docs/journal/2026-08-07_MT1-00b_ecos_item_codes.md`).
+**판정**: DEXKOUS는 실시간/준실시간 대체 불가, "완전 결측보다는 나은 지연 참고치" 역할로만 제한적
+사용 가능 — 코드 반영은 이번 과업 범위 밖(Advisor 결정 필요).
+
+### 9.3 DTWEXBGS(DX-Y.NYB 폴백 시도) 판정: 부적격
+
+`dxy_z`의 transform은 레벨이 아니라 `zscore(pct_change_5d, ..., absolute=true)` — 레벨 차이는
+문제가 안 되지만 **일간 변화율의 방향까지 같아야** 유효한 대체다. 2026-07-27~07-31 4개 표본
+일간 변화율 대조:
+
+| 날짜 | DX-Y.NYB 변화율 | DTWEXBGS 변화율 | 부호 일치 |
+|---|---|---|---|
+| 07-28 | -0.128% | -0.124% | 일치 |
+| 07-29 | -0.572% | +0.136% | **불일치** |
+| 07-30 | -0.784% | -0.922% | 일치 |
+| 07-31 | -0.210% | +0.024% | **불일치** |
+
+표본 4일 중 2일(50%) 부호 불일치 — ICE 달러 인덱스(6개 통화, 유로 편중)와 연준 광의 무역가중
+달러지수(DTWEXBGS, 약 26개 통화)의 바스켓 구성이 달라 특정 통화(유로 외 통화)가 반대로 움직이는
+날에는 두 지수가 정반대로 움직인다. 브리프가 미리 경고한 "z-score 기준선이 갈리면 폴백이 아니라
+다른 지표" 상황에 정확히 해당 — **폴백 부적격**으로 판정한다. 지연 문제(§9.1, DEXKOUS와 동일한
+4영업일 지연)까지 겹쳐 이중으로 부적합.
+
+### 9.4 ^MOVE·^VIX3M: FRED 부재 재확인
+
+`series/search`를 검색어 2종으로 각 1회 호출(`"MOVE bond market volatility index"`,
+`"CBOE 3-month volatility VIX3M"`) — 둘 다 `count: 0`(응답 크기 149바이트, 빈 `seriess` 배열
+동일). ICE BofA MOVE, CBOE VIX3M 모두 FRED 미수록 확정. §2의 결론대로 R-01(결측 분모 제외,
+`indicators.yaml engine.missing_data_policy: exclude_from_denominator`) 그대로 흡수 — 코드
+변경 불필요.
+
+### 9.5 계열별 폴백 매핑표 (최종)
+
+| 야후 심볼 | 지표 | K-18 1차(Stooq) | 2차 후보(FRED) | 최종 판정 |
+|---|---|---|---|---|
+| ^VIX | vix_level_z | 차단(§3) | VIXCLS, 오차 0, T+1 | **가능** |
+| ^GSPC | spx_drawdown_momentum | 차단(§3) | SP500, 오차 0, T+1 | **가능** |
+| KRW=X | usdkrw_z | 차단(§3) | DEXKOUS, 값 유효·지연 4영업일 | **불가**(지연) — 기존 `fallback_provider: ecos`도 별도 차단 중 |
+| DX-Y.NYB | dxy_z | 차단(§3) | DTWEXBGS, 바스켓 상이·부호 50% 불일치 | **부적격**(다른 지표) |
+| ^MOVE | move_index_z | 차단(§3) | 미수록(§9.4) | **대체 없음** → stale/R-01 흡수 |
+| ^VIX3M | vix_term_structure | 차단(§3) | 미수록(§9.4) | **대체 없음** → stale/R-01 흡수 |
+
+무폴백 3계열(KRW=X·DX-Y.NYB·^MOVE·^VIX3M, VIX3M 포함 4개)은 코드 변경 없이 기존
+`engine.missing_data_policy: exclude_from_denominator` + `stale_profiles`로 흡수하는 것이
+현재도 맞는 처리이며, 이번 실측으로 "설계가 이미 옳다"는 것을 재확인했을 뿐 새 코드가 필요하지
+않다. VIXCLS·SP500 2계열만 MT1-04a/04b 구현 시 실제 폴백 호출 대상으로 `sources.yaml.fred.series`
+목록에 추가할 후보다 — 이번 과업(실측)에서는 구조 변경을 하지 않았으므로 그 반영은 구현 단계
+(Advisor 승인 후)로 넘긴다.
+
+## 10. 검증
+
+- 실호출 총량: 야후 10회(§1~§2 9회 + §9.3 DX-Y.NYB 1mo 재조회 1회), Stooq 5회(§3),
+  FRED 8회(§9 — series 4종×1회 + DEXKOUS/DTWEXBGS 재조회 2회[캐시 배제용, 동일 계열 2회차,
+  ≤3회 제약 준수] + search 2회). 계열당 실호출 ≤3회 제약 준수.
+- `.env`·비밀값 미노출(FRED 호출은 `export $(grep ...)`로 쉘 변수에만 적재, 터미널 출력·문서에
+  키 값 미기록).
+- `uv run pytest -q` → 178 passed(무변경 확인 유지 — `sources.yaml` notes 문자열만 추가 수정,
+  `tests/test_configs_schema.py:56`가 키 존재만 검사해 회귀 없음).
+- 동시 편집 중인 `scrape_wgb` 블록(00d 워커 소유)은 이번에도 커밋에서 분리 유지(Advisor 보고에
+  git status 원문 첨부).
+
+## 11. 생성/변경 파일 목록
+
+- `docs/journal/2026-08-07_MT1-00a_yahoo_stooq.md` (본 문서 — §9~§11 후속 절 추가)
+- `configs/sources.yaml` (수정 — `fred.notes`에 폴백 판정 요약 추가, `stooq.notes`에 후속 해결
+  상태 1줄 추가, 구조 변경 없음)
