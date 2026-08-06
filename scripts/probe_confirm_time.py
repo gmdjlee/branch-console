@@ -25,7 +25,8 @@ Requires KRX_ID/KRX_PW in the shell environment (pykrx 1.2.8 KRX login).
 Missing credentials -> items 1/2/3 recorded as blocked_missing_credentials,
 not an exception (K-01/K-02 spirit: record and continue, never guess).
 Makes <=2 pykrx calls and 1 yfinance call per run, well under the "<=3 calls
-per item" verification budget. K-03: >=1s between the two pykrx calls.
+per item" verification budget. K-03: paced between the two pykrx calls per
+configs/sources.yaml providers.pykrx.rate_limit.min_interval_s.
 """
 
 from __future__ import annotations
@@ -41,10 +42,19 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+import yaml
+
 KST = ZoneInfo("Asia/Seoul")
 OUT_DIR = Path(__file__).resolve().parent / "out" / "confirm_time_probe"
-PYKRX_MIN_INTERVAL_S = 1.0  # K-03: minimum spacing between pykrx calls
+SOURCES_YAML = Path(__file__).resolve().parent.parent / "configs" / "sources.yaml"
 LOOKBACK_DAYS = 7  # enough buffer to always include the last trading day
+
+
+def _pykrx_min_interval_s() -> float:
+    """K-03 spacing between pykrx calls, from the same SSOT key
+    backtest/build_fixtures.py._pykrx_min_interval_s reads (D-4: no literal copy)."""
+    cfg = yaml.safe_load(SOURCES_YAML.read_text(encoding="utf-8"))
+    return float(cfg["providers"]["pykrx"]["rate_limit"]["min_interval_s"])
 
 
 def _to_jsonable(v: Any) -> Any:
@@ -132,7 +142,7 @@ def run_probe(label: str | None) -> dict[str, Any]:
     has_krx_creds = bool(os.environ.get("KRX_ID") and os.environ.get("KRX_PW"))
 
     kospi = probe_kospi_close(today, has_krx_creds)
-    time.sleep(PYKRX_MIN_INTERVAL_S)  # K-03
+    time.sleep(_pykrx_min_interval_s())  # K-03
     investor = probe_investor_net_buying(today, has_krx_creds)
     vkospi = probe_vkospi_fallback(kospi)
     fx = probe_krwusd(today)

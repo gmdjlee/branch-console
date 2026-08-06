@@ -27,6 +27,22 @@ def test_row_status_confirmed_today() -> None:
     assert result["values"]["종가"] == 3000.0
 
 
+def test_row_status_picks_last_row_not_first_multi_row() -> None:
+    """Witness for a df.index[-1] -> df.index[0] regression: pykrx/yfinance
+    return rows sorted ascending by date, so the *last* row is the most recent.
+    A 1-row fixture can't distinguish index[-1] from index[0] (aaa-critic D-3) -
+    this needs >=3 distinct dates, with today last, to kill that mutant."""
+    today = date(2026, 8, 7)
+    df = pd.DataFrame(
+        {"종가": [3100.0, 3150.0, 3200.0]},
+        index=pd.to_datetime(["2026-08-05", "2026-08-06", "2026-08-07"]),
+    )
+    result = _row_status(df, today)
+    assert result["status"] == "confirmed_today"
+    assert result["latest_date"] == "2026-08-07"
+    assert result["values"]["종가"] == 3200.0
+
+
 def test_row_status_not_yet_today() -> None:
     today = date(2026, 8, 7)
     df = pd.DataFrame({"종가": [2990.0]}, index=pd.to_datetime(["2026-08-06"]))
