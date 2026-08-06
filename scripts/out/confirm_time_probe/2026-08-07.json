@@ -1,0 +1,51 @@
+[
+  {
+    "polled_at_kst": "2026-08-07T05:49:44.545858+09:00",
+    "label": "0544_preopen",
+    "today": "2026-08-07",
+    "items": {
+      "kospi_close": {
+        "status": "not_yet_today",
+        "latest_date": "2026-08-06",
+        "values": {
+          "시가": 6478.75,
+          "고가": 6550.94,
+          "저가": 6238.32,
+          "종가": 6296.38,
+          "거래량": 284501018.0,
+          "거래대금": 26452136843346.0,
+          "상장시가총액": 5191831798615970.0
+        }
+      },
+      "investor_net_buying": {
+        "status": "not_yet_today",
+        "latest_date": "2026-08-06",
+        "values": {
+          "기관합계": -121432979716.0,
+          "기타법인": 74008123007.0,
+          "개인": 3336698439523.0,
+          "외국인합계": -3289273582814.0,
+          "전체": 0.0
+        }
+      },
+      "vkospi": {
+        "status": "fallback_active",
+        "fallback": "realized_vol_kospi_20d",
+        "inherits_confirm_status_from": "kospi_close",
+        "kospi_close_status": "not_yet_today"
+      },
+      "krwusd_fx": {
+        "status": "not_yet_today",
+        "latest_date": "2026-08-06",
+        "values": {
+          "Adj Close": 1423.239990234375,
+          "Close": 1423.239990234375,
+          "High": 1429.0799560546875,
+          "Low": 1414.1800537109375,
+          "Open": 1421.8699951171875,
+          "Volume": 0.0
+        }
+      }
+    }
+  }
+]
