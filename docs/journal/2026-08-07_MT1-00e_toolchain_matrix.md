@@ -20,6 +20,7 @@
 | 3 | ktlint/detekt/Kover는 Kotlin 2.1.0과 바로 맞는가 | ktlint-gradle·Kover는 문제 없음. **detekt는 공식 호환표에 2.1.0 행이 없다(1.23.8=2.0.21, 다음은 2.0.0-alpha=2.2.20+) — 실제 GitHub 이슈로 비호환 보고 사례 있음(§4, 리스크로 이관)** |
 | 4 | 로컬 JDK/SDK 구성에 결측이 있는가 | JAVA_HOME 미설정, PATH에 `java`/`gradle` 없음(§1). Android SDK cmdline-tools 미설치(§1). 둘 다 **차단은 아님** — Android Studio 내장 JBR과 이미 설치된 SDK 컴포넌트로 스모크가 통과했다 |
 | 5 | 스모크에서 새로 발견한 함정이 있는가 | **있음.** `kotlin { jvmToolchain(17) }` DSL은 Gradle의 엄격한 툴체인 자동탐색을 트리거해 "JDK 17을 못 찾음"으로 **실패**한다(다운로드 리포지토리 미설정). `compileOptions`/`kotlinOptions`로 target=17만 지정하면(툴체인 강제 없이) JDK 21이 그대로 크로스컴파일해 성공한다(§5) — MT1-01a 카탈로그에 반영 필요 |
+| 6 | (2차 디스패치) snakeyaml·테스트 라이브러리 4종은 이 조합과 맞는가 | **예, 전부 호환.** snakeyaml-engine 3.1(JavaBeans 미사용, Android 안전), Konsist 0.17.3·Robolectric 4.16.1은 KGP에 훅을 걸지 않아 Kotlin 2.1.0과 컴파일 경로 충돌 없음, work-testing 2.11.2(compileSdk≥33 요구, 36으로 충족)·room-testing 2.8.4(Kotlin≥2.0 요구, 2.1.0으로 충족) 전부 공식 릴리스 노트로 확정(§9). Robolectric SDK36 테스트는 "JDK 21 필요"를 명시하는데 이 머신의 유일한 JDK가 이미 JBR 21이라 그대로 맞아떨어짐 |
 
 ## 1. 로컬 환경 실측
 
@@ -144,6 +145,11 @@ activityCompose = "1.9.3"
 ktlintGradle = "12.3.0"
 detekt = "1.23.8"       # 리스크 §4 — 실제 실행으로 재확인
 kover = "0.9.8"
+snakeyamlEngine = "3.1"     # §9.1
+konsist = "0.17.3"          # §9.2 — 리스크: ~1년 무갱신, 내부 파서 Kotlin 2.0.20 고정
+robolectric = "4.16.1"      # §9.3 — SDK36 테스트 시 JDK21 필요(이 머신은 이미 충족)
+androidxWork = "2.11.2"     # §9.4 (work-testing 포함, compileSdk>=33 요구)
+androidxRoom = "2.8.4"      # §9.5 (room-testing 포함, Kotlin>=2.0 요구) — Room 3.0 여부는 미확정(§9.5)
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -158,6 +164,11 @@ kover                = { id = "org.jetbrains.kotlinx.kover", version.ref = "kove
 [libraries]
 compose-bom      = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
 activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
+snakeyaml-engine = { module = "org.snakeyaml:snakeyaml-engine", version.ref = "snakeyamlEngine" }
+konsist          = { module = "com.lemonappdev:konsist", version.ref = "konsist" }
+robolectric      = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
+work-testing     = { module = "androidx.work:work-testing", version.ref = "androidxWork" }
+room-testing     = { module = "androidx.room:room-testing", version.ref = "androidxRoom" }
 ```
 
 빌드 설정 권고(§5의 실측 함정 반영): `kotlin { jvmToolchain(N) }` DSL을 쓰지 말 것. 대신
@@ -189,14 +200,81 @@ JDK 17/21이 없으므로).
 | # | 요구 항목 | 처리 여부 |
 |---|---|---|
 | 1 | AGP↔Kotlin↔Gradle 호환 매트릭스 | **완료**(§3, §5) |
-| 2 | `snakeyaml-engine` 최신 안정 버전·Android 호환 근거 | **미처리** — 본 브리프 범위 밖. §16(316~320행)이 이미 "Android 호환성은 MT1-00e에서 계측 스모크로 실증"을 요구하므로 후속 Worker 디스패치 필요 |
-| 3 | Konsist·Robolectric·work-testing·room-testing 최신 안정 버전 | **미처리** — 동일 사유 |
+| 2 | `snakeyaml-engine` 최신 안정 버전·Android 호환 근거 | **완료**(§9.1, 2026-08-07 2차 디스패치) |
+| 3 | Konsist·Robolectric·work-testing·room-testing 최신 안정 버전 | **완료**(§9.2~9.5, 2026-08-07 2차 디스패치) |
 | 4 | kotlin_krx origin push 상태(`git log origin/main..HEAD`) | **완료**(§2 부기, 읽기 전용 확인 — 동기화됨, push 불필요) |
 
-2·3번은 추측으로 카탈로그에 채우지 않았다(브리프 원칙 준수) — Advisor가 별도 디스패치로
-후속 확정할 것을 권고한다.
+00e 행 4항목 전부 처리 완료. §9.5(room-testing)에는 공식 문서 간 불일치(Room 3.0 관련) 1건이
+미확정으로 남아 있다 — 추측으로 덮지 않고 그대로 이관한다(§9.5).
 
-## 9. 재현 절차
+## 9. 후속 실측 — snakeyaml 계열·테스트 라이브러리 4종 (2026-08-07 2차 디스패치)
+
+§8의 미처리 2·3번을 확정한다. 전부 공식 문서·Maven Central 실조회(2026-08-07), 추측 없음.
+Android 인스트루먼트 테스트(에뮬레이터·기기)는 이번 세션에서 돌리지 않았다 — 근거는 공식
+문서·Maven 메타데이터이며, 실제 런타임 확인은 각 항목에 명시한 대로 MT1-01a/01b 착수 시
+1회 실행으로 넘긴다(정직 고지, 추측 금지 원칙).
+
+### 9.1 snakeyaml-engine — Android(minSdk 29) 호환
+
+- 최신 안정: **3.1**(Maven Central `org.snakeyaml:snakeyaml-engine`, 2026-08-05 게시 — 조회
+  시점 기준 2일 전). 빌드 타깃 Java 11 source/target — Android는 D8/R8이 바이트코드를
+  desugar하므로 minSdk 29 실행 자체엔 문제 없음(API 존재 여부가 아니라 바이트코드 레벨 이슈).
+- **JavaBeans/introspection 미사용 재확인**(공식 README): "The Engine will parse/emit basic
+  Java structures (String, List, Map). JavaBeans or any other custom instances are explicitly
+  out of scope." — `java.beans`(Android AOSP에 없음, `M1_PLAN_A.md` 316~319행이 지목한 리스크)를
+  원천적으로 안 쓴다. 계획이 이미 채택한 `org.snakeyaml:snakeyaml-engine`(vs `org.yaml:snakeyaml`)
+  선택의 근거를 실측으로 재확인 — **이탈 근거 없음, kaml 등 대안 검토 불필요(계획 정본 유지)**.
+- 카탈로그: `snakeyamlEngine = "3.1"`, `org.snakeyaml:snakeyaml-engine:3.1`(§6).
+
+### 9.2 Konsist
+
+- 최신 안정: **0.17.3**(Maven Central `com.lemonappdev:konsist`, 게시 약 1년 전 — 그 이후 신규
+  릴리스 없음. GitHub Releases 동일 확인).
+- KGP(Kotlin Gradle Plugin)에 훅을 걸지 않는다 — **내부에 `kotlin-compiler-embeddable:2.0.20`을
+  번들**해 테스트 코드 안에서 소스를 AST로 파싱하는 순수 JUnit 라이브러리다. detekt류와 달리
+  프로젝트 컴파일 경로 밖에서 동작하므로 프로젝트의 Kotlin 2.1.0과 **직접 충돌하지 않는다**.
+- **리스크(중간)**: 공식 호환성 문서가 "최근 3개 Kotlin 릴리스와 호환"이라 서술한 시점(v0.17.0,
+  ~2024)에서 멈춰 있고, 내부 파서가 2.0.20에 고정된 채 약 1년째 갱신이 없다. `mobile/`이 Kotlin
+  2.1 전용 문법을 실제로 쓰면 그 파일을 못 읽을 가능성이 있다 — 문서만으로 확정 불가, MT1-01a에서
+  아키텍처 테스트 1건 실행으로 직접 확인 필수.
+- 카탈로그: `konsist = "0.17.3"`(§6).
+
+### 9.3 Robolectric
+
+- 최신 안정: **4.16.1**(2025-01-21). **API 36(Baklava) 공식 지원 확인** — compileSdk 36(§3)과
+  정합. 릴리스 노트 원문 그대로 중요 제약: **"you need to use JDK 21 if running tests with SDK
+  36 target"** — 이 머신의 유일한 JDK가 이미 JBR **21**(§1·§5)이라 그대로 충족된다.
+- Robolectric도 KGP에 훅을 걸지 않는 JVM 테스트 러너(런타임 시뮬레이터)라 프로젝트 Kotlin 버전과
+  컴파일 경로 충돌이 없다. 릴리스 노트의 "kotlin monorepo v2.2.0" 갱신 언급은 Robolectric **자체**
+  빌드 도구체인 얘기이지 소비자 프로젝트의 Kotlin 제약이 아니다.
+- 카탈로그: `robolectric = "4.16.1"`(§6).
+
+### 9.4 androidx.work:work-testing
+
+- 최신 **안정**(alpha/beta 제외): **2.11.2**(2026-03-25, 공식 릴리스 노트). `2.12.0-beta01`
+  (2026-07-29)은 아직 베타 — 채택하지 않음.
+- 공식 제약: **compileSdk ≥ 33**(문서 상단 고지), minSdk 23(2.11.0-alpha01부터 상향) — 둘 다
+  §3의 compileSdk 36 / 계획 minSdk 29보다 낮아 문제 없음. Kotlin 버전 제약은 릴리스 노트에 별도
+  명시 없음.
+- `work-testing`은 `work-runtime`과 동일 버전 스킴 → **2.11.2** 채택.
+- 카탈로그: `androidxWork = "2.11.2"`(§6).
+
+### 9.5 androidx.room:room-testing
+
+- 최신 **안정**: **2.8.4**(2025-11-19, 공식 Room 릴리스 노트에서 직접 확인). Kotlin **2.0 이상
+  요구**(2.7.0-alpha13부터 고정, 2.1.0은 상위호환) — 문제 없음. minSdk 21→23 상향(2.8.0-rc02) —
+  계획 minSdk 29보다 낮아 문제 없음. compileSdk 하한은 문서에 별도 명시 없음(없다는 사실 그대로
+  보고, 추정 안 함). `room-testing`은 별도 아티팩트로 공식 확인(`MigrationTestHelper` 포함),
+  room-runtime/room-compiler(KSP)와 동일 버전 스킴.
+- **불일치 고지(추측 아님)**: 일반 웹 검색에서 "Room 3.0"(KMP-first 재작성, KSP 전용, Java
+  APT/KAPT 폐지, androidx.sqlite 드라이버 기반) 관련 블로그·뉴스(2026-03~04)가 다수 발견됐으나,
+  **공식 `developer.android.com/jetpack/androidx/releases/room` 릴리스 노트 페이지를 직접
+  조회한 결과에는 3.x 라인이 나타나지 않았다** — 두 소스가 불일치한다. 이 세션은 공식 릴리스
+  노트 페이지에서 직접 확인되는 **2.8.4를 채택**하고, Room 3.0 존재 여부·room-testing API 변경
+  폭은 **미확정으로 남긴다** — MT1-01a/01d 착수 전 별도 확인 권고(추측으로 덮지 않음).
+- 카탈로그: `androidxRoom = "2.8.4"`(§6).
+
+## 10. 재현 절차
 
 1. `D:\wp_2026\branch-console\scratchpad`(또는 임의 위치)에 최소 Android 프로젝트 생성:
    `settings.gradle.kts`(google/mavenCentral repos, `include(":app")`) + root
@@ -208,20 +286,22 @@ JDK 17/21이 없으므로).
    `~\.gradle\wrapper\dists\gradle-8.13-bin\<hash>\gradle-8.13\bin\gradle.bat tasks --console=plain`.
 4. `BUILD SUCCESSFUL`이면 통과.
 
-## 10. 검증
+## 11. 검증
 
 - 스모크: `gradle tasks` → **BUILD SUCCESSFUL in 5s**, 신규 다운로드 0건(§5).
 - `mobile/` 미생성 확인: `git status --short`(branch-console) — 본 문서 외 무변경.
 - kotlin_krx 무변경 확인: `git status --short`(kotlin_krx) — 기존 미추적 파일 5건 외 무변경,
   `origin/main..HEAD` 및 역방향 모두 빈 결과(§2).
-- 인용 URL(§3, §4)은 2026-08-07 실시간 조회 결과이며 추측이 아니다 — 매직넘버가 아닌 카탈로그
-  값이므로 SSOT 규칙(CLAUDE.md §1)과 무관하다(코드 하드코딩이 아니라 `gradle/libs.versions.toml`
-  후보안).
+- 인용 URL(§3, §4, §9)은 2026-08-07 실시간 조회 결과이며 추측이 아니다 — 매직넘버가 아닌
+  카탈로그 값이므로 SSOT 규칙(CLAUDE.md §1)과 무관하다(코드 하드코딩이 아니라
+  `gradle/libs.versions.toml` 후보안).
+- 병렬 워커(MT1-02a)가 스테이징한 `contracts/snapshots/`·`scripts/gen_contract_snapshots.py`·
+  `tests/test_contracts_snapshot.py`는 본 세션에서 손대지 않았다 — 커밋 대상은 본 문서 1건뿐.
 
-## 11. 생성/변경 파일 목록
+## 12. 생성/변경 파일 목록
 
-- `docs/journal/2026-08-07_MT1-00e_toolchain_matrix.md`(본 문서)
-- 그 외 branch-console 저장소 변경 없음.
+- `docs/journal/2026-08-07_MT1-00e_toolchain_matrix.md`(본 문서, §9 추가 갱신 포함)
+- 그 외 branch-console 저장소 변경 없음(MT1-02a의 미커밋 파일은 불간섭).
 - `D:\android_2025\kotlin_krx`: 변경 없음(읽기·`git log`만 수행).
 - 스모크 프로젝트(`scratchpad/smoke/`)는 session-scoped 임시 디렉터리로 저장소 밖에 위치, 이
   커밋에 포함되지 않는다.
