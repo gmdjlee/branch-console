@@ -53,7 +53,7 @@ providers:
     base: "https://ecos.bok.or.kr/api"
     auth: env:ECOS_API_KEY
     stats:
-      - { stat_code: "721Y001", note: "시장금리(일별) — item_code는 구현 시 API 응답으로 검증 (함정 K-04)" }
+      - { stat_code: "817Y002", note: "2026-08-08 실측: 721Y001은 A/M/Q뿐, 일별 시장금리는 817Y002. item_code 검증 완료(K-04 종결)" }
 
   pykrx:
     kind: python_lib

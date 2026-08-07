@@ -72,8 +72,9 @@ indicators:
     weight: 2.0
     source:
       provider: ecos
-      stat_code: "721Y001"          # 시장금리(일별)
-      item_codes: { corp_aa3y: VERIFY, ktb_3y: VERIFY }   # Worker 검증 필수 (TASK 함정 K-04)
+      stat_code: "817Y002"          # 시장금리(일별) — 2026-08-08 실측: 721Y001은 CYCLE A/M/Q뿐(일별 미제공),
+      # 일별 시장금리는 817Y002 확정(StatisticItemList 27건 전량 CYCLE=D, docs/journal/2026-08-07_MT1-00b_ecos_item_codes.md §7.1-7.2)
+      item_codes: { corp_aa3y: "010300000", ktb_3y: "010200000" }   # 2026-08-08 실측 확정(StatisticSearch 15영업일 값 검증, 위 저널 §7.3, K-04 종결)
       cadence: daily_kr
       lag_days: 1
     transform: delta_bp(corp_aa3y - ktb_3y, lookback=5)
