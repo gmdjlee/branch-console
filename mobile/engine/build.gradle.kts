@@ -79,36 +79,8 @@ kover {
     }
 }
 
-// MT1-01f 측정 생존 증인(§3.2.1 잔여 5) — koverVerify가 배제 필터에 전체 소스가 걸려
-// 0/0(vacuous)으로 조용히 통과하는 것을 차단한다. :krx에서 실측된 실패 양상(패키지 전체
-// exclude 시 koverPrintCoverage가 "No sources"를 출력하면서도 koverVerify는 green)이 근거 —
-// 임계값이 있어도 분모가 0이면 게이트가 무력하다.
-val verifyKoverInstrumented by tasks.registering {
-    group = "verification"
-    description = "koverXmlReport의 전체 LINE 카운터 합이 0보다 큰지 확인한다(계측 생존 증인)."
-    dependsOn("koverXmlReport")
-    val reportFile = layout.buildDirectory.file("reports/kover/report.xml")
-    inputs.file(reportFile)
-    doLast {
-        val xml = reportFile.get().asFile.readText()
-        val lineCounters =
-            Regex("""<counter type="LINE" missed="(\d+)" covered="(\d+)"/>""")
-                .findAll(xml)
-                .toList()
-        check(lineCounters.isNotEmpty()) {
-            "koverXmlReport에 LINE 카운터가 없다 — 리포트 형식이 바뀌었거나 생성되지 않았다($reportFile)."
-        }
-        // 파일 마지막 LINE 카운터가 <report> 최상위 총합이다(패키지·클래스 총합 다음에 온다).
-        val (missed, covered) = lineCounters.last().destructured
-        val total = missed.toInt() + covered.toInt()
-        check(total > 0) {
-            "MT1-01f 계측 생존 증인 실패: koverXmlReport의 총 LINE 수가 0이다 — 제외 필터가 전체 " +
-                "소스를 삼켰거나 계측이 끊겼다(koverVerify가 0/0으로 조용히 통과하는 상태). " +
-                "$reportFile 확인."
-        }
-    }
-}
-
+// MT1-01f 측정 생존 증인은 루트 mobile/build.gradle.kts의 subprojects{}로 승격됐다(aaa
+// CONDITIONAL D-1 해소 — :engine 전용 개별 태스크였던 것을 kover 적용 3모듈 공통으로 확장).
 tasks.named("check") {
-    dependsOn("koverVerify", verifyKoverInstrumented)
+    dependsOn("koverVerify")
 }

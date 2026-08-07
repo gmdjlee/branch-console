@@ -28,7 +28,9 @@
 
 `ktlintFormat`으로 전 벤더 파일에 프로젝트 ktlint 규약(후행 콤마, 멀티라인 호출부 개행,
 함수 파라미터 개행 등)을 적용했다 — CLAUDE.md "ktlint·detekt 0 경고" 완료 기준을 만족시키기
-위함이며 로직·동작 변화는 없다. 추가로 자동 교정 불가능했던 2건을 수동 수정했다:
+위함이며 로직·동작 변화는 없다. 자동 교정 항목의 예: `model/IndexFundamentalHistory.kt`에서
+미사용 import 1건을 `no-unused-imports` 규칙으로 자동 제거(로직 변화 없음, aaa MT1-01f
+관찰). 추가로 자동 교정 불가능했던 2건을 수동 수정했다:
 
 - `api/KrxEndpoints.kt`: `// === 섹션 === ` 스타일 주석과 바로 다음 KDoc 사이에 빈 줄 삽입
   (ktlint `kdoc-wrapping` 규칙 — "KDoc은 EOL 주석 바로 뒤에 올 수 없다").
