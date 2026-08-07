@@ -6,6 +6,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 // 자동탐색이 실패한다(docs/journal/2026-08-07_MT1-00e_toolchain_matrix.md §5 실증).
 plugins {
     alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ktlint)
     alias(libs.plugins.detekt)
     alias(libs.plugins.kover)
@@ -37,6 +38,10 @@ dependencies {
     implementation(libs.snakeyaml.engine) {
         exclude(group = "org.junit.jupiter")
     }
+
+    // MT1-02b (docs/plans/M1_PLAN_B.md §6): contracts/*.py Kotlin mirror wire format.
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.kotlinx.datetime)
 
     testImplementation(kotlin("test"))
     testImplementation(libs.konsist)
