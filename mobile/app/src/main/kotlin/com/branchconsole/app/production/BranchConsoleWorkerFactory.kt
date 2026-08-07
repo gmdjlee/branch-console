@@ -17,8 +17,11 @@ import com.branchconsole.app.tick.ConfirmTickWorker
  * 이 팩토리가 그 정확한 이름을 가로채 [ProductionConfirmTickWorker](dailyCollect 실구현)를
  * 대신 내준다. `tick/`은 한 줄도 고치지 않는다.
  *
- * 다른 워커([com.branchconsole.app.notif.NotificationSyncWorker] 등)는 `null`을 반환해
- * WorkManager의 기본 리플렉션 팩토리로 위임한다(`WorkerFactory.createWorker` 계약).
+ * 그 외 클래스명(예: `androidx.work.impl.utils.EnqueueRunnable`이 만드는 다른 모든 워커)은
+ * `null`을 반환해 WorkManager의 기본 리플렉션 팩토리로 위임한다(`WorkerFactory.createWorker`
+ * 계약 — aaa M-5: 확정 틱 완료 후 알림 확인은 이제 폴링 워커가 아니라
+ * [ProductionConfirmTickWorker.doWork]가 `super.doWork()` 직후 직접 호출한다, 별도 워커 클래스
+ * 없음).
  */
 class BranchConsoleWorkerFactory : WorkerFactory() {
     override fun createWorker(
