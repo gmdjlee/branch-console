@@ -47,5 +47,299 @@
         }
       }
     }
+  },
+  {
+    "polled_at_kst": "2026-08-07T16:00:19.008452+09:00",
+    "label": "1600",
+    "today": "2026-08-07",
+    "items": {
+      "kospi_close": {
+        "status": "confirmed_today",
+        "latest_date": "2026-08-07",
+        "values": {
+          "시가": 6365.07,
+          "고가": 6415.6,
+          "저가": 6158.73,
+          "종가": 6258.77,
+          "거래량": 297183420.0,
+          "거래대금": 24304738694567.0,
+          "상장시가총액": 5159998610306228.0
+        }
+      },
+      "investor_net_buying": {
+        "status": "confirmed_today",
+        "latest_date": "2026-08-07",
+        "values": {
+          "기관합계": 579286995059.0,
+          "기타법인": 12030109637.0,
+          "개인": 265565795910.0,
+          "외국인합계": -856882900606.0,
+          "전체": 0.0
+        }
+      },
+      "vkospi": {
+        "status": "fallback_active",
+        "fallback": "realized_vol_kospi_20d",
+        "inherits_confirm_status_from": "kospi_close",
+        "kospi_close_status": "confirmed_today"
+      },
+      "krwusd_fx": {
+        "status": "confirmed_today",
+        "latest_date": "2026-08-07",
+        "values": {
+          "Adj Close": 1415.5799560546875,
+          "Close": 1415.5799560546875,
+          "High": 1425.6099853515625,
+          "Low": 1415.0799560546875,
+          "Open": 1422.699951171875,
+          "Volume": 0.0
+        }
+      }
+    }
+  },
+  {
+    "polled_at_kst": "2026-08-07T16:30:53.389749+09:00",
+    "label": "1630",
+    "today": "2026-08-07",
+    "items": {
+      "kospi_close": {
+        "status": "confirmed_today",
+        "latest_date": "2026-08-07",
+        "values": {
+          "시가": 6365.07,
+          "고가": 6415.6,
+          "저가": 6158.73,
+          "종가": 6258.77,
+          "거래량": 297183420.0,
+          "거래대금": 24304738694567.0,
+          "상장시가총액": 5159998610306228.0
+        }
+      },
+      "investor_net_buying": {
+        "status": "confirmed_today",
+        "latest_date": "2026-08-07",
+        "values": {
+          "기관합계": 579296469899.0,
+          "기타법인": 12030976867.0,
+          "개인": 265549592770.0,
+          "외국인합계": -856877039536.0,
+          "전체": 0.0
+        }
+      },
+      "vkospi": {
+        "status": "fallback_active",
+        "fallback": "realized_vol_kospi_20d",
+        "inherits_confirm_status_from": "kospi_close",
+        "kospi_close_status": "confirmed_today"
+      },
+      "krwusd_fx": {
+        "status": "confirmed_today",
+        "latest_date": "2026-08-07",
+        "values": {
+          "Adj Close": 1418.47998046875,
+          "Close": 1418.47998046875,
+          "High": 1425.6099853515625,
+          "Low": 1415.0799560546875,
+          "Open": 1422.699951171875,
+          "Volume": 0.0
+        }
+      }
+    }
+  },
+  {
+    "polled_at_kst": "2026-08-07T17:00:19.751773+09:00",
+    "label": "1700",
+    "today": "2026-08-07",
+    "items": {
+      "kospi_close": {
+        "status": "confirmed_today",
+        "latest_date": "2026-08-07",
+        "values": {
+          "시가": 6365.07,
+          "고가": 6415.6,
+          "저가": 6158.73,
+          "종가": 6258.77,
+          "거래량": 297183420.0,
+          "거래대금": 24304738694567.0,
+          "상장시가총액": 5159998610306228.0
+        }
+      },
+      "investor_net_buying": {
+        "status": "confirmed_today",
+        "latest_date": "2026-08-07",
+        "values": {
+          "기관합계": 579299976362.0,
+          "기타법인": 12036838867.0,
+          "개인": 265406264907.0,
+          "외국인합계": -856743080136.0,
+          "전체": 0.0
+        }
+      },
+      "vkospi": {
+        "status": "fallback_active",
+        "fallback": "realized_vol_kospi_20d",
+        "inherits_confirm_status_from": "kospi_close",
+        "kospi_close_status": "confirmed_today"
+      },
+      "krwusd_fx": {
+        "status": "confirmed_today",
+        "latest_date": "2026-08-07",
+        "values": {
+          "Adj Close": 1418.0799560546875,
+          "Close": 1418.0799560546875,
+          "High": 1425.6099853515625,
+          "Low": 1415.0799560546875,
+          "Open": 1422.699951171875,
+          "Volume": 0.0
+        }
+      }
+    }
+  },
+  {
+    "polled_at_kst": "2026-08-07T17:30:55.329541+09:00",
+    "label": "1730",
+    "today": "2026-08-07",
+    "items": {
+      "kospi_close": {
+        "status": "confirmed_today",
+        "latest_date": "2026-08-07",
+        "values": {
+          "시가": 6365.07,
+          "고가": 6415.6,
+          "저가": 6158.73,
+          "종가": 6258.77,
+          "거래량": 297183420.0,
+          "거래대금": 24304738694567.0,
+          "상장시가총액": 5159998610306228.0
+        }
+      },
+      "investor_net_buying": {
+        "status": "confirmed_today",
+        "latest_date": "2026-08-07",
+        "values": {
+          "기관합계": 579302338293.0,
+          "기타법인": 12061631137.0,
+          "개인": 265390754866.0,
+          "외국인합계": -856754724296.0,
+          "전체": 0.0
+        }
+      },
+      "vkospi": {
+        "status": "fallback_active",
+        "fallback": "realized_vol_kospi_20d",
+        "inherits_confirm_status_from": "kospi_close",
+        "kospi_close_status": "confirmed_today"
+      },
+      "krwusd_fx": {
+        "status": "confirmed_today",
+        "latest_date": "2026-08-07",
+        "values": {
+          "Adj Close": 1417.3199462890625,
+          "Close": 1417.3199462890625,
+          "High": 1425.6099853515625,
+          "Low": 1415.0799560546875,
+          "Open": 1422.699951171875,
+          "Volume": 0.0
+        }
+      }
+    }
+  },
+  {
+    "polled_at_kst": "2026-08-07T18:00:19.748330+09:00",
+    "label": "1800",
+    "today": "2026-08-07",
+    "items": {
+      "kospi_close": {
+        "status": "confirmed_today",
+        "latest_date": "2026-08-07",
+        "values": {
+          "시가": 6365.07,
+          "고가": 6415.6,
+          "저가": 6158.73,
+          "종가": 6258.77,
+          "거래량": 297183420.0,
+          "거래대금": 24304738694567.0,
+          "상장시가총액": 5159998610306228.0
+        }
+      },
+      "investor_net_buying": {
+        "status": "confirmed_today",
+        "latest_date": "2026-08-07",
+        "values": {
+          "기관합계": 585372759153.0,
+          "기타법인": 12199039117.0,
+          "개인": 267529553591.0,
+          "외국인합계": -865101351861.0,
+          "전체": 0.0
+        }
+      },
+      "vkospi": {
+        "status": "fallback_active",
+        "fallback": "realized_vol_kospi_20d",
+        "inherits_confirm_status_from": "kospi_close",
+        "kospi_close_status": "confirmed_today"
+      },
+      "krwusd_fx": {
+        "status": "confirmed_today",
+        "latest_date": "2026-08-07",
+        "values": {
+          "Adj Close": 1417.5699462890625,
+          "Close": 1417.5699462890625,
+          "High": 1425.6099853515625,
+          "Low": 1415.0799560546875,
+          "Open": 1422.699951171875,
+          "Volume": 0.0
+        }
+      }
+    }
+  },
+  {
+    "polled_at_kst": "2026-08-07T19:00:04.568796+09:00",
+    "label": "1900",
+    "today": "2026-08-07",
+    "items": {
+      "kospi_close": {
+        "status": "confirmed_today",
+        "latest_date": "2026-08-07",
+        "values": {
+          "시가": 6365.07,
+          "고가": 6415.6,
+          "저가": 6158.73,
+          "종가": 6258.77,
+          "거래량": 299376519.0,
+          "거래대금": 24730513259160.0,
+          "상장시가총액": 5159998610306228.0
+        }
+      },
+      "investor_net_buying": {
+        "status": "confirmed_today",
+        "latest_date": "2026-08-07",
+        "values": {
+          "기관합계": 585372759153.0,
+          "기타법인": 12199039117.0,
+          "개인": 267529553591.0,
+          "외국인합계": -865101351861.0,
+          "전체": 0.0
+        }
+      },
+      "vkospi": {
+        "status": "fallback_active",
+        "fallback": "realized_vol_kospi_20d",
+        "inherits_confirm_status_from": "kospi_close",
+        "kospi_close_status": "confirmed_today"
+      },
+      "krwusd_fx": {
+        "status": "confirmed_today",
+        "latest_date": "2026-08-07",
+        "values": {
+          "Adj Close": 1415.949951171875,
+          "Close": 1415.949951171875,
+          "High": 1425.6099853515625,
+          "Low": 1415.0799560546875,
+          "Open": 1422.699951171875,
+          "Volume": 0.0
+        }
+      }
+    }
   }
 ]
