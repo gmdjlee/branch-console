@@ -119,6 +119,24 @@
     6분류·null 봉 보존·Stooq 비활성 스텁·fred.series 반영(A-2 해소·FINAL §4 물질화).
     RetryPolicy는 assets 로더(fail-fast)·Retrofit 선언 제거
 
+- W4 실행 경로 (진행 중)
+  - [ ] MT1-06 확정 틱+캐치업 — 구현(b1c8690·d1bfc47·446162f)→aaa R1 FAIL(F-1~F-6: Worker
+    도달 불가·조용한 실패·부트스트랩 소급·그리드 무기록 결손·서술 오류)→재작업(f48d838)→
+    qa FAIL(**허위 완료 주장 적발** — TradingDayGridProvider 미수정인데 수정 주장)→정정
+    (886fb17)→qa 델타 PASS→**aaa R2 FAIL(F-4R)**: F-5 차집합 수정이 F-4 부활 — 부트스트랩
+    단일 커밋 후 재실행이 하한 소멸로 20틱 소급+허위 gap 행(불가역). **F-4 2연속 — 3회째
+    구조 재분류 예고**. 표적 재작업 중(ConfirmTickCandidates 한정, 회귀 증인 2건 의무).
+    F-1·F-2·F-3(08 이관)·F-5·F-6은 해소 확정
+  - [x] MT1-07 프리뷰(D-17·D-23) — qa+aaa **PASS**(4d19638). TASK ①~④ 전건 실증(tick_input
+    불변·Konsist 3중 격리·67.7% 억제 assets 산출·66.7 vs 45.2 재현+부정 증인), 이월 원천
+    lastCommittedSeverities 깊이 1·자기참조 부재, M-39 실경과(이원 시각 PreviewInstants —
+    visible_at 규약 정합 판정), lane=1 소비. A-1 3항 처리(실기기 상시 억제는 ECOS 키 전까지
+    정상 동작 — GM1 기록). **이관 기록: 프리뷰 병렬 수집(+KIS 제외 기결정)·PREVIEW 배지/as_of
+    표기 UI는 MT1-08 소유**(D §11 S-3도 UI 소관)
+  - 이관 명세(aaa 확정): F-3(자격증명 저장+온보딩+dailyCollect 실구현+enqueue)=MT1-08c/08d /
+    스모크 판정식은 phase_commit 행 수 대신 PhaseDerivation·tick_input 기준으로 개정(08c) /
+    08c 스모크 판정기는 **06 재판정 PASS 후**(잘못된 기대값 박제 방지)
+
 - W3 엔진·패리티 준비 (qa PASS → aaa: 04g·05e PASS / **05 FAIL D-1** — 해소 실측 중)
   - [x] MT1-04g 웜업 백필 — qa+aaa PASS(564d631). Collector 공통 승격·550 SSOT 로드·구조적
     부재(3년 롤링) 구분·체크포인트 없는 멱등
