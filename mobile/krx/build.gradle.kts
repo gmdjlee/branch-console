@@ -1,9 +1,11 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import java.security.MessageDigest
 
-// :krx — kotlin_krx 벤더링 수용 스켈레톤 (docs/plans/M1_PLAN_A.md AD-A1·§2.3). 순수 Kotlin/JVM.
-// 소스 벤더링(PROVENANCE.md·krx-manifest.sha256 포함)은 MT1-01g 별도 서브태스크의 몫이다 —
-// 이 모듈은 그 착지를 위한 빈 스켈레톤 + 전이 의존성 정렬만 갖춘다.
+// :krx — kotlin_krx 벤더링 (docs/plans/M1_PLAN_A.md AD-A1·§2.3, MT1-01g). 순수 Kotlin/JVM.
+// 소스는 PROVENANCE.md에 기록된 커밋에서 복사됐고, 우리가 가한 변경은 전부 PROVENANCE.md §3에
+// 등재돼 있다. detekt-baseline.xml은 벤더링 시점 기존 위반(우리 코드 스타일이 아닌 upstream
+// 스타일)을 동결한다 — 신규 :krx 코드는 이 베이스라인에 기대지 않는다(MT1-01g 완료 보고 참고).
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.ktlint)
@@ -28,7 +30,9 @@ tasks.withType<Test>().configureEach {
 }
 
 dependencies {
-    // kotlin_krx 실측 전이 의존성 정렬 (MT1-00e §2, MT1-01g 대비) — 아직 소비 코드는 없다.
+    // kotlin_krx 실측 전이 의존성 정렬 (MT1-00e §2, MT1-01g 벤더링). kotlinx-datetime은
+    // kotlin_krx 코드 자체는 소비하지 않는다(java.time 사용) — 카탈로그 핀 유지, 소비처는
+    // 향후 :app 어댑터(MT1-04c)가 될 수 있어 제거하지 않는다.
     implementation(libs.okhttp)
     implementation(libs.gson)
     implementation(libs.kotlinx.coroutines.core)
@@ -42,14 +46,105 @@ dependencies {
 detekt {
     buildUponDefaultConfig = true
     config.setFrom(rootProject.layout.projectDirectory.file("config/detekt/detekt.yml"))
+    // 벤더링 시점(MT1-01g) upstream 스타일 위반을 동결 — 억제 범위를 :krx로 정직하게 한정한다
+    // (M1_PLAN_A §2.1: "여기는 수입품"이 빌드 파일에 남아야 한다). 새 위반이 추가되면
+    // detektCheck가 그대로 잡는다 — 베이스라인은 줄어들 수만 있고 늘어나면 리뷰 대상이다.
+    baseline = file("detekt-baseline.xml")
 }
 
 kover {
     reports {
+        filters {
+            excludes {
+                // 벤더 원본 전체 제외(PROVENANCE.md) — 우리 수정 3파일(InvestorTrading·IndexOhlcv·
+                // KrxClient)까지 포함해 패키지 단위로 뭉뚱그린다. Kover 필터가 클래스/패키지
+                // glob만 지원해 "벤더 원본 vs 우리 수정분" 파일 단위 정밀 분리가 어렵기 때문 —
+                // 정밀화(또는 커버리지 rule의 vacuous 판정 회피)는 MT1-01f(Kover 게이트)로 이월한다
+                // (PROGRESS.md MT1-01f 잔여 항목 "벤더 글롭" 참고).
+                packages("com.krxkt")
+                packages("com.krxkt.api")
+                packages("com.krxkt.cache")
+                packages("com.krxkt.error")
+                packages("com.krxkt.model")
+                packages("com.krxkt.parser")
+                packages("com.krxkt.util")
+            }
+        }
         verify {
             rule("krx minimum line coverage 70%") {
                 minBound(70)
             }
         }
     }
+}
+
+// PROVENANCE.md·krx-manifest.sha256 대조 — 등재되지 않은 벤더 파일 변경을 빌드 실패로 잡는다
+// (M1_PLAN_A §2.3 "벤더링 실행 규율"). sha256sum 등 외부 바이너리에 의존하지 않고 순수
+// Kotlin/JDK MessageDigest로 계산해 재현성을 지킨다(AD-A9).
+val krxManifestFile = layout.projectDirectory.file("krx-manifest.sha256")
+val krxVendorDirs =
+    listOf(
+        layout.projectDirectory.dir("src/main/kotlin/com/krxkt"),
+        layout.projectDirectory.dir("src/test/kotlin/com/krxkt"),
+    )
+
+val verifyKrxProvenance by tasks.registering {
+    group = "verification"
+    description = "krx-manifest.sha256과 벤더링된 소스 파일의 실제 해시를 대조한다(PROVENANCE.md)."
+    inputs.file(krxManifestFile)
+    krxVendorDirs.forEach { inputs.dir(it) }
+
+    doLast {
+        val projectDir = layout.projectDirectory.asFile
+        val manifestLines = krxManifestFile.asFile.readLines().filter { it.isNotBlank() }
+        val manifestPaths = mutableSetOf<String>()
+        val problems = mutableListOf<String>()
+
+        manifestLines.forEach { line ->
+            val parts = line.trim().split(Regex("\\s+"), limit = 2)
+            if (parts.size != 2) {
+                problems += "MALFORMED manifest line: $line"
+                return@forEach
+            }
+            val expectedHash = parts[0]
+            val relPath = parts[1].removePrefix("*")
+            manifestPaths += relPath
+
+            val file = projectDir.resolve(relPath)
+            if (!file.exists()) {
+                problems += "MISSING: $relPath (매니페스트에 있으나 파일 없음)"
+                return@forEach
+            }
+            val actualHash =
+                MessageDigest.getInstance("SHA-256")
+                    .digest(file.readBytes())
+                    .joinToString("") { "%02x".format(it) }
+            if (!actualHash.equals(expectedHash, ignoreCase = true)) {
+                problems += "CHANGED: $relPath (매니페스트 미등재 변경 — REIMPORT.md 절차로 갱신 필요)"
+            }
+        }
+
+        val actualFiles =
+            fileTree(projectDir) {
+                krxVendorDirs.forEach { dir ->
+                    include("${dir.asFile.relativeTo(projectDir).invariantSeparatorsPath}/**/*.kt")
+                }
+            }.files.map { it.relativeTo(projectDir).invariantSeparatorsPath }.toSet()
+
+        (actualFiles - manifestPaths).forEach { extra ->
+            problems += "UNTRACKED: $extra (신규 벤더 파일이 매니페스트에 없음)"
+        }
+
+        if (problems.isNotEmpty()) {
+            throw GradleException(
+                "verifyKrxProvenance FAILED — krx-manifest.sha256 불일치 ${problems.size}건:\n" +
+                    problems.joinToString("\n") { "  - $it" } +
+                    "\n의도된 변경/재이식이면 REIMPORT.md 절차대로 매니페스트·PROVENANCE.md를 갱신하라.",
+            )
+        }
+    }
+}
+
+tasks.named("check") {
+    dependsOn(verifyKrxProvenance)
 }

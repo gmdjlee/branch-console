@@ -1,0 +1,109 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:DateUtils.kt$DateUtils$fun validateDate(date: String)</ID>
+    <ID>CyclomaticComplexMethod:InvestorTrading.kt$InvestorTrading.Companion$fun fromPeriodJson( jsonList: List&lt;JsonObject&gt;, date: String, ): InvestorTrading</ID>
+    <ID>CyclomaticComplexMethod:InvestorTrading.kt$InvestorTrading.Companion$fun fromTickerJson(json: JsonObject): InvestorTrading?</ID>
+    <ID>ImplicitDefaultLocale:KrxIndex.kt$KrxIndex$String.format("%04d%02d%02d", year, month, lastDay)</ID>
+    <ID>ImplicitDefaultLocale:KrxIndex.kt$KrxIndex$String.format("%04d%02d01", year, month)</ID>
+    <ID>MagicNumber:DateUtils.kt$DateUtils$10</ID>
+    <ID>MagicNumber:DateUtils.kt$DateUtils$11</ID>
+    <ID>MagicNumber:DateUtils.kt$DateUtils$12</ID>
+    <ID>MagicNumber:DateUtils.kt$DateUtils$1990</ID>
+    <ID>MagicNumber:DateUtils.kt$DateUtils$2100</ID>
+    <ID>MagicNumber:DateUtils.kt$DateUtils$28</ID>
+    <ID>MagicNumber:DateUtils.kt$DateUtils$29</ID>
+    <ID>MagicNumber:DateUtils.kt$DateUtils$30</ID>
+    <ID>MagicNumber:DateUtils.kt$DateUtils$31</ID>
+    <ID>MagicNumber:DateUtils.kt$DateUtils$4</ID>
+    <ID>MagicNumber:DateUtils.kt$DateUtils$400</ID>
+    <ID>MagicNumber:DateUtils.kt$DateUtils$5</ID>
+    <ID>MagicNumber:DateUtils.kt$DateUtils$6</ID>
+    <ID>MagicNumber:DateUtils.kt$DateUtils$7</ID>
+    <ID>MagicNumber:DateUtils.kt$DateUtils$8</ID>
+    <ID>MagicNumber:DateUtils.kt$DateUtils$9</ID>
+    <ID>MagicNumber:EtfPortfolio.kt$EtfPortfolio.Companion$12</ID>
+    <ID>MagicNumber:EtfPortfolio.kt$EtfPortfolio.Companion$6</ID>
+    <ID>MagicNumber:EtfPortfolio.kt$EtfPortfolio.Companion$9</ID>
+    <ID>MagicNumber:InvestorTrading.kt$InvestorType.BANK$4000</ID>
+    <ID>MagicNumber:InvestorTrading.kt$InvestorType.FINANCIAL_INVESTMENT$1000</ID>
+    <ID>MagicNumber:InvestorTrading.kt$InvestorType.FOREIGNER$9000</ID>
+    <ID>MagicNumber:InvestorTrading.kt$InvestorType.INDIVIDUAL$8000</ID>
+    <ID>MagicNumber:InvestorTrading.kt$InvestorType.INSTITUTIONAL_TOTAL$7050</ID>
+    <ID>MagicNumber:InvestorTrading.kt$InvestorType.INSURANCE$2000</ID>
+    <ID>MagicNumber:InvestorTrading.kt$InvestorType.INVESTMENT_TRUST$3000</ID>
+    <ID>MagicNumber:InvestorTrading.kt$InvestorType.OTHER_CORPORATION$7100</ID>
+    <ID>MagicNumber:InvestorTrading.kt$InvestorType.OTHER_FINANCE$5000</ID>
+    <ID>MagicNumber:InvestorTrading.kt$InvestorType.OTHER_FOREIGNER$9001</ID>
+    <ID>MagicNumber:InvestorTrading.kt$InvestorType.PENSION_FUND$6000</ID>
+    <ID>MagicNumber:InvestorTrading.kt$InvestorType.PRIVATE_EQUITY$3100</ID>
+    <ID>MagicNumber:InvestorTrading.kt$InvestorType.TOTAL$9999</ID>
+    <ID>MagicNumber:KrxClient.kt$KrxClient$200</ID>
+    <ID>MagicNumber:KrxClient.kt$KrxClient$500</ID>
+    <ID>MagicNumber:KrxClient.kt$KrxClient.Companion$30</ID>
+    <ID>MagicNumber:KrxIndex.kt$KrxIndex$12</ID>
+    <ID>MagicNumber:KrxIndex.kt$KrxIndex$1990</ID>
+    <ID>MagicNumber:KrxIndex.kt$KrxIndex$2100</ID>
+    <ID>MagicNumber:KrxIndex.kt$KrxIndex$7</ID>
+    <ID>MagicNumber:KrxStock.kt$KrxStock$500</ID>
+    <ID>MaxLineLength:KrxClient.kt$KrxClient$throw IOException("Response too large: ${body.length} bytes exceeds limit of $MAX_RESPONSE_SIZE_BYTES bytes")</ID>
+    <ID>MaxLineLength:KrxEndpoints.kt$KrxEndpoints$const</ID>
+    <ID>MaxLineLength:KrxStock.kt$KrxStock$println("KrxStock.getFundamentalByTicker: raw response length=${response.length}, first 500 chars=${response.take(500)}")</ID>
+    <ID>ReturnCount:DerivativeIndex.kt$DerivativeIndex.Companion$fun fromJson(json: JsonObject): DerivativeIndex?</ID>
+    <ID>ReturnCount:EtfInfo.kt$EtfInfo.Companion$fun fromJson(json: JsonObject): EtfInfo?</ID>
+    <ID>ReturnCount:IndexFundamentalHistory.kt$IndexFundamentalHistory.Companion$fun fromJson(json: JsonObject): IndexFundamentalHistory?</ID>
+    <ID>ReturnCount:IndexInfo.kt$IndexInfo.Companion$fun fromJson(json: JsonObject): IndexInfo?</ID>
+    <ID>ReturnCount:IndexOhlcvByTicker.kt$IndexOhlcvByTicker.Companion$fun fromJson(json: JsonObject): IndexOhlcvByTicker?</ID>
+    <ID>ReturnCount:IndexPortfolio.kt$IndexPortfolio.Companion$fun fromJson(json: JsonObject): IndexPortfolio?</ID>
+    <ID>ReturnCount:KrxJsonParser.kt$KrxJsonParser$fun parseDouble(value: String?): Double?</ID>
+    <ID>ReturnCount:KrxJsonParser.kt$KrxJsonParser$fun parseLong(value: String?): Long?</ID>
+    <ID>ReturnCount:KrxJsonParser.kt$fun JsonObject.getStringOrEmpty(key: String): String</ID>
+    <ID>ReturnCount:TickerCache.kt$TickerCache$private fun getFromCache( cache: ConcurrentHashMap&lt;String, CacheEntry&gt;, key: String, ): String?</ID>
+    <ID>SwallowedException:DerivativeIndex.kt$DerivativeIndex.Companion$e: Exception</ID>
+    <ID>SwallowedException:EtfInfo.kt$EtfInfo.Companion$e: Exception</ID>
+    <ID>SwallowedException:EtfOhlcvHistory.kt$EtfOhlcvHistory.Companion$e: Exception</ID>
+    <ID>SwallowedException:EtfPortfolio.kt$EtfPortfolio.Companion$e: Exception</ID>
+    <ID>SwallowedException:EtfPrice.kt$EtfPrice.Companion$e: Exception</ID>
+    <ID>SwallowedException:IndexFundamentalHistory.kt$IndexFundamentalHistory.Companion$e: Exception</ID>
+    <ID>SwallowedException:IndexInfo.kt$IndexInfo.Companion$e: Exception</ID>
+    <ID>SwallowedException:IndexOhlcv.kt$IndexOhlcv.Companion$e: Exception</ID>
+    <ID>SwallowedException:IndexOhlcvByTicker.kt$IndexOhlcvByTicker.Companion$e: Exception</ID>
+    <ID>SwallowedException:IndexPortfolio.kt$IndexPortfolio.Companion$e: Exception</ID>
+    <ID>SwallowedException:InvestorTrading.kt$InvestorTrading.Companion$e: Exception</ID>
+    <ID>SwallowedException:KrxJsonParser.kt$KrxJsonParser$e: Exception</ID>
+    <ID>SwallowedException:OptionVolume.kt$OptionVolume.Companion$e: Exception</ID>
+    <ID>SwallowedException:ShortSelling.kt$ShortBalance.Companion$e: Exception</ID>
+    <ID>SwallowedException:ShortSelling.kt$ShortBalanceHistory.Companion$e: Exception</ID>
+    <ID>SwallowedException:ShortSelling.kt$ShortSelling.Companion$e: Exception</ID>
+    <ID>SwallowedException:ShortSelling.kt$ShortSellingHistory.Companion$e: Exception</ID>
+    <ID>ThrowsCount:DateUtils.kt$DateUtils$fun validateDate(date: String)</ID>
+    <ID>ThrowsCount:KrxClient.kt$KrxClient$private fun executeRequest( params: Map&lt;String, String&gt;, referer: String, ): String</ID>
+    <ID>ThrowsCount:KrxClient.kt$KrxClient$private fun postLogin( loginId: String, loginPw: String, headers: Map&lt;String, String&gt;, skipDup: Boolean, ): String</ID>
+    <ID>ThrowsCount:KrxClient.kt$KrxClient$suspend fun post( params: Map&lt;String, String&gt;, referer: String, ): String</ID>
+    <ID>ThrowsCount:KrxIndex.kt$KrxIndex$suspend fun getNearestBusinessDay( date: String, prev: Boolean = true, ): String</ID>
+    <ID>TooGenericExceptionCaught:DerivativeIndex.kt$DerivativeIndex.Companion$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:EtfInfo.kt$EtfInfo.Companion$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:EtfOhlcvHistory.kt$EtfOhlcvHistory.Companion$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:EtfPortfolio.kt$EtfPortfolio.Companion$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:EtfPrice.kt$EtfPrice.Companion$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:IndexFundamentalHistory.kt$IndexFundamentalHistory.Companion$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:IndexInfo.kt$IndexInfo.Companion$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:IndexOhlcv.kt$IndexOhlcv.Companion$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:IndexOhlcvByTicker.kt$IndexOhlcvByTicker.Companion$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:IndexPortfolio.kt$IndexPortfolio.Companion$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:InvestorTrading.kt$InvestorTrading.Companion$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:KrxClient.kt$KrxClient$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:KrxJsonParser.kt$KrxJsonParser$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:OptionVolume.kt$OptionVolume.Companion$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ShortSelling.kt$ShortBalance.Companion$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ShortSelling.kt$ShortBalanceHistory.Companion$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ShortSelling.kt$ShortSelling.Companion$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ShortSelling.kt$ShortSellingHistory.Companion$e: Exception</ID>
+    <ID>TooManyFunctions:KrxIndex.kt$KrxIndex</ID>
+    <ID>TooManyFunctions:KrxStock.kt$KrxStock</ID>
+    <ID>UseCheckOrError:KrxIndex.kt$KrxIndex$throw IllegalStateException("No business day found within 7 days of $date")</ID>
+    <ID>UseCheckOrError:KrxIndex.kt$KrxIndex$throw IllegalStateException("No next business day found within 7 days of $date")</ID>
+    <ID>UseCheckOrError:KrxIndex.kt$KrxIndex$throw IllegalStateException("No previous business day found within 7 days of $date")</ID>
+  </CurrentIssues>
+</SmellBaseline>
