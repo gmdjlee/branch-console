@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- MT1-08a K-20: targetSdk 36 means POST_NOTIFICATIONS is a runtime permission (API 33+).
+         Denial must not disable app function; see notif.NotificationGate and the home banner fallback. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".BranchConsoleApplication"
@@ -14,6 +19,23 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- MT1-08c/08d: on-demand WorkManager init (official androidx.work pattern); disables
+             the eager default-config startup initializer so that BranchConsoleApplication's
+             Configuration.Provider (custom WorkerFactory) is the one WorkManagerImpl.getInstance()
+             lazily picks up on first use. Without this removal, WorkManagerInitializer would
+             initialize WorkManager with a default Configuration before Application#onCreate runs,
+             and the custom WorkerFactory would never be consulted. -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
     </application>
 
 </manifest>

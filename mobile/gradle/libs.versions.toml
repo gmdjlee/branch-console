@@ -17,6 +17,8 @@ androidxRoom = "2.8.4"
 androidxTestCore = "1.6.1"
 androidxTestExtJunit = "1.2.1"
 junit = "4.13.2"
+# 실측 확인(Google Maven maven-metadata.xml, 2026-08-07) — MT1-08 K-17 EncryptedSharedPreferences.
+securityCrypto = "1.1.0"
 # kotlin_krx 전이 의존성 정렬 (MT1-01g 벤더링 대비 — M1_PLAN_A.md §2.3 실측)
 okhttp = "4.12.0"
 gson = "2.10.1"
@@ -53,6 +55,7 @@ androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref =
 androidx-room-testing = { module = "androidx.room:room-testing", version.ref = "androidxRoom" }
 androidx-work-runtime = { module = "androidx.work:work-runtime-ktx", version.ref = "androidxWork" }
 androidx-work-testing = { module = "androidx.work:work-testing", version.ref = "androidxWork" }
+androidx-security-crypto = { module = "androidx.security:security-crypto", version.ref = "securityCrypto" }
 
 # 네트워킹·직렬화
 retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }

@@ -202,6 +202,8 @@ dependencies {
     ksp(libs.androidx.room.compiler)
 
     implementation(libs.androidx.work.runtime)
+    // MT1-08 K-17: KRX/FRED/ECOS/KIS 자격증명 저장(EncryptedSharedPreferences, Keystore 백킹).
+    implementation(libs.androidx.security.crypto)
 
     // Retrofit 미채택 — OkHttp 직접(컨버터 의존 회피, :krx KrxClient 선례). libs.retrofit은
     // 카탈로그에 남겨두되 여기서는 의도적으로 선언하지 않는다(aaa D-2, 미사용 의존 제거).

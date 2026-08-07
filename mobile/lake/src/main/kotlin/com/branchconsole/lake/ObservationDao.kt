@@ -76,4 +76,25 @@ interface ObservationDao {
         fromAsOf: Long,
         toAsOf: Long,
     ): List<SeriesPoint>
+
+    /**
+     * MT1-08b 프리뷰 갱신 배선 — 같은 (series_id, field, as_of, lane) 셀을 하루 안에 여러 번
+     * 다시 수집할 때(사용자가 "프리뷰 갱신"을 반복 탭) 다음 `revision`을 계산하기 위한 조회.
+     * `ux_obs_cell_rev` UNIQUE(§ObservationEntity)가 같은 revision의 재삽입만 막으므로,
+     * 값이 갱신된 재수집은 revision을 올려 새 행으로 append해야 한다(append-only 유지 —
+     * 갱신이 아니라 새 revision 추가, `previewSeries`/`confirmSeries`가 `revision DESC`로
+     * 최신을 고른다). null이면 그 셀이 아직 없다는 뜻(0부터 시작).
+     */
+    @Query(
+        """
+        SELECT MAX(revision) FROM observation
+         WHERE series_id = :seriesId AND field = :field AND as_of = :asOf AND lane = :lane
+        """,
+    )
+    suspend fun maxRevision(
+        seriesId: String,
+        field: String,
+        asOf: Long,
+        lane: Int,
+    ): Int?
 }

@@ -1,0 +1,6 @@
+root = true
+
+[*.{kt,kts}]
+# MT1-08b -- Compose convention is PascalCase for @Composable functions (official Jetpack Compose
+# style guide); ktlint's standard function-naming rule otherwise flags HomeScreen/SettingsScreen/etc.
+ktlint_function_naming_ignore_when_annotated_with = Composable

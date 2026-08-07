@@ -33,4 +33,13 @@ internal class PreviewLaneObservationDao(private val delegate: ObservationDao) :
         fromAsOf: Long,
         toAsOf: Long,
     ): List<SeriesPoint> = delegate.previewSeries(seriesId, field, fromAsOf, toAsOf)
+
+    // MT1-08b addition to ObservationDao — plain passthrough, this adapter only remaps the two
+    // series-read methods above (confirm -> preview lane), not writes/revision lookups.
+    override suspend fun maxRevision(
+        seriesId: String,
+        field: String,
+        asOf: Long,
+        lane: Int,
+    ): Int? = delegate.maxRevision(seriesId, field, asOf, lane)
 }

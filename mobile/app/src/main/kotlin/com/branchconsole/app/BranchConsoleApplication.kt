@@ -2,6 +2,10 @@ package com.branchconsole.app
 
 import android.app.Application
 import android.util.Log
+import androidx.work.Configuration
+import com.branchconsole.app.notif.NotificationChannels
+import com.branchconsole.app.notif.NotificationSyncWorker
+import com.branchconsole.app.production.BranchConsoleWorkerFactory
 import com.branchconsole.app.tick.ConfirmTickWorker
 
 private const val TAG = "BranchConsoleApp"
@@ -17,15 +21,29 @@ private const val TAG = "BranchConsoleApp"
  * 다른 모든 화면이 죽는다 — 로그로 드러내고 다음 실행(그 사이 값이 채워지면)에 다시 시도하는
  * 쪽이 올바른 절충이다. 로더 자체의 명시 실패 계약은 그대로다(여기서 삼키는 것은 "앱을 끄느냐"
  * 라는 상위 판단일 뿐, 실패 자체를 숨기지 않는다 — `Log.e`로 남는다).
+ *
+ * MT1-08c/08d — `Configuration.Provider`를 구현해 [BranchConsoleWorkerFactory]를 등록한다.
+ * `ConfirmTickWorker.schedulePeriodic`가 못박은 `PeriodicWorkRequestBuilder<ConfirmTickWorker>`
+ * 클래스명을 그 팩토리가 가로채 `ProductionConfirmTickWorker`(dailyCollect 실구현)로 바꿔
+ * 낸다 — `tick/ConfirmTickWorker.kt`는 한 줄도 고치지 않는다. AndroidX Startup은 Application이
+ * `Configuration.Provider`를 구현하면 자동으로 이 설정을 쓴다(매니페스트 변경 불필요).
+ *
+ * MT1-08a — 노티 채널 3종을 앱 시작마다 확정하고(멱등), 확정 틱/캐치업과 독립된 15분 주기
+ * [NotificationSyncWorker]를 등록해 국면 전이·틱 실패 노티를 배선한다.
  */
-class BranchConsoleApplication : Application() {
+class BranchConsoleApplication : Application(), Configuration.Provider {
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder().setWorkerFactory(BranchConsoleWorkerFactory()).build()
+
     override fun onCreate() {
         super.onCreate()
+        NotificationChannels.ensureCreated(this)
         runCatching {
             ConfirmTickWorker.schedulePeriodic(this)
             ConfirmTickWorker.triggerCatchupNow(this)
         }.onFailure { e ->
             Log.e(TAG, "confirm tick scheduling failed (will retry on next app launch)", e)
         }
+        NotificationSyncWorker.schedulePeriodic(this)
     }
 }
