@@ -9,3 +9,12 @@ backtest/fixtures/_cache/
 .pytest_cache/
 .ruff_cache/
 .coverage
+
+# mobile/ (Android/Gradle) — MT1-01a. 생성물·로컬 전용 파일만, 소스는 추적한다.
+mobile/*/build/
+mobile/build/
+mobile/local.properties
+mobile/.gradle/
+mobile/.kotlin/
+mobile/*.iml
+mobile/.idea/

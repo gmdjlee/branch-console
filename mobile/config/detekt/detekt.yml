@@ -1,0 +1,29 @@
+# 공유 detekt 설정 — 모든 모듈이 buildUponDefaultConfig=true로 이 파일을 오버레이한다.
+# SSOT 규율(CLAUDE.md §1): 임계·가중치 리터럴은 configs/*.yaml에만 있어야 한다. MagicNumber
+# 룰의 예외 목록은 "숫자 스타일 허용"이지 임계값 SSOT 우회가 아니다(docs/plans/M1_PLAN_A.md §2.6).
+style:
+  MagicNumber:
+    active: true
+    ignoreNumbers:
+      - '-1'
+      - '0'
+      - '1'
+      - '2'
+      - '100.0'
+      - '3.0'
+    ignoreAnnotated:
+      - 'Test'
+    ignoreHashCodeFunction: true
+    ignorePropertyDeclaration: true
+    ignoreLocalVariableDeclaration: false
+    ignoreConstantDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+    ignoreAnnotation: true
+    ignoreNamedArgument: true
+    ignoreEnums: false
+    ignoreRanges: false
+
+complexity:
+  LongMethod:
+    active: true
+    threshold: 60
