@@ -79,17 +79,12 @@ class WarmupBackfillOrchestrator(
     }
 
     companion object {
-        /** ECOS·CDS는 00b·00d에서 확정된 미수집 상태 — 수집을 시도하지 않고 리포트에만 표기한다. */
+        /** CDS는 00d에서 확정된 미수집 상태 — 수집을 시도하지 않고 리포트에만 표기한다. ECOS는
+         * 00b §7.9로 K-04가 종결돼 MT1-04d부터 [com.branchconsole.app.collectors.ecos.EcosCollector]로
+         * 실제 수집되므로(성공/실패 여부는 이제 일반 [collectors] 경로가 계열별로 채운다) 더 이상
+         * 여기 없다. */
         val DEFAULT_NOT_COLLECTED =
             listOf(
-                WarmupSeriesStatus(
-                    seriesId = "ECOS:721Y001",
-                    status = WarmupStatus.NOT_COLLECTED,
-                    rows = 0,
-                    reason =
-                        "ECOS_API_KEY 미설정 확정 차단 " +
-                            "(docs/journal/2026-08-07_MT1-00b_ecos_item_codes.md) — 수집 시도 안 함",
-                ),
                 WarmupSeriesStatus(
                     seriesId = "KR_CDS_5Y",
                     status = WarmupStatus.NOT_COLLECTED,

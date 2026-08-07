@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import com.branchconsole.app.collectors.ecos.EcosCredentialsProvider
 import com.branchconsole.app.collectors.fred.FredCredentialsProvider
 import com.branchconsole.app.collectors.krx.KrxCredentials
 import com.branchconsole.app.collectors.krx.KrxCredentialsProvider
@@ -70,6 +71,14 @@ class CredentialsStore(private val prefs: SharedPreferences) {
     fun fredCredentialsProvider(): FredCredentialsProvider =
         FredCredentialsProvider {
             load().fredApiKey?.takeIf { it.isNotBlank() } ?: error("FRED_API_KEY not configured")
+        }
+
+    /** ECOS는 옵션 키(브리프 §4) — 미설정이면 [EcosCredentialsProvider.apiKey] 호출부가 예외를
+     * 던지고, [com.branchconsole.app.collectors.ecos.EcosCollector]가 그것을
+     * `CollectFailureReason.NotConfigured`로 흡수한다([fredCredentialsProvider]와 동일 계약). */
+    fun ecosCredentialsProvider(): EcosCredentialsProvider =
+        EcosCredentialsProvider {
+            load().ecosApiKey?.takeIf { it.isNotBlank() } ?: error("ECOS_API_KEY not configured")
         }
 
     companion object {

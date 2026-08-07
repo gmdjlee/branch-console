@@ -209,9 +209,9 @@ class WarmupBackfillOrchestratorTest {
             val defaults = WarmupBackfillOrchestrator.DEFAULT_NOT_COLLECTED
             val report = orchestrator(collectors = emptyList(), notCollected = defaults).run(10)
 
-            assertEquals(2, report.series.size)
+            assertEquals(1, report.series.size)
             assertTrue(report.series.all { it.status == WarmupStatus.NOT_COLLECTED })
-            assertEquals(setOf("ECOS:721Y001", "KR_CDS_5Y"), report.series.map { it.seriesId }.toSet())
+            assertEquals(setOf("KR_CDS_5Y"), report.series.map { it.seriesId }.toSet())
         }
 
     @Test
