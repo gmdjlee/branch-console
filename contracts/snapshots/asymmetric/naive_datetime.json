@@ -1,0 +1,8 @@
+{
+  "phase": "GREEN",
+  "prev_phase": "GREEN",
+  "composite_score": 10.0,
+  "distinct_axes": 1,
+  "fired_indicators": [],
+  "evaluated_at": "2026-08-06T08:00:00"
+}

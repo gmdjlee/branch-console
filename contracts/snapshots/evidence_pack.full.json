@@ -1,0 +1,61 @@
+{
+  "schema": "evidence-pack/1",
+  "built_at": "2026-08-06T17:00:00Z",
+  "phase": "ORANGE",
+  "prev_phase": "AMBER",
+  "composite_score": 62.5,
+  "fired_indicators": [
+    {
+      "id": "vix_level_z",
+      "axis": "vol",
+      "severity": 2,
+      "value": 28.4,
+      "z": 2.1,
+      "note": "warn"
+    },
+    {
+      "id": "global_corr_break",
+      "axis": "global_price",
+      "severity": 3,
+      "value": 0.91,
+      "z": 3.4,
+      "note": "crit"
+    }
+  ],
+  "market": {
+    "as_of": "2026-08-06T17:00:00Z",
+    "kospi": 2410.5,
+    "kospi_chg_1d_pct": -2.3,
+    "kospi_drawdown_60d_pct": -9.8,
+    "usdkrw": 1365.2,
+    "usdkrw_chg_1d_pct": 1.1,
+    "vix": 28.4,
+    "vkospi": 24.7,
+    "hy_oas": 4.35,
+    "spx_chg_1d_pct": -1.8
+  },
+  "news_clusters": [
+    {
+      "topic": "carry_unwind",
+      "article_count": 42,
+      "novelty_z": 3.1,
+      "representative_headlines": [
+        "headline one",
+        "headline two"
+      ]
+    }
+  ],
+  "macro_calendar_7d": [
+    {
+      "date": "2026-08-10",
+      "name": "FOMC"
+    }
+  ],
+  "analogues": [
+    {
+      "event_id": "2024-08-05_carry_unwind",
+      "similarity": 0.82,
+      "outcome_summary": "KOSPI 5d -6.2%, 20d -3.1%, 60d +4.0%"
+    }
+  ]
+}

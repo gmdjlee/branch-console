@@ -1,0 +1,24 @@
+{
+  "name": "scenario_a",
+  "subjective_prob": 0.5,
+  "narrative": "placeholder narrative",
+  "kr_impact": {
+    "kospi_range_pct": [
+      -1.0,
+      1.0
+    ],
+    "sectors_hit": [
+      "tech"
+    ],
+    "sectors_defensive": [
+      "utilities"
+    ],
+    "usdkrw_bias": "flat"
+  },
+  "leading_indicators": [
+    "ind_a",
+    "ind_b"
+  ],
+  "invalidation": "placeholder invalidation condition",
+  "horizon_days": 0
+}

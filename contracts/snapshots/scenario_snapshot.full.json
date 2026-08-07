@@ -1,0 +1,156 @@
+{
+  "schema": "scenario-snapshot/1",
+  "generated_at": "2026-08-06T17:00:00Z",
+  "target_market": "KR",
+  "trigger": {
+    "phase": "ORANGE",
+    "prev_phase": "AMBER",
+    "composite_score": 62.5,
+    "distinct_axes": 3,
+    "fired_indicators": [
+      {
+        "id": "vix_level_z",
+        "axis": "vol",
+        "severity": 2,
+        "value": 28.4,
+        "z": 2.1,
+        "note": "above warn threshold"
+      },
+      {
+        "id": "global_corr_break",
+        "axis": "global_price",
+        "severity": 3,
+        "value": 0.91,
+        "z": 3.4,
+        "note": "crit: correlation regime break"
+      }
+    ],
+    "evaluated_at": "2026-08-06T17:00:00Z"
+  },
+  "event_classification": {
+    "type": "mixed",
+    "severity": "high",
+    "confidence": "medium",
+    "analogues": [
+      "2024-08-05_carry_unwind",
+      "2020-03-09_covid_crash"
+    ],
+    "rationale": "full fixture: exercises non-default analogues + long rationale text"
+  },
+  "scenarios": [
+    {
+      "name": "scenario_worst",
+      "subjective_prob": 0.0,
+      "narrative": "narrative: tail-risk unwind",
+      "kr_impact": {
+        "kospi_range_pct": [
+          -8.5,
+          -2.0
+        ],
+        "sectors_hit": [
+          "semis",
+          "banks"
+        ],
+        "sectors_defensive": [
+          "utilities",
+          "telecom"
+        ],
+        "usdkrw_bias": "up"
+      },
+      "leading_indicators": [
+        "vix_level_z",
+        "global_corr_break",
+        "usdkrw_z"
+      ],
+      "invalidation": "invalidated if composite_score reverts below 40 for 3 ticks",
+      "horizon_days": 1
+    },
+    {
+      "name": "scenario_bear",
+      "subjective_prob": 0.35,
+      "narrative": "narrative: broad risk-off continuation",
+      "kr_impact": {
+        "kospi_range_pct": [
+          -8.5,
+          -2.0
+        ],
+        "sectors_hit": [
+          "semis",
+          "banks"
+        ],
+        "sectors_defensive": [
+          "utilities",
+          "telecom"
+        ],
+        "usdkrw_bias": "up"
+      },
+      "leading_indicators": [
+        "vix_level_z",
+        "global_corr_break",
+        "usdkrw_z"
+      ],
+      "invalidation": "invalidated if composite_score reverts below 40 for 3 ticks",
+      "horizon_days": 30
+    },
+    {
+      "name": "scenario_base",
+      "subjective_prob": 0.65,
+      "narrative": "narrative: contained, range-bound",
+      "kr_impact": {
+        "kospi_range_pct": [
+          -8.5,
+          -2.0
+        ],
+        "sectors_hit": [
+          "semis",
+          "banks"
+        ],
+        "sectors_defensive": [
+          "utilities",
+          "telecom"
+        ],
+        "usdkrw_bias": "up"
+      },
+      "leading_indicators": [
+        "vix_level_z",
+        "global_corr_break",
+        "usdkrw_z"
+      ],
+      "invalidation": "invalidated if composite_score reverts below 40 for 3 ticks",
+      "horizon_days": 90
+    },
+    {
+      "name": "scenario_bull",
+      "subjective_prob": 1.0,
+      "narrative": "narrative: relief rally",
+      "kr_impact": {
+        "kospi_range_pct": [
+          -8.5,
+          -2.0
+        ],
+        "sectors_hit": [
+          "semis",
+          "banks"
+        ],
+        "sectors_defensive": [
+          "utilities",
+          "telecom"
+        ],
+        "usdkrw_bias": "up"
+      },
+      "leading_indicators": [
+        "vix_level_z",
+        "global_corr_break",
+        "usdkrw_z"
+      ],
+      "invalidation": "invalidated if composite_score reverts below 40 for 3 ticks",
+      "horizon_days": 120
+    }
+  ],
+  "watchlist_next_7d": [
+    "FOMC minutes",
+    "KR CPI",
+    "usdkrw_z reversal"
+  ],
+  "disclaimer": "subjective_prob는 비보정 주관 확률. 투자 자문이 아닌 의사결정 보조 정보."
+}
