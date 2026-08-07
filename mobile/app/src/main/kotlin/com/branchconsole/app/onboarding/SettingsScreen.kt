@@ -16,6 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,7 +29,9 @@ import androidx.compose.ui.unit.dp
 import com.branchconsole.app.AppInfo
 import com.branchconsole.app.credentials.CredentialFields
 import com.branchconsole.app.credentials.CredentialsStore
+import com.branchconsole.app.diagnostics.DiagnosticExport
 import com.branchconsole.app.notif.NotificationGate
+import com.branchconsole.lake.LakeDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -64,7 +67,47 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
         NotificationPermissionSection(context)
         BatteryOptimizationSection(context)
         CredentialsSection(store = store, fields = fields, onFieldsChange = { fields = it }, scope = scope)
+        DiagnosticExportSection(context, scope)
     }
+}
+
+/**
+ * MT1-08d — 진단 JSON 내보내기 진입점(docs/runbooks/M1_SMOKE.md S-1~S-4 증빙 수집). SAF
+ * `CreateDocument`로 사용자가 저장 위치를 고르게 한다 — 자동 업로드·고정 경로 쓰기 없음(K-17
+ * 유출 표면 최소화와 같은 판단).
+ */
+@Composable
+private fun DiagnosticExportSection(
+    context: Context,
+    scope: CoroutineScope,
+) {
+    val db = remember { LakeDatabase.build(context) }
+    DisposableEffect(Unit) { onDispose { db.close() } }
+    var pendingJson by remember { mutableStateOf<String?>(null) }
+    var status by remember { mutableStateOf<String?>(null) }
+
+    val saveLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+            val json = pendingJson
+            status =
+                if (uri == null || json == null) {
+                    "내보내기 취소됨"
+                } else {
+                    runCatching { context.contentResolver.openOutputStream(uri)?.use { it.write(json.toByteArray()) } }
+                        .fold({ "저장 완료" }, { "저장 실패: ${it.message}" })
+                }
+        }
+
+    Text("진단 내보내기 (MT1-08d)", style = MaterialTheme.typography.titleMedium)
+    Button(onClick = {
+        scope.launch {
+            pendingJson = DiagnosticExport.build(context, db)
+            saveLauncher.launch(DiagnosticExport.fileName())
+        }
+    }) {
+        Text("진단 JSON 내보내기")
+    }
+    status?.let { Text(it) }
 }
 
 @Composable
