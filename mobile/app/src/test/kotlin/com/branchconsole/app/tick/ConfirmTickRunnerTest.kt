@@ -6,7 +6,9 @@ import com.branchconsole.app.collectors.WarmupStatus
 import com.branchconsole.app.tick.WarmupGate.isReady
 import com.branchconsole.engine.config.ConfigSource
 import com.branchconsole.lake.LakeDatabase
+import com.branchconsole.lake.ObservationDao
 import com.branchconsole.lake.ObservationEntity
+import com.branchconsole.lake.SeriesPoint
 import com.branchconsole.lake.TickInputEntity
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -155,10 +157,10 @@ class ConfirmTickRunnerTest {
             assertEquals(2, rows.size) // marker + today
             assertEquals(today.toString(), rows.last().tradingDate)
             assertFalse("today's own tick is live, not catchup", rows.last().isCatchup)
+            // F-2: run_log(started)가 항상 먼저 기록되고, 그 뒤에 성공 행이 붙는다.
             val runLog = db.runLogDao().allOrderedByRanAt()
-            assertEquals(1, runLog.size)
-            assertEquals("success", runLog.single().status)
-            assertEquals(today.toString(), runLog.single().tradingDate)
+            assertEquals(listOf("started", "success"), runLog.map { it.status })
+            assertEquals(today.toString(), runLog.last().tradingDate)
         }
 
     // ---------------------------------------------------------------- ② 이중 실행 멱등
@@ -262,11 +264,14 @@ class ConfirmTickRunnerTest {
             assertFalse(report.isReady())
             assertTrue(report.series.any { it.status == WarmupStatus.INSUFFICIENT })
             assertTrue(db.tickInputDao().allOrderedByDate().isEmpty())
-            assertEquals("blocked_warmup", db.runLogDao().allOrderedByRanAt().single().status)
+            assertEquals(listOf("started", "WARMUP_INSUFFICIENT"), db.runLogDao().allOrderedByRanAt().map { it.status })
         }
 
+    // F-4: 부트스트랩(최초 실행)은 그리드 전체가 아니라 최신 거래일 1건만 후보로 좁힌다 — 게이트가
+    // 열려도 3행이 아니라 1행만 커밋된다(설치 첫날이 3일치 역사를 "소급 캐치업"한 것으로 둔갑하면
+    // 안 된다).
     @Test
-    fun `bootstrap gate opens once warmup rows are sufficient`() =
+    fun `bootstrap gate opens once warmup rows are sufficient but commits only the latest day`() =
         runTest {
             val day1 = LocalDate.of(2026, 8, 3)
             val day2 = LocalDate.of(2026, 8, 4)
@@ -278,7 +283,33 @@ class ConfirmTickRunnerTest {
             val outcome = runner(clockAt(day3, LocalTime.of(18, 0))).run()
 
             assertTrue(outcome is ConfirmTickOutcome.Committed)
-            assertEquals(3, db.tickInputDao().allOrderedByDate().size)
+            assertEquals(listOf(day3), (outcome as ConfirmTickOutcome.Committed).committedDates)
+            val rows = db.tickInputDao().allOrderedByDate()
+            assertEquals(listOf(day3.toString()), rows.map { it.tradingDate })
+            assertTrue(rows.single().gapReason == null)
+        }
+
+    // aaa F-4 — 부트스트랩 × 상한 상호작용을, 게이트를 우회하는 marker 선삽입 없이 진짜 최초
+    // 실행 경로로 증명한다: 25거래일치 데이터가 이미 lake에 있어도(예: 웜업 백필 직후 최초
+    // 기동) 설치 첫 확정 틱은 그 25일을 "20틱 소급 + gap 1건"으로 둔갑시키지 않고 **오늘 1건만**
+    // 커밋한다.
+    @Test
+    fun `bootstrap with a large pre-existing backlog commits only today, zero backdating, zero gap rows`() =
+        runTest {
+            val start = LocalDate.of(2026, 1, 1)
+            val days = (0..24).map { start.plusDays(it.toLong()) } // 25 trading days, all pre-seeded
+            days.forEach { seedKospiClose(it, 100.0) }
+            val today = days.last()
+
+            val outcome = runner(clockAt(today, LocalTime.of(20, 0))).run()
+
+            assertTrue(outcome is ConfirmTickOutcome.Committed)
+            val committed = outcome as ConfirmTickOutcome.Committed
+            assertEquals(listOf(today), committed.committedDates)
+            assertTrue("bootstrap must not manufacture a gap row", committed.gapSkipped.isEmpty())
+            val rows = db.tickInputDao().allOrderedByDate()
+            assertEquals(listOf(today.toString()), rows.map { it.tradingDate })
+            assertTrue(rows.single().gapReason == null)
         }
 
     // ---------------------------------------------------------------- ⑥ 휴장일(공백일) 무커밋
@@ -302,6 +333,120 @@ class ConfirmTickRunnerTest {
             assertEquals(listOf(mon, tue, thu, fri), (outcome as ConfirmTickOutcome.Committed).committedDates)
             val dates = db.tickInputDao().allOrderedByDate().map { it.tradingDate }
             assertFalse("wed has no anchor observation and must never be committed", dates.contains(wed.toString()))
+        }
+
+    // ---------------------------------------------------------------- aaa F-5 그리드 공백: 기록 + 재편입
+
+    // 2026-08-03(월)~08-07(금)은 실제 평일, 08-08(토)/08-09(일)은 실제 주말(확인: date +%A) —
+    // 08-05(수)만 관측이 없다(수집 실패 시뮬레이션). 주말은 관측이 없어도 "휴장으로 추정"조차
+    // 하지 않고(K-03 실시간 영업일 API 미배선 — 확신할 근거가 없다), 오직 **평일**의 그리드 공백만
+    // CALENDAR_FALLBACK으로 기록한다(§4.1 카탈로그) — 이것이 "수집 실패 vs 휴장 구분" witness다.
+    @Test
+    fun `a weekday grid gap is logged as CALENDAR_FALLBACK but weekend absence is never flagged`() =
+        runTest {
+            val marker = LocalDate.of(2026, 7, 31) // pre-bootstrap boundary (bypasses the warmup
+            // gate — that interaction is F-4's own test, not this one's concern).
+            val mon = LocalDate.of(2026, 8, 3)
+            val tue = LocalDate.of(2026, 8, 4)
+            val wed = LocalDate.of(2026, 8, 5) // weekday, no observation -> suspected collection gap
+            val thu = LocalDate.of(2026, 8, 6)
+            val fri = LocalDate.of(2026, 8, 7)
+            val sat = LocalDate.of(2026, 8, 8) // real weekend, no observation -> never flagged
+            val sun = LocalDate.of(2026, 8, 9) // real weekend, no observation -> never flagged
+            val nextMon = LocalDate.of(2026, 8, 10)
+            seedBootstrapMarker(marker)
+            seedKospiClose(marker, 100.0)
+            seedKospiClose(mon, 100.0)
+            runner(clockAt(mon, LocalTime.of(18, 0))).run() // commits mon only
+            seedKospiClose(nextMon, 100.0) // tue/wed/thu/fri never arrive (simulated failure week)
+
+            runner(clockAt(nextMon, LocalTime.of(18, 0))).run()
+
+            val gapLogs = db.runLogDao().allOrderedByRanAt().filter { it.status == "CALENDAR_FALLBACK" }
+            assertTrue("expected at least one CALENDAR_FALLBACK entry", gapLogs.isNotEmpty())
+            val detail = gapLogs.last().detail!!
+            for (weekday in listOf(tue, wed, thu, fri)) {
+                assertTrue("$weekday must be flagged as a suspected gap", detail.contains(weekday.toString()))
+            }
+            for (weekend in listOf(sat, sun)) {
+                assertFalse("$weekend is a real weekend and must never be flagged", detail.contains(weekend.toString()))
+            }
+        }
+
+    // aaa F-5 — 늦게 도착한 앵커 관측의 재편입: tue의 데이터가 처음엔 없어(수집 실패) 후보가
+    // 되지 못했고, 그 사이 wed는 정상 커밋됐다. 나중에 tue의 관측이 도착하면(재수집 성공), wed가
+    // 이미 커밋돼 있어도 tue는 여전히 후보로 재편입돼야 한다(이전 판은 `it > lastCommittedDate`
+    // 서수 비교로 이런 날짜를 영구 배제했다).
+    @Test
+    fun `a late-arriving anchor observation is re-admitted as a candidate even after later dates were committed`() =
+        runTest {
+            val marker = LocalDate.of(2026, 7, 31) // pre-bootstrap boundary (see previous test).
+            val mon = LocalDate.of(2026, 8, 3)
+            val tue = LocalDate.of(2026, 8, 4) // missing at first — arrives late below
+            val wed = LocalDate.of(2026, 8, 5)
+            seedBootstrapMarker(marker)
+            seedKospiClose(marker, 100.0)
+            seedKospiClose(mon, 100.0)
+            runner(clockAt(mon, LocalTime.of(18, 0))).run() // commits mon
+
+            seedKospiClose(wed, 100.0) // tue still missing
+            val outcome1 = runner(clockAt(wed, LocalTime.of(20, 0))).run()
+            assertEquals(listOf(wed), (outcome1 as ConfirmTickOutcome.Committed).committedDates)
+            assertTrue(db.tickInputDao().allOrderedByDate().none { it.tradingDate == tue.toString() })
+
+            seedKospiClose(tue, 100.0) // late arrival (e.g. a retried collector backfilled it)
+            val outcome2 = runner(clockAt(wed, LocalTime.of(21, 0))).run() // still "today" = wed
+
+            assertTrue(outcome2 is ConfirmTickOutcome.Committed)
+            assertEquals(listOf(tue), (outcome2 as ConfirmTickOutcome.Committed).committedDates)
+            val rows = db.tickInputDao().allOrderedByDate()
+            val expectedDates = setOf(marker.toString(), mon.toString(), tue.toString(), wed.toString())
+            assertEquals(expectedDates, rows.map { it.tradingDate }.toSet())
+            assertTrue(
+                "tue must be marked catchup (reconstructed after the fact)",
+                rows.single { it.tradingDate == tue.toString() }.isCatchup,
+            )
+        }
+
+    // ---------------------------------------------------------------- aaa F-2 실패 감사
+
+    private class ThrowingObservationDao(private val delegate: ObservationDao) : ObservationDao by delegate {
+        override suspend fun confirmSeries(
+            seriesId: String,
+            field: String,
+            fromAsOf: Long,
+            toAsOf: Long,
+        ): List<SeriesPoint> = error("simulated store failure")
+    }
+
+    // 이전 판은 run() 본문에 try/catch가 없어 예외 발생 시 run_log 행이 0개였다(F-2). started를
+    // 선기록하고 실패도 사유와 함께 기록한 뒤 재전파하는지 확인한다 — 그리드는 정상 조회되게
+    // 두고(candidates가 실제로 생기게) `ConfirmTickContext.load` 단계에서만 예외를 유발한다.
+    @Test
+    fun `an unexpected failure mid-run is recorded as started then failed, and still propagates`() =
+        runTest {
+            val marker = LocalDate.of(2026, 8, 3)
+            val today = LocalDate.of(2026, 8, 4)
+            seedBootstrapMarker(marker)
+            seedKospiClose(marker, 100.0)
+            seedKospiClose(today, 95.0)
+            val failingRunner =
+                ConfirmTickRunner(
+                    observationDao = ThrowingObservationDao(db.observationDao()),
+                    tickInputDao = db.tickInputDao(),
+                    runLogDao = db.runLogDao(),
+                    gridProvider = TradingDayGridProvider(db.observationDao()),
+                    config = config,
+                    clock = clockAt(today, LocalTime.of(18, 0)),
+                )
+
+            val error = runCatching { failingRunner.run() }.exceptionOrNull()
+
+            assertTrue("expected the exception to propagate, got: $error", error != null)
+            val runLog = db.runLogDao().allOrderedByRanAt()
+            assertEquals(listOf("started", "failed"), runLog.map { it.status })
+            assertTrue(runLog.last().detail!!.contains("simulated store failure"))
+            assertTrue(db.tickInputDao().allOrderedByDate().size == 1) // only the pre-seeded marker
         }
 
     // ---------------------------------------------------------------- ⑦ confirm_time 미기입 시 명시 실패

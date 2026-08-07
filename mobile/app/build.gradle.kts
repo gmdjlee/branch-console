@@ -220,6 +220,10 @@ dependencies {
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.androidx.test.ext.junit)
     testImplementation(libs.androidx.room.testing)
+    // MT1-06 aaa F-1: ConfirmTickWorkerTest가 TestListenableWorkerBuilder로 실제 work-testing
+    // 하니스를 쓴다(Robolectric JVM에서 동작 — 계측 불필요). androidTest 쪽 선언은 유지한다
+    // (실기기 통합 확인용, 별개 관심사).
+    testImplementation(libs.androidx.work.testing)
     // engine/build.gradle.kts와 동일 사유(주석 참고)로 junit-jupiter 런타임 누출을 제외한다 —
     // registry_version 로드 스모크(ConfigsManifestJvmTest)에서만 쓰는 test-only 의존이다.
     testImplementation(libs.snakeyaml.engine) {
