@@ -124,9 +124,18 @@
   - 흡수 명시(aaa 요구 — 추적 공백 재발 방지): **03c**(tick_input 테이블)=MT1-03에 흡수 /
     **05b2**(IndicatorRuntime)=MT1-05·06에 흡수(ConfirmIndicatorRuntime) / **06h**(부트스트랩
     게이트)=MT1-06에 흡수(WarmupGate) / **07e**(프리뷰 시계 증인)=MT1-07에 흡수(M-39 테스트)
-  - **구현 트랙 최종 정산(aaa)**: 기본 8 중 04d만 잔여(ECOS 키 대기·M1 내 구현 확정),
-    04e=M2 이연(사용자)·04f=(b) 미수집(사용자). 신설 12 전건 인도·흡수. **구현 외 잔여**:
-    confirm_time 실측(00g)·ECOS 키(외부)·실기기 스모크·GATE_GM1 리포트+승인
+  - [x] MT1-00b 재개·종결 — 실측이 SSOT 오기 적발(721Y001=A/M/Q뿐 → 일별 정본 **817Y002**),
+    item_codes 확정(010300000/010200000·15영업일 검증·T+1), Advisor 승인 반영(c7f9fab).
+    **K-04 종결 — configs VERIFY 잔여 0**
+  - [x] MT1-04d ECOS 어댑터 — qa PASS → aaa FAIL(M-1)→해소 **PASS**(0eb6b98·7c1f32a).
+    817Y002·item_codes SSOT 로드(하드코딩 0)·K-17 편입·NotConfigured·실캡처 파서·파이프라인
+    3경로 편입. **스코프 판단 인정**: Python 정본 빌더 부재 → Kotlin 단독 배선 거부(재구현
+    없음 규율), 지표 결측 유지를 테스트로 동결. **A-1 실측 정정 동반**(§GM1 기록 참조)
+  - **M1 구현 트랙 종결 확정(2026-08-08, aaa)**: 기본 8(04e=M2 이연·04f=미수집 확정 포함)+
+    신설 12 전건 인도·흡수, K-xx 함정 전건 종결, VERIFY 0. krx_credit_spread_delta **지표
+    활성화는 C1 소관 별도 지위**(정본 빌더 신설+분모 82.5→88.5 골든 재산출 산술 확정).
+    **잔여(전부 구현 외)**: confirm_time 실측(00g — 08-10·08-11 폴링) / 실기기 1일 스모크
+    +판정기 통과 / GATE_GM1 마감+사용자 승인
 
 - W1 기반
   - [x] MT1-01a 스캐폴드 — qa PASS+aaa COND→해소 PASS(eb480b0·83c0e9e). 3모듈(:engine/:krx/
