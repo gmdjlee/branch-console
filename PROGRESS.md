@@ -90,6 +90,21 @@
   - GM1 기록 누적: 무폴백 4계열(KRW=X·DXY·MOVE·VIX3M) / credit 축 이중 차단(ECOS+CDS) /
     A-1 프리뷰 커버리지 상한(ECOS 차단 시 0.792<0.80, 키 발급 시 0.847 — **MT1-07 착수 게이트**)
 
+- W5 표면·마감 (진행 중)
+  - [ ] MT1-08 부분(08a 노티·08b 홈·자격증명·온보딩·dailyCollect 배선) — 구현(2f9915b,
+    46파일)→qa PASS→**aaa R1 FAIL(중 1·경미 4)**: M-1 detekt 상한 120→140 자기 완화(승인
+    무기록 — Advisor 결정: (a) 철회+래핑) / M-2 커버리지 수치 오기(산출물 서술 부정확 3회째
+    패턴) / M-3 toTick 중복 / M-4 수집창 "오늘" UTC·KST 혼용 / M-5 15분 폴링(3줄 override
+    대안 — 채택 지시). 정당 확인: WorkerFactory 가로채기(initializer 제거 실측)·K-17 구조·
+    K-20 배너·채널명 불일치 공시·TOP=3(AAA §2.5). 재작업 중
+  - [x] MT1-01g 후속 .gitattributes — aaa PASS(a781454). mobile/krx -text 최소 규칙,
+    클린 워크트리에서 verifyKrxProvenance green 재현(§4-나 해소)
+  - [ ] MT1-08c 스모크 판정기+M1_SMOKE.md — 게이트 해제(06 R3 PASS), 착수(브리프 요건 6:
+    판정식 tick_input 기준 개정·S-2 기대값(부트스트랩 +1행)·confirm_time 선행 조건·GM1 기록
+    승계·15분 주기 관측 항목·진단 JSON K-17)
+  - 부기(M-43b 표): ObservationDao.maxRevision 메타 조회 1건 추가(프리뷰 revision 채번 —
+    판별자 규율 비침범, aaa 확인. A §2.12 (b-0) 표 규정에 따른 기록)
+
 - W1 기반
   - [x] MT1-01a 스캐폴드 — qa PASS+aaa COND→해소 PASS(eb480b0·83c0e9e). 3모듈(:engine/:krx/
     :app)+카탈로그+wrapper 8.13 sha256 핀, check 실가동(109/109, Kover 주입 시험·detekt 룰
