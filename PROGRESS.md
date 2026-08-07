@@ -132,6 +132,12 @@
     무변경). 양측 NaN 퇴화 증인·pad 회귀 시 실패 뮤테이션 확인. **W3 마감** —
     BT-05 착수 확정(요건: MANIFEST 재대조·C §9-C 판정·9창+합성 증인 발화 확인·진단 절차·
     as_of 규약 대조 선행 K-06)
+  - [x] MT1-05j **BT-05 패리티 — qa+aaa COND→해소 PASS(2d65dbe·93933ba). GM1 인용 적격 선언.**
+    9창 397틱 + 합성 퇴화 증인 창 5틱, L0~L6 전건 PASS. **max|Δcomposite|=0.0**(기준 0.05)·
+    max|Δcoverage|=0.0·max|Δvalue|=2.67e-13. 골든 L6 완전 일치, w2026 any_extreme 15회
+    실발화(첫 2026-07-08 ORANGE — D-26 짝지음 실데이터 검증). §9-C 퇴화 증인 4종 상시 고정
+    (전결측 null 직렬화 경로 포함)+자기회귀 증인(뮤테이션 2종 사망 확인). encodeDefaults
+    버그 자체 발견·근본 수정. 재현: export_parity → ParityRunnerTest → test_bt05_parity(14)
 - [ ] MT1-01 스캐폴드+syncConfigs / [ ] MT1-02 계약 미러+스냅샷 / [ ] MT1-03 Room append-only
 - [ ] MT1-04 collectors a야후 b FRED c KRX d ECOS e KIS(옵션) f CDS 판정(G-4)
 - [ ] MT1-05 엔진·상태기계 + 패리티(BT-05) / [ ] MT1-06 일일 확정 틱+캐치업
