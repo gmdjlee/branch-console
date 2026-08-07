@@ -1,5 +1,6 @@
 package com.branchconsole.app.collectors.yahoo
 
+import android.content.Context
 import com.branchconsole.app.collectors.CollectorResult
 import com.branchconsole.app.collectors.FailureReason
 import com.branchconsole.app.collectors.RetryPolicy
@@ -29,10 +30,10 @@ import java.util.concurrent.TimeUnit
  *   engine.stale_profiles) 소관이다.
  */
 class YahooChartCollector(
+    private val retryPolicy: RetryPolicy,
     private val httpClient: OkHttpClient = defaultHttpClient(),
     private val baseUrl: String = DEFAULT_BASE_URL,
     private val userAgent: String = DEFAULT_USER_AGENT,
-    private val retryPolicy: RetryPolicy = RetryPolicy.DEFAULT,
 ) {
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -174,5 +175,8 @@ class YahooChartCollector(
                 .connectTimeout(CONNECT_TIMEOUT_S, TimeUnit.SECONDS)
                 .readTimeout(CONNECT_TIMEOUT_S, TimeUnit.SECONDS)
                 .build()
+
+        /** `providers.yfinance.retry`를 assets에서 로드해 주입하는 조립 지점(`:krx KrxCollector.create`와 동일 패턴). */
+        fun create(context: Context): YahooChartCollector = YahooChartCollector(RetryPolicy.fromYfinance(context))
     }
 }

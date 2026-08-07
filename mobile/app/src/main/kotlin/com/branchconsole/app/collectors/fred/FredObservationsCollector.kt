@@ -1,5 +1,6 @@
 package com.branchconsole.app.collectors.fred
 
+import android.content.Context
 import com.branchconsole.app.collectors.CollectorResult
 import com.branchconsole.app.collectors.FailureReason
 import com.branchconsole.app.collectors.RetryPolicy
@@ -40,9 +41,9 @@ import java.util.concurrent.TimeUnit
  */
 class FredObservationsCollector(
     private val credentials: FredCredentialsProvider,
+    private val retryPolicy: RetryPolicy,
     private val httpClient: OkHttpClient = defaultHttpClient(),
     private val baseUrl: String = DEFAULT_BASE_URL,
-    private val retryPolicy: RetryPolicy = RetryPolicy.DEFAULT,
     private val clock: Clock = Clock.systemUTC(),
 ) {
     private val json = Json { ignoreUnknownKeys = true }
@@ -219,5 +220,15 @@ class FredObservationsCollector(
                 .connectTimeout(CONNECT_TIMEOUT_S, TimeUnit.SECONDS)
                 .readTimeout(CONNECT_TIMEOUT_S, TimeUnit.SECONDS)
                 .build()
+
+        /**
+         * `sources.yaml`에 `providers.fred.retry`가 아직 없어(00a 저널 §9~15는 지연·폴백
+         * 판정만 다룸) `providers.yfinance.retry` 값을 명시적으로 빌려 쓴다 — `fred.retry`가
+         * 추가되면 이 한 줄만 바꾸면 된다(`:krx KrxCollector.create`와 동일 조립 지점 패턴).
+         */
+        fun create(
+            context: Context,
+            credentials: FredCredentialsProvider,
+        ): FredObservationsCollector = FredObservationsCollector(credentials, RetryPolicy.fromYfinance(context))
     }
 }

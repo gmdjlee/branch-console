@@ -203,7 +203,8 @@ dependencies {
 
     implementation(libs.androidx.work.runtime)
 
-    implementation(libs.retrofit)
+    // Retrofit 미채택 — OkHttp 직접(컨버터 의존 회피, :krx KrxClient 선례). libs.retrofit은
+    // 카탈로그에 남겨두되 여기서는 의도적으로 선언하지 않는다(aaa D-2, 미사용 의존 제거).
     implementation(libs.okhttp)
     implementation(libs.kotlinx.serialization.json)
     // MT1-04c: KrxCollector 내부 suspend 흐름과 KrxRateLimiter의 delay() 기본값이 직접 쓴다.
@@ -224,7 +225,7 @@ dependencies {
     testImplementation(libs.snakeyaml.engine) {
         exclude(group = "org.junit.jupiter")
     }
-    // MT1-04a/04b collectors 픽스처 테스트(네트워크 금지, :krx KrxClientTest와 동일 선례).
+    // MT1-04a/04b/04c collectors 픽스처 테스트(네트워크 금지, :krx KrxClientTest와 동일 선례).
     testImplementation(libs.okhttp.mockwebserver)
     // MT1-04c: KrxCollectorTest/KrxRateLimiterTest의 runTest{} (:krx 테스트와 동일 선례).
     testImplementation(libs.kotlinx.coroutines.test)

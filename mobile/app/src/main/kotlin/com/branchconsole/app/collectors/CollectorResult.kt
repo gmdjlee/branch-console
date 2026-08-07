@@ -1,6 +1,9 @@
 package com.branchconsole.app.collectors
 
+import android.content.Context
 import kotlinx.coroutines.delay
+import org.snakeyaml.engine.v2.api.Load
+import org.snakeyaml.engine.v2.api.LoadSettings
 
 /**
  * MT1-04a/04b 공통 수집 결과 타입.
@@ -46,15 +49,8 @@ enum class FailureReason(val retriable: Boolean) {
 }
 
 /**
- * 재시도 정책. 기본값(`DEFAULT`)은 `configs/sources.yaml` `providers.yfinance.retry`
- * (`attempts: 3, backoff_s: [5, 30, 120]`) 값 그대로다. FRED provider 블록에는 아직 `retry`
- * 키가 없어(00a 저널 §9~15는 지연·폴백 판정만 다루고 재시도 정책은 미지정) 동일 기본값을
- * 잠정 재사용한다 — 추측으로 새 숫자를 만들지 않고 이미 SSOT에 있는 값을 그대로 빌려 쓰는
- * 선택이며, `sources.yaml`에 `fred.retry`가 추가되면 그 값으로 교체해야 한다.
- *
- * YAML로부터의 실제 로딩 배선(`:krx` `KrxClient`와 동일 선례 — 값 자체의 SSOT 소유는
- * `sources.yaml`, 로더 연결은 후속 통합 서브태스크 MT1-06 소관)은 생성자 주입 지점만
- * 마련해 두고 여기서는 구현하지 않는다.
+ * 재시도 정책. 값은 assets(SSOT)에서만 온다 — 코드에 하드코딩하지 않는다(CLAUDE.md §1).
+ * `attempts`가 `backoffMs.size`보다 많으면 마지막 시도는 대기 없이 종료한다.
  */
 data class RetryPolicy(
     val attempts: Int,
@@ -68,7 +64,33 @@ data class RetryPolicy(
     }
 
     companion object {
-        val DEFAULT = RetryPolicy(attempts = 3, backoffMs = listOf(5_000L, 30_000L, 120_000L))
+        private const val ASSET_PATH = "configs/sources.yaml"
+        private const val MILLIS_PER_SECOND = 1000L
+
+        /**
+         * `providers.yfinance.retry`(`attempts`/`backoff_s`, 초 단위)를 assets에서 읽는다
+         * (`:krx` `KrxRateLimitConfig`와 동일한 로딩 경로 — `syncConfigs` 산출물,
+         * `ConfigsManifestJvmTest`와 동일). FRED provider 블록에는 아직 `retry` 키가 없어
+         * ([FredObservationsCollector]) 이 값을 명시적으로 빌려 쓴다(주석이 아니라 코드로 —
+         * `sources.yaml`에 `fred.retry`가 생기면 이 호출부만 바꾸면 된다). 값 부재 시 조용한
+         * 기본값 없이 예외로 실패한다.
+         */
+        fun fromYfinance(context: Context): RetryPolicy {
+            val root =
+                context.assets.open(ASSET_PATH).use {
+                    Load(LoadSettings.builder().build()).loadFromInputStream(it)
+                }
+            val providers = (root as? Map<*, *>)?.get("providers") as? Map<*, *>
+            val retry = (providers?.get("yfinance") as? Map<*, *>)?.get("retry") as? Map<*, *>
+            val attempts =
+                (retry?.get("attempts") as? Number)?.toInt()
+                    ?: error("providers.yfinance.retry.attempts missing from $ASSET_PATH")
+            val backoffS =
+                (retry["backoff_s"] as? List<*>)
+                    ?: error("providers.yfinance.retry.backoff_s missing from $ASSET_PATH")
+            val backoffMs = backoffS.map { (it as Number).toLong() * MILLIS_PER_SECOND }
+            return RetryPolicy(attempts, backoffMs)
+        }
     }
 }
 
