@@ -27,7 +27,7 @@ providers:
     # consumers: both
     base: "https://api.stlouisfed.org/fred"
     auth: env:FRED_API_KEY
-    series: [BAMLH0A0HYM2, T10Y2Y]
+    series: [BAMLH0A0HYM2, T10Y2Y, VIXCLS, SP500]   # VIXCLS·SP500: 야후 폴백 미러, 00a §9 판정(MT1-04a/04b)
     notes: "T+1 지연. as_of는 FRED observation date로 기록, 지표 계산은 as_of 정렬(as-of join).
       2026-08-07 K-18 대체 후보 실측(MT1-00a 후속): VIXCLS(^VIX 대응)·SP500(^GSPC 대응)은
       야후 종가와 실측 오차 0(동일 소스 재배포로 판단), T+1 그대로 — 폴백 가능. DEXKOUS(KRW=X
