@@ -22,9 +22,11 @@ def _snapshot(
     tick_input: int,
     run_log: int = 1,
     observation: int = 10,
-    current_phase: str | None = "NORMAL",
+    current_phase: str
+    | None = "GREEN",  # real domain (configs/statemachine.yaml `phases:`), not HomeState
     last_tick: dict[str, Any] | None = None,
     last_run: dict[str, Any] | None = None,
+    last_success_run: dict[str, Any] | None = None,
     registry_version: str = REGISTRY_VERSION,
     manifest_sha: str = MANIFEST_SHA,
 ) -> dict[str, Any]:
@@ -43,6 +45,7 @@ def _snapshot(
         "current_phase": current_phase,
         "last_tick": last_tick,
         "last_run": last_run,
+        "last_success_run": last_success_run,
     }
 
 
@@ -81,6 +84,7 @@ def _write_full_pass_scenario(evidence_dir: Path) -> None:
             observation=210,
             last_tick=committed_tick,
             last_run=success_run,
+            last_success_run=success_run,
         ),
     )
     for role in ("s3a", "s3b", "s3c"):
@@ -93,6 +97,7 @@ def _write_full_pass_scenario(evidence_dir: Path) -> None:
                 observation=220,
                 last_tick=committed_tick,
                 last_run=success_run,
+                last_success_run=success_run,
             ),
         )
     _write(
@@ -104,6 +109,7 @@ def _write_full_pass_scenario(evidence_dir: Path) -> None:
             observation=220,
             last_tick=committed_tick,
             last_run=success_run,
+            last_success_run=success_run,
         ),
     )
 
@@ -200,15 +206,51 @@ def test_s2_fails_when_tick_input_delta_is_not_exactly_one(tmp_path: Path) -> No
     assert any(r.name == "S-2" and not r.passed for r in results)
 
 
-def test_s2_fails_when_last_run_status_is_not_success(tmp_path: Path) -> None:
+def test_s2_fails_when_no_success_run_matches_the_committed_date(
+    tmp_path: Path,
+) -> None:
+    """Genuine failure: the confirm pipeline never logged a success row for
+    the date that just landed in tick_input (e.g. it errored partway, or
+    `last_success_run` is stale from a previous day)."""
     _write_full_pass_scenario(tmp_path)
-    failed_run = json.loads((tmp_path / "diag-s2.json").read_text(encoding="utf-8"))
-    failed_run["last_run"]["status"] = "failed"
-    (tmp_path / "diag-s2.json").write_text(json.dumps(failed_run), encoding="utf-8")
+    no_success = json.loads((tmp_path / "diag-s2.json").read_text(encoding="utf-8"))
+    no_success["last_run"] = {
+        "trading_date": None,
+        "status": "failed",
+        "detail": "boom",
+    }
+    no_success["last_success_run"] = None
+    (tmp_path / "diag-s2.json").write_text(json.dumps(no_success), encoding="utf-8")
 
     results = run_checks(tmp_path)
 
     assert any(r.name == "S-2" and not r.passed for r in results)
+
+
+def test_s2_passes_when_a_cold_start_catchup_noop_runs_after_the_real_success(
+    tmp_path: Path,
+) -> None:
+    """aaa C-1 witness: BranchConsoleApplication.onCreate fires
+    triggerCatchupNow on every cold start. If the user reopens the app to
+    export S-2's diagnostic JSON, that catchup re-run finds today already
+    committed and logs a *later* "noop" -- so `last_run` legitimately shows
+    "noop" even though the tick genuinely succeeded. `last_success_run`
+    (unaffected by what ran afterward) must still let the whole scenario
+    pass -- this is the exact case the critic reproduced as a false FAIL."""
+    _write_full_pass_scenario(tmp_path)
+    s2 = json.loads((tmp_path / "diag-s2.json").read_text(encoding="utf-8"))
+    assert s2["last_success_run"]["trading_date"] == s2["last_tick"]["trading_date"]
+    s2["last_run"] = {
+        "trading_date": None,
+        "status": "noop",
+        "detail": "no candidate trading days",
+    }
+    (tmp_path / "diag-s2.json").write_text(json.dumps(s2), encoding="utf-8")
+
+    results = run_checks(tmp_path)
+
+    assert all(r.passed for r in results), [r for r in results if not r.passed]
+    assert main([str(tmp_path)]) == 0
 
 
 def test_s2_fails_when_gap_reason_is_present(tmp_path: Path) -> None:

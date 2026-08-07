@@ -73,17 +73,28 @@ DiagnosticExport`)가 만드는 스키마:
   },
   "exported_at_epoch_millis": 1234567890123,
   "counts": { "tick_input": 1, "run_log": 2, "observation": 512 },
-  "current_phase": "NORMAL",
+  "current_phase": "GREEN",
   "last_tick": { "trading_date": "2026-08-10", "coverage": 1.0, "is_catchup": false, "gap_reason": null },
-  "last_run": { "trading_date": "2026-08-10", "status": "success", "detail": "committed=1" }
+  "last_run": { "trading_date": "2026-08-10", "status": "noop", "detail": "no candidate trading days" },
+  "last_success_run": { "trading_date": "2026-08-10", "status": "success", "detail": "committed=1" }
 }
 ```
 
-`last_tick`/`last_run`은 아직 행이 없으면 `null`이다. `last_run.detail`은 부트스트랩 게이트가
-`WARMUP_INSUFFICIENT`로 막았을 때 `WarmupGate`의 리포트(지표별 원계열 행수·요건)를 그대로
-담고 있어(`ConfirmTickRunner`의 `WARMUP_INSUFFICIENT` 분기), S-1에서 "어느 지표가 왜
-부족한지"를 볼 수 있다 — 별도 지표별 덤프를 만들지 않고도 §11.3의 취지(웜업 상태 노출)를
-충족한다.
+`last_tick`/`last_run`/`last_success_run`은 아직 해당하는 행이 없으면 `null`이다.
+`current_phase`의 값 도메인은 `configs/statemachine.yaml`의 `phases:`(GREEN/AMBER/ORANGE/RED,
+`PhaseDerivation.currentPhase`가 반환) — 홈 화면의 `HomeState`(NORMAL/PARTIAL/...)와는 다른
+축이니 혼동하지 말 것(aaa C-2). `last_run.detail`은 부트스트랩 게이트가 `WARMUP_INSUFFICIENT`로
+막았을 때 `WarmupGate`의 리포트(지표별 원계열 행수·요건)를 그대로 담고 있어(`ConfirmTickRunner`의
+`WARMUP_INSUFFICIENT` 분기), S-1에서 "어느 지표가 왜 부족한지"를 볼 수 있다 — 별도 지표별
+덤프를 만들지 않고도 §11.3의 취지(웜업 상태 노출)를 충족한다.
+
+**`last_run` vs `last_success_run` (aaa C-1)**: 앱을 여는 행위 자체가 캐치업 1회를 유발한다 —
+`BranchConsoleApplication.onCreate`가 콜드 스타트마다 `triggerCatchupNow`를 호출하기 때문이다.
+S-2 진단을 내보내려고 앱을 다시 열면(콜드 스타트), 그 캐치업이 "오늘 이미 커밋됨 → 할 일 없음"을
+발견하고 `noop` 행을 확정 틱의 `success` 행보다 **나중에** 남긴다 — 그래서 `last_run`(가장 최근
+실행)은 실제로는 건강한 실행에서도 `noop`으로 보일 수 있다(콜드/웜 스타트 여부에 좌우돼
+비결정적). `last_success_run`은 상태와 무관하게 "`status="success"`인 가장 최근 행"만 가리켜
+이 레이스를 피한다 — 위 샘플의 `last_run.status="noop"`이 바로 이 정상 시나리오다.
 
 **K-17**: 위 필드가 전부다(화이트리스트 방식) — 자격증명 값·파생물은 어디에도 없다.
 `DiagnosticExportTest`(`mobile/app/src/test/kotlin/com/branchconsole/app/diagnostics/`)가
@@ -112,6 +123,10 @@ docs/gates/evidence/GM1/
 `diag-<role>` 접두사만 본다. 같은 역할에 파일이 2개 이상 있으면(재시도로 다시 저장한 경우 등)
 판정기는 모호함 자체를 실패로 보고한다 — 오래된 사본은 지우고 최종본 하나만 남긴다.
 
+**운영 참고(권고)**: 앱을 여는 행위 자체가 캐치업 1회를 유발해 `run_log` 카운트가 내보내기마다
+증가한다(§3.1의 "last_run vs last_success_run" 참고) — 진단 내보내기를 위해 앱을 여러 번
+열고 닫아도 정상이며, `counts.run_log`가 매번 늘어나는 것은 이상 신호가 아니다.
+
 ### 3.3 기계 판정
 
 ```bash
@@ -127,8 +142,11 @@ aaa 요건 2 반영 — 부트스트랩 최초 실행은 +1행/gap 0, 2일차 �
   동일한지(K-16 — 같은 설치 세션 안에서 드리프트가 있으면 그 자체가 이상 신호).
 - **S-1** — `diag-s1.json`의 `counts.tick_input == 0`이고, `last_run.status`가
   `WARMUP_INSUFFICIENT`가 **아님**(있다면 웜업이 실제로는 아직 안 끝난 것).
-- **S-2** — `tick_input`이 S-1 대비 정확히 +1, `last_run.status == "success"`,
-  `last_tick.gap_reason == null`(gap 0), `current_phase`가 null이 아님.
+- **S-2** — `tick_input`이 S-1 대비 정확히 +1, `last_tick.gap_reason == null`(gap 0),
+  `last_success_run.trading_date == last_tick.trading_date`(그 거래일에 대해 성공 행이
+  실제로 존재), `current_phase`가 null이 아님. **`last_run.status`는 보지 않는다**(aaa
+  C-1 — 위 "last_run vs last_success_run" 참고, 콜드 스타트 캐치업이 남기는 뒤늦은 `noop`에
+  비결정적으로 흔들리기 때문).
 - **S-3(s3a/b/c)** — 각각 S-2 대비 `tick_input` 행수·`current_phase`가 완전히 동일(§2).
 - **S-4** — S-2 대비 `tick_input` 행수·`last_tick.trading_date`가 동일(재실행이 새 행을
   만들지 않음). `run_log` 행수 증가는 정상이다(아래 참고).

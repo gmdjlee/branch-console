@@ -86,6 +86,7 @@ class DiagnosticExportTest {
             assertEquals(JsonNull, root["current_phase"])
             assertEquals(JsonNull, root["last_tick"])
             assertEquals(JsonNull, root["last_run"])
+            assertEquals(JsonNull, root["last_success_run"])
         }
 
     @Test
@@ -137,6 +138,30 @@ class DiagnosticExportTest {
             assertEquals("CATCHUP_GAP_TRUNCATED", lastTick["gap_reason"]!!.jsonPrimitive.content)
             assertEquals("success", lastRun["status"]!!.jsonPrimitive.content)
             assertEquals("committed=1", lastRun["detail"]!!.jsonPrimitive.content)
+        }
+
+    @Test
+    fun `aaa C-1 -- last_success_run still points at the committed date after a cold-start catchup noop`() =
+        runTest {
+            // Reproduces the flake the critic found: BranchConsoleApplication.onCreate calls
+            // triggerCatchupNow on every cold start, which re-runs ConfirmTickRunner. If today's
+            // tick is already committed there's nothing left to do, so it logs a later "noop" row
+            // -- making `last_run` (ordered by ran_at) misreport a tick that actually succeeded.
+            db.tickInputDao().insert(tickRow("2026-08-06"))
+            db.runLogDao().insert(
+                RunLogEntity(tradingDate = "2026-08-06", ranAt = 0L, status = "success", detail = "committed=1"),
+            )
+            db.runLogDao().insert(RunLogEntity(tradingDate = null, ranAt = 1L, status = "started", detail = null))
+            db.runLogDao().insert(
+                RunLogEntity(tradingDate = null, ranAt = 2L, status = "noop", detail = "no candidate trading days"),
+            )
+
+            val root = exportRoot()
+
+            assertEquals("noop", root["last_run"]!!.jsonObject["status"]!!.jsonPrimitive.content)
+            val lastSuccess = root["last_success_run"]!!.jsonObject
+            assertEquals("2026-08-06", lastSuccess["trading_date"]!!.jsonPrimitive.content)
+            assertEquals("committed=1", lastSuccess["detail"]!!.jsonPrimitive.content)
         }
 
     @Test

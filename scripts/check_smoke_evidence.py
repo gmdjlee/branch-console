@@ -8,11 +8,14 @@ procedural incident this exists to prevent).
 
 Scope note (brief-documented deviation from the §11.3 prose): the shipped
 diagnostic JSON is `app` + `counts` (tick_input/run_log/observation) +
-`current_phase` + `last_tick` + `last_run` -- not the full `phase_commit[]`/
-`indicators[]`/`preview[]` row dumps that §11.3 sketches. `phase_commit`
-never existed as a production table (brief aaa item 1); its role in the
-S-2/S-3 judgment below is played by `counts.tick_input` + `current_phase`
-instead, per that same aaa item.
+`current_phase` + `last_tick` + `last_run` + `last_success_run` -- not the
+full `phase_commit[]`/`indicators[]`/`preview[]` row dumps that §11.3
+sketches. `phase_commit` never existed as a production table (brief aaa
+item 1); its role in the S-2/S-3 judgment below is played by
+`counts.tick_input` + `current_phase` instead, per that same aaa item.
+`last_success_run` exists separately from `last_run` for the reason in
+check_s2's docstring (aaa C-1): `last_run` is whatever ran most recently,
+which a cold-start catchup can turn into a "noop" after a genuine success.
 
 Snapshot roles are identified by filename prefix (case-insensitive), not by
 position in a directory listing -- the smoke procedure produces one export
@@ -48,6 +51,7 @@ REQUIRED_TOP_KEYS = (
     "current_phase",
     "last_tick",
     "last_run",
+    "last_success_run",
 )
 REQUIRED_APP_KEYS = ("version_name", "registry_version", "assets_manifest_sha256")
 REQUIRED_COUNT_KEYS = ("tick_input", "run_log", "observation")
@@ -140,7 +144,18 @@ def check_s1(s1: dict[str, Any]) -> CheckResult:
 def check_s2(s1: dict[str, Any], s2: dict[str, Any]) -> CheckResult:
     """§11.2 S-2, MT1-06 semantics (brief aaa item 2): the confirmed tick
     always advances tick_input by exactly +1 (bootstrap day 1 or any later
-    day alike), commits with gap 0, and a derivable phase."""
+    day alike), commits with gap 0, and a derivable phase.
+
+    aaa C-1: success is judged from `last_success_run` (the latest run_log
+    row with status "success"), not `last_run` (the latest row by ran_at).
+    BranchConsoleApplication.onCreate calls triggerCatchupNow on every cold
+    start; if the user reopens the app to export S-2's diagnostic JSON,
+    that catchup re-run finds nothing left to do and logs a *later* "noop"
+    row -- making `last_run.status` a non-deterministic proxy for "did the
+    tick actually succeed" even on a genuinely healthy run. Tying the check
+    to `last_tick.trading_date` (the day just committed) rather than
+    whatever ran last sidesteps that race entirely.
+    """
     before, after = s1["counts"]["tick_input"], s2["counts"]["tick_input"]
     if after != before + 1:
         return CheckResult(
@@ -148,15 +163,20 @@ def check_s2(s1: dict[str, Any], s2: dict[str, Any]) -> CheckResult:
             False,
             f"tick_input delta must be exactly +1, got {before} -> {after}",
         )
-    last_run = s2.get("last_run")
-    if last_run is None or last_run.get("status") != "success":
-        return CheckResult(
-            "S-2", False, f"last_run.status must be 'success', got {last_run}"
-        )
     last_tick = s2.get("last_tick")
     if last_tick is None or last_tick.get("gap_reason") is not None:
         return CheckResult(
             "S-2", False, f"last_tick.gap_reason must be null (gap 0), got {last_tick}"
+        )
+    last_success_run = s2.get("last_success_run")
+    if last_success_run is None or last_success_run.get(
+        "trading_date"
+    ) != last_tick.get("trading_date"):
+        return CheckResult(
+            "S-2",
+            False,
+            f"no success run_log row found for the committed date {last_tick.get('trading_date')!r} "
+            f"(last_success_run={last_success_run})",
         )
     if s2.get("current_phase") is None:
         return CheckResult(

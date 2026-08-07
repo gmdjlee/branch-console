@@ -20,6 +20,7 @@ import java.time.format.DateTimeFormatter
 
 private const val PROFILE_NAME = "mobile_daily" // same per-file duplication as HomeData.kt/NotificationSync.kt.
 private const val FILENAME_TIMESTAMP_PATTERN = "yyyyMMddHHmm"
+private const val STATUS_SUCCESS = "success" // same per-file duplication as tick/ConfirmTickRunner.kt's private const.
 
 /**
  * MT1-08d — 실기기 스모크 증빙용 진단 JSON(docs/plans/M1_PLAN_D.md §11.3, GATE_GM1 대상).
@@ -72,6 +73,13 @@ object DiagnosticExport {
                     "current_phase" to jsonOf(currentPhase),
                     "last_tick" to (tickRows.lastOrNull()?.let(::lastTickBlock) ?: JsonNull),
                     "last_run" to (runRows.lastOrNull()?.let(::lastRunBlock) ?: JsonNull),
+                    // aaa C-1: `last_run` is whatever ran most recently by ran_at, which a cold-start
+                    // triggerCatchupNow (BranchConsoleApplication.onCreate) can turn into a later
+                    // "noop" row even though the confirmed tick itself already succeeded -- not
+                    // deterministic evidence of tick success. This field answers "did the confirm
+                    // pipeline actually succeed" independent of what ran afterward.
+                    "last_success_run" to
+                        (runRows.lastOrNull { it.status == STATUS_SUCCESS }?.let(::lastRunBlock) ?: JsonNull),
                 ),
             )
         return root.toString()
