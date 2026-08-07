@@ -65,6 +65,13 @@ class HomeStateMapperTest {
     }
 
     @Test
+    fun `aaa N-1 - ERROR when credentials are not configured, not silently EMPTY`() {
+        val state =
+            HomeStateMapper.compute(lastTick = null, lastRunLog = runLog("not_configured"), previewSuppressed = null)
+        assertEquals(HomeState.ERROR, state)
+    }
+
+    @Test
     fun `ERROR - confirmed tick is eval-impossible (composite null, not a gap row)`() {
         val state =
             HomeStateMapper.compute(

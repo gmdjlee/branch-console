@@ -13,8 +13,10 @@ package com.branchconsole.app.home
  *   시도 흔적은 있음(`run_log`에 `WARMUP_INSUFFICIENT`).
  * - [GAP]: 최근 확정 틱이 캐치업 상한 초과로 절단된 공백 표시 행(`gap_reason` 존재,
  *   `composite=NULL`).
- * - [ERROR]: 가장 최근 실행이 실패(`run_log.status="failed"`/`"config_error"`)했거나, 확정
- *   틱이 평가 불능(`composite=NULL`, gap이 아닌 진짜 D-25 §3 전 지표 결측)으로 동결됨.
+ * - [ERROR]: 가장 최근 실행이 실패(`run_log.status="failed"`/`"config_error"`)했거나, 자격증명
+ *   미설정으로 수집이 스킵됐거나(`"not_configured"`, aaa N-1 — C §4.1 `KEY_MISSING`, "설정
+ *   필요" 사유는 `HomeUiState.lastRunStatus`/`lastRunDetail`로 표시), 확정 틱이 평가 불능
+ *   (`composite=NULL`, gap이 아닌 진짜 D-25 §3 전 지표 결측)으로 동결됨.
  * - [EMPTY]: 최초 실행 — 확정 틱도 실행 이력도 전혀 없음.
  */
 enum class HomeState {

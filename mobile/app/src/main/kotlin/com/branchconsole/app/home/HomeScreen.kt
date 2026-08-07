@@ -39,15 +39,27 @@ import java.time.Instant
 // M1 최소 터치 타깃(브리프 §4.3 "터치 타깃 >= 48dp" — 회귀 방지 목적, §2.4 전면 적용은 M2).
 private val MIN_TOUCH_TARGET = 48.dp
 
-private fun homeStateLabel(state: HomeState): String =
-    when (state) {
-        HomeState.NORMAL -> "정상"
-        HomeState.PARTIAL -> "부분 결측"
-        HomeState.SUPPRESSED -> "국면 판정 불가 (참고용)"
-        HomeState.WARMUP -> "이력 수집 중"
-        HomeState.GAP -> "공백 이후"
-        HomeState.ERROR -> "오류"
-        HomeState.EMPTY -> "최초 실행 대기"
+private const val STATUS_NOT_CONFIGURED = "not_configured"
+
+// aaa N-1 (C §4.1 KEY_MISSING): "not_configured" is an ERROR-state run_log status, but it isn't
+// a failure -- it's an actionable setup gap. lastRunStatus (already on HomeUiState) is what lets
+// this label diverge from the generic "오류" without adding an 8th HomeState value.
+private fun homeStateLabel(
+    state: HomeState,
+    lastRunStatus: String?,
+): String =
+    when {
+        state == HomeState.ERROR && lastRunStatus == STATUS_NOT_CONFIGURED -> "설정 필요"
+        else ->
+            when (state) {
+                HomeState.NORMAL -> "정상"
+                HomeState.PARTIAL -> "부분 결측"
+                HomeState.SUPPRESSED -> "국면 판정 불가 (참고용)"
+                HomeState.WARMUP -> "이력 수집 중"
+                HomeState.GAP -> "공백 이후"
+                HomeState.ERROR -> "오류"
+                HomeState.EMPTY -> "최초 실행 대기"
+            }
     }
 
 /**
@@ -86,7 +98,7 @@ fun HomeScreen(modifier: Modifier = Modifier) {
             return@Column
         }
 
-        HomeStateBanner(state.state)
+        HomeStateBanner(state)
         HomeSummarySection(state)
         HomeIndicatorsSection(state)
         HomeLastTickSection(state)
@@ -110,14 +122,19 @@ fun HomeScreen(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun HomeStateBanner(state: HomeState) {
-    if (state == HomeState.NORMAL) return
-    Card(modifier = Modifier.fillMaxWidth().semantics { contentDescription = "상태: ${homeStateLabel(state)}" }) {
-        Text(
-            text = "[$state] ${homeStateLabel(state)}",
-            modifier = Modifier.padding(12.dp),
-            style = MaterialTheme.typography.titleMedium,
-        )
+private fun HomeStateBanner(state: HomeUiState) {
+    if (state.state == HomeState.NORMAL) return
+    val label = homeStateLabel(state.state, state.lastRunStatus)
+    Card(modifier = Modifier.fillMaxWidth().semantics { contentDescription = "상태: $label" }) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(text = "[${state.state}] $label", style = MaterialTheme.typography.titleMedium)
+            // aaa N-1 (C §4.1 KEY_MISSING "설정 딥링크"): M1은 별도 화면 전환 콜백을 배선하지
+            // 않으므로(탭 전환은 MainActivity가 자체 상태로 관리, 브리프 §4.3 "M1 최소") 딥링크의
+            // M1 대응은 안내 텍스트다 — 실제 네비게이션 콜백은 M2 대상.
+            if (state.lastRunStatus == STATUS_NOT_CONFIGURED) {
+                Text("설정 탭에서 KRX/FRED 자격증명을 입력하세요.")
+            }
+        }
     }
 }
 

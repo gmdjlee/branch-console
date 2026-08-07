@@ -5,6 +5,14 @@ import com.branchconsole.lake.TickInputEntity
 
 private const val STATUS_FAILED = "failed"
 private const val STATUS_CONFIG_ERROR = "config_error"
+
+// aaa N-1: dailyCollect's "credentials missing" run_log entry (ProductionConfirmTickWorker's
+// STATUS_NOT_CONFIGURED, duplicated as a literal here -- same cross-file convention as
+// STATUS_FAILED/STATUS_CONFIG_ERROR above, not an SSOT value). Folding this into ERROR instead of
+// letting it fall through to EMPTY is the fix -- AAA §2.2/C §4.1 KEY_MISSING require a defined
+// "설정 필요" failure path, not a silent EMPTY that reads as "nothing has happened yet".
+private const val STATUS_NOT_CONFIGURED = "not_configured"
+private val ERROR_STATUSES = setOf(STATUS_FAILED, STATUS_CONFIG_ERROR, STATUS_NOT_CONFIGURED)
 private const val STATUS_WARMUP_INSUFFICIENT = "WARMUP_INSUFFICIENT"
 private const val FULL_COVERAGE = 1.0
 
@@ -14,7 +22,9 @@ private const val FULL_COVERAGE = 1.0
  * 판정은 도메인 계층, UI는 그 값을 그릴 뿐).
  *
  * 우선순위(위에서부터 먼저 성립하는 것을 채택):
- * 1. 최근 실행 자체가 실패 → [HomeState.ERROR]
+ * 1. 최근 실행 자체가 실패했거나(`failed`/`config_error`) 자격증명 미설정으로 스킵됨
+ *    (`not_configured`, aaa N-1 — C §4.1 `KEY_MISSING`) → [HomeState.ERROR](`lastRunStatus`/
+ *    `lastRunDetail`이 사유 텍스트를 그대로 실어 나른다, [com.branchconsole.app.home.HomeUiState])
  * 2. 확정 틱이 아직 하나도 없음 → 웜업 시도 흔적이 있으면 [HomeState.WARMUP], 없으면
  *    [HomeState.EMPTY]
  * 3. 최근 확정 틱이 캐치업 상한 절단 공백 행(`gap_reason` 존재) → [HomeState.GAP]
@@ -33,7 +43,7 @@ internal object HomeStateMapper {
         lastRunLog: RunLogEntity?,
         previewSuppressed: Boolean?,
     ): HomeState {
-        if (lastRunLog?.status == STATUS_FAILED || lastRunLog?.status == STATUS_CONFIG_ERROR) {
+        if (lastRunLog?.status in ERROR_STATUSES) {
             return HomeState.ERROR
         }
         if (lastTick == null) {

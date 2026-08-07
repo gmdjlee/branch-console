@@ -19,7 +19,16 @@ private const val KEY_LAST_PHASE_DATE = "last_phase_notified_trading_date"
 private const val KEY_LAST_PHASE_VALUE = "last_phase_notified_value"
 private const val KEY_LAST_FAILURE_ROW_ID = "last_failure_row_id_seen"
 private const val KEY_LAST_FAILURE_NOTIFIED_KST_DATE = "last_failure_notified_kst_date"
+
+// aaa N-1 (D §3.9.1 "status != success", C §4.1 KEY_MISSING) -- tick_failure must also fire for
+// a confirm tick that never got attempted at all (config_error) or was skipped for missing
+// credentials (not_configured, ProductionConfirmTickWorker.STATUS_NOT_CONFIGURED duplicated here
+// as a literal -- same cross-file convention already used for STATUS_FAILED, not an SSOT value).
+// The existing 1-per-KST-day cursor budget below applies unchanged to these two as well.
 private const val STATUS_FAILED = "failed"
+private const val STATUS_CONFIG_ERROR = "config_error"
+private const val STATUS_NOT_CONFIGURED = "not_configured"
+private val TICK_FAILURE_STATUSES = setOf(STATUS_FAILED, STATUS_CONFIG_ERROR, STATUS_NOT_CONFIGURED)
 private const val NOTIF_ID_PHASE_TRANSITION = 1001
 private const val NOTIF_ID_TICK_FAILURE = 1003
 
@@ -103,7 +112,7 @@ internal class NotificationSync(
         val rows = runLogDao.allOrderedByRanAt()
         if (rows.isEmpty()) return
         val lastSeenId = prefs.getLong(KEY_LAST_FAILURE_ROW_ID, 0L)
-        val newFailures = rows.filter { it.status == STATUS_FAILED && it.id > lastSeenId }
+        val newFailures = rows.filter { it.status in TICK_FAILURE_STATUSES && it.id > lastSeenId }
         prefs.edit().putLong(KEY_LAST_FAILURE_ROW_ID, rows.maxOf { it.id }).apply()
         if (newFailures.isEmpty()) return
 

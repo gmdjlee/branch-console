@@ -214,6 +214,20 @@ class NotificationTriggerTest {
         }
 
     @Test
+    fun `aaa N-1 - not_configured and config_error also trigger tick_failure, not just failed`() =
+        runTest {
+            db.runLogDao().insert(
+                RunLogEntity(tradingDate = null, ranAt = 0L, status = "not_configured", detail = "KEY_MISSING"),
+            )
+
+            sync().checkAndNotify()
+
+            val failureNotifs = sent.filter { it.channelId == NotificationChannels.TICK_FAILURE }
+            assertEquals(1, failureNotifs.size)
+            assertEquals("KEY_MISSING", failureNotifs.single().text)
+        }
+
+    @Test
     fun `a second failure on the same KST day stays within the 1-per-day notification budget`() =
         runTest {
             val clock = Clock.fixed(Instant.parse("2026-08-05T08:00:00Z"), ZoneId.of("UTC")) // 17:00 KST
