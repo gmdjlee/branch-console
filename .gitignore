@@ -6,6 +6,7 @@ lake_data/
 reports/
 backtest/results/
 backtest/fixtures/_cache/
+backtest/parity/
 .pytest_cache/
 .ruff_cache/
 .coverage
