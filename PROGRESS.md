@@ -90,20 +90,27 @@
   - GM1 기록 누적: 무폴백 4계열(KRW=X·DXY·MOVE·VIX3M) / credit 축 이중 차단(ECOS+CDS) /
     A-1 프리뷰 커버리지 상한(ECOS 차단 시 0.792<0.80, 키 발급 시 0.847 — **MT1-07 착수 게이트**)
 
-- W5 표면·마감 (진행 중)
-  - [ ] MT1-08 부분(08a 노티·08b 홈·자격증명·온보딩·dailyCollect 배선) — 구현(2f9915b,
-    46파일)→qa PASS→**aaa R1 FAIL(중 1·경미 4)**: M-1 detekt 상한 120→140 자기 완화(승인
-    무기록 — Advisor 결정: (a) 철회+래핑) / M-2 커버리지 수치 오기(산출물 서술 부정확 3회째
-    패턴) / M-3 toTick 중복 / M-4 수집창 "오늘" UTC·KST 혼용 / M-5 15분 폴링(3줄 override
-    대안 — 채택 지시). 정당 확인: WorkerFactory 가로채기(initializer 제거 실측)·K-17 구조·
-    K-20 배너·채널명 불일치 공시·TOP=3(AAA §2.5). 재작업 중
+- W5 표면·마감
+  - [x] MT1-08(08a 노티·08b 홈·자격증명·온보딩·dailyCollect 배선) — qa PASS → aaa
+    FAIL(M-1~M-5)→해소 COND(N-1)→해소 **PASS**(2f9915b·e87eab3·ee5a13f·d8ebbbd).
+    린트 상한 자기완화 철회+재래핑 / kover 77.14 실측 일치 / toTick 재사용 / KST 통일 /
+    15분 폴링 삭제→doWork override(크래시 공백 구조적 폐쇄 판정) / not_configured 표면화
+    (홈 "설정 필요" 배너+노티, 7종 enum 보존). WorkerFactory 가로채기·K-17·K-20 정당 확인.
+    qa가 서술 부정확 2건(허위 주장·잔재 grep) 추가 적발→정정 — 서술 정확성 재발 경계 지속
+  - [x] MT1-08c 스모크 판정기+M1_SMOKE.md+진단 JSON(08d) — qa PASS → aaa FAIL(C-1 판정기
+    오탈락·C-2 도메인)→해소 **PASS**(8901717·28b2366). S-2를 last_success_run.trading_date
+    == last_tick.trading_date로 전환(콜드 스타트 noop 통과·전일자 성공 탈락 — 판정력 강화),
+    축소 3건 정당(phase_commit 배제·WarmupReport 재노출·preview 이력 미저장), K-17 구조 실증
   - [x] MT1-01g 후속 .gitattributes — aaa PASS(a781454). mobile/krx -text 최소 규칙,
     클린 워크트리에서 verifyKrxProvenance green 재현(§4-나 해소)
-  - [ ] MT1-08c 스모크 판정기+M1_SMOKE.md — 게이트 해제(06 R3 PASS), 착수(브리프 요건 6:
-    판정식 tick_input 기준 개정·S-2 기대값(부트스트랩 +1행)·confirm_time 선행 조건·GM1 기록
-    승계·15분 주기 관측 항목·진단 JSON K-17)
   - 부기(M-43b 표): ObservationDao.maxRevision 메타 조회 1건 추가(프리뷰 revision 채번 —
     판별자 규율 비침범, aaa 확인. A §2.12 (b-0) 표 규정에 따른 기록)
+  - **사용자 결정(2026-08-07)**: MT1-04d ECOS 어댑터 = **키 발급 후 M1 내 구현**(이연 아님).
+    키 도착 시 00b 재개(item_code 실측·VERIFY 교체) → 04d 구현 → 구현 트랙 종결
+  - [ ] 미인도 3건(aaa 전수 대조 적발 — TASK 헤더 신설 12항목 중): **04h**(PIT 대조 —
+    수집기 출력 vs backtest/fixtures input.csv, BT-05 전제 증명) / **05k**(원장→사슬 e2e
+    Robolectric 1창 — BT-05 미커버 ①② 보완) / **02d**(정의 상충 → Advisor 확정: B §138
+    형상 다이제스트 교차 검증) — 인도 착수
 
 - W1 기반
   - [x] MT1-01a 스캐폴드 — qa PASS+aaa COND→해소 PASS(eb480b0·83c0e9e). 3모듈(:engine/:krx/
