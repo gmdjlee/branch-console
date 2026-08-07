@@ -93,7 +93,7 @@ AGP 9.x 계열(최신 9.3.0, 2026-07)은 **의도적으로 채택하지 않았�
 |---|---|---|---|
 | ktlint-gradle | **12.3.0** | 2025-05-22 릴리스가 내부 Kotlin 빌드를 2.1.20으로 갱신, 번들 ktlint 1.5대 — 2.1.x 계열 테스트 확인 | 낮음 |
 | detekt | **1.23.8** | [detekt.dev/docs/introduction/compatibility](https://detekt.dev/docs/introduction/compatibility/) 공식 표에는 1.23.8→Kotlin 2.0.21 행이 마지막이고, 다음 행은 2.0.0-alpha→Kotlin 2.2.20+로 **건너뛴다 — 2.1.0 전용 행이 없다** | **중간.** GitHub `detekt/detekt#7883`이 "Kotlin 2.1.0에서 `kotlin-compiler-embeddable`이 KGP와 함께 classpath에 존재해 예측 불가 동작" 이슈를 실제로 보고함. MT1-01a에서 detekt를 실제로 배선할 때 **직접 실행 확인** 필요(본 세션 스모크에는 detekt 미포함 — §5 이유) |
-| Kover | **0.9.8** | 공식 페이지에 Kotlin 버전별 호환표가 없음(문서 미기재) — 최신 stable 채택, K2/Kotlin 2.x 일반 지원은 업계 통념이나 문서 인용 불가 | 낮음(문서 근거 약함 — MT1-01a에서 `koverHtmlReport` 1회 실행으로 자체 확인 권장) |
+| Kover | **0.9.9** | Maven Central `org.jetbrains.kotlinx:kover-gradle-plugin` 실조회(2026-08-07) — **0.9.9이 실제 최신 stable**(2026-07-17 발행). 최초본의 0.9.8은 아티팩트 저장소를 조회하지 않은 누락이었다(aaa CONDITIONAL 반영, 정정). Kotlin 버전별 호환표는 공식 페이지에 여전히 미기재 — K2/Kotlin 2.x 일반 지원은 업계 통념이나 문서 인용 불가 | 낮음(문서 근거 약함 — MT1-01a에서 `koverHtmlReport` 1회 실행으로 자체 확인 권장) |
 
 ## 5. 스모크 실측 (scratchpad, mobile/ 미생성)
 
@@ -144,7 +144,7 @@ composeBom = "2025.01.01"
 activityCompose = "1.9.3"
 ktlintGradle = "12.3.0"
 detekt = "1.23.8"       # 리스크 §4 — 실제 실행으로 재확인
-kover = "0.9.8"
+kover = "0.9.9"             # §4 — Maven Central 실조회로 정정(aaa CONDITIONAL, 최초본 0.9.8 오기)
 snakeyamlEngine = "3.1"     # §9.1
 konsist = "0.17.3"          # §9.2 — 리스크: ~1년 무갱신, 내부 파서 Kotlin 2.0.20 고정
 robolectric = "4.16.1"      # §9.3 — SDK36 테스트 시 JDK21 필요(이 머신은 이미 충족)
@@ -170,6 +170,11 @@ robolectric      = { module = "org.robolectric:robolectric", version.ref = "robo
 work-testing     = { module = "androidx.work:work-testing", version.ref = "androidxWork" }
 room-testing     = { module = "androidx.room:room-testing", version.ref = "androidxRoom" }
 ```
+
+`activityCompose = "1.9.3"` 근거(aaa 관찰 반영): Compose BOM 자체는 `androidx.compose.*` 모듈만
+정렬하고 `androidx.activity:activity-compose`는 BOM 밖의 별도 좌표라 버전을 직접 못 박아야
+한다 — 1.9.3은 §3에서 채택한 Compose BOM 2025.01.01(2024-11/12 Kotlin 2.1.0 동시대 안정판)과
+같은 시기에 안정화된 릴리스로, "동시대 핀" 전략을 그대로 따른 것이다.
 
 빌드 설정 권고(§5의 실측 함정 반영): `kotlin { jvmToolchain(N) }` DSL을 쓰지 말 것. 대신
 `android { compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility
