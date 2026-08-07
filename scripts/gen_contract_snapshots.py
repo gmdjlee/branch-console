@@ -26,7 +26,13 @@ Wire format regulated by §6.3:
   3. tuple[float, float] -> JSON 2-element array (mode="json" does this for free).
   4. confloat/conint/min_length constraints are NOT part of the shape digest (see
      `_type_repr` docstring) - they are instead proven by the positive fixtures
-     (satisfy them) and the invalid/ fixtures (violate them one at a time).
+     (satisfy them) and the 8 invalid/ fixtures (violate them one at a time; see
+     `_build_invalid_cases` for the exact field/constraint each one targets - this
+     is a claim to keep in sync with that function, not a fact to take on faith:
+     an aaa-critic mutation pass (2026-08-07) killed conint(le=3->10) on
+     FiredIndicator.severity and conint(ge=0->-5) on TriggerBlock.distinct_axes
+     surviving with zero invalid/ coverage, which is exactly why
+     severity_out_of_range and distinct_axes_negative exist below).
 """
 
 from __future__ import annotations
@@ -284,8 +290,14 @@ def build_evidence_pack_full() -> EvidencePack:
 
 
 # -----------------------------------------------------------------------------
-# invalid/ - one violated constraint each, everything else valid (§6.2.1 채택 (a):
-# naive_datetime은 여기 포함하지 않는다 - 현행 스키마에서 실제로 거부되지 않는다)
+# invalid/ - 8 cases, one violated constraint each, everything else valid (§6.2.1
+# 채택 (a): naive_datetime은 여기 포함하지 않는다 - 현행 스키마에서 실제로 거부되지
+# 않는다). Constraints covered - composite_score confloat(ge=0,le=100), phase
+# Literal[...], distinct_axes conint(ge=0), subjective_prob confloat(ge=0,le=1),
+# horizon_days conint(ge=1,le=120), leading_indicators min_length=2, scenarios
+# min_length=2, FiredIndicator.severity conint(ge=0,le=3). Any conint/confloat/
+# min_length constraint added to contracts/*.py without a matching case here has
+# zero mutation coverage (aaa-critic 2026-08-07 finding) - add one when you add one.
 # -----------------------------------------------------------------------------
 
 
@@ -298,6 +310,10 @@ def _base_trigger_block() -> TriggerBlock:
         fired_indicators=[],
         evaluated_at=_dt(2026, 8, 6),
     )
+
+
+def _base_fired_indicator() -> FiredIndicator:
+    return FiredIndicator(id="vix_level_z", axis="vol", severity=2, value=10.0)
 
 
 def _base_scenario() -> Scenario:
@@ -325,12 +341,16 @@ def _build_invalid_cases() -> dict[str, tuple[type[BaseModel], dict[str, Any]]]:
     trigger = _to_wire(_base_trigger_block())
     scenario = _to_wire(_base_scenario())
     snapshot = _to_wire(build_scenario_snapshot_min())
+    fired_indicator = _to_wire(_base_fired_indicator())
 
     composite_out_of_range = dict(trigger)
     composite_out_of_range["composite_score"] = 150.0  # confloat(ge=0, le=100) 위반
 
     phase_unknown = dict(trigger)
     phase_unknown["phase"] = "YELLOW"  # Literal[...] 위반
+
+    distinct_axes_negative = dict(trigger)
+    distinct_axes_negative["distinct_axes"] = -5  # conint(ge=0) 위반
 
     subjective_prob_over_one = dict(scenario)
     subjective_prob_over_one["subjective_prob"] = 1.5  # confloat(ge=0, le=1) 위반
@@ -344,6 +364,9 @@ def _build_invalid_cases() -> dict[str, tuple[type[BaseModel], dict[str, Any]]]:
     scenarios_too_few = dict(snapshot)
     scenarios_too_few["scenarios"] = [snapshot["scenarios"][0]]  # min_length=2 위반
 
+    severity_out_of_range = dict(fired_indicator)
+    severity_out_of_range["severity"] = 4  # Severity = conint(ge=0, le=3) 위반
+
     return {
         "composite_out_of_range": (TriggerBlock, composite_out_of_range),
         "subjective_prob_over_one": (Scenario, subjective_prob_over_one),
@@ -351,6 +374,8 @@ def _build_invalid_cases() -> dict[str, tuple[type[BaseModel], dict[str, Any]]]:
         "phase_unknown": (TriggerBlock, phase_unknown),
         "scenarios_too_few": (ScenarioSnapshot, scenarios_too_few),
         "leading_indicators_one": (Scenario, leading_indicators_one),
+        "severity_out_of_range": (FiredIndicator, severity_out_of_range),
+        "distinct_axes_negative": (TriggerBlock, distinct_axes_negative),
     }
 
 
@@ -370,11 +395,13 @@ ASYMMETRIC_CASES = _build_asymmetric_cases()
 # -----------------------------------------------------------------------------
 # shape digest (§6.2 candidate B "형상 다이제스트") - field name -> (type, required)
 # only. Numeric/length constraints (confloat/conint/min_length) are deliberately
-# excluded: they already have direct executable proof via the positive fixtures
-# (satisfy them) and invalid/ fixtures (violate them one at a time), and folding
-# them into this digest too would just be re-encoding the same fact twice for no
-# extra defect coverage - the digest's only job is to catch field additions/removals
-# that neither of those catches (§6.2 rationale, §6.3 item 1).
+# excluded from the digest: the intent is that each one gets direct executable
+# proof instead via the positive fixtures (satisfy it) and a matching invalid/
+# fixture (violate it) - see the invalid/ section above for the list this is
+# actually true for today, and keep that list truthful when a constraint is
+# added. Folding constraints into this digest too would just be re-encoding the
+# same fact twice - the digest's only job is field additions/removals, which
+# neither fixture kind catches (§6.2 rationale, §6.3 item 1).
 # -----------------------------------------------------------------------------
 
 

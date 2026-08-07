@@ -10,7 +10,8 @@ Covers (§6, brief 완료 기준):
 ① 스키마 스냅샷 동결 일치 — generator --check against the checked-in files (§6.5).
 ② 양성 픽스처 왕복 — parse -> model -> re-dump is byte-identical, "schema" alias
    (not "schema_id") fixed per M-16/D-B6.
-③ invalid/ 6종 전건이 대응 모델에서 실제로 거부됨.
+③ invalid/ 8종 전건이 대응 모델에서 실제로 거부됨(2026-08-07 aaa-critic conditional:
+   mutation-kill 검증 결과 severity/distinct_axes 2건이 증인 없이 생존해 추가).
 ④ asymmetric/naive_datetime — Python(pydantic) currently ACCEPTS it (§6.2.1 채택
    (a): 부정 케이스가 아니라 "알려진 비대칭"의 고정). Kotlin's `Instant.parse` is
    expected to reject the same input (MT1-02b/c scope) — not exercised here.
@@ -72,7 +73,7 @@ def test_positive_fixture_uses_schema_alias_key(
 
 @pytest.mark.parametrize("name", sorted(gen.INVALID_CASES))
 def test_invalid_case_rejected_by_its_model(name: str) -> None:
-    """③ invalid/ 6종 전건이 현행 contracts에서 실제로 거부됨(가정이 아니라 실행)."""
+    """③ invalid/ 8종 전건이 현행 contracts에서 실제로 거부됨(가정이 아니라 실행)."""
     model, expected_payload = gen.INVALID_CASES[name]
     on_disk = json.loads((gen.INVALID_DIR / f"{name}.json").read_text(encoding="utf-8"))
     assert on_disk == expected_payload, (
@@ -82,8 +83,10 @@ def test_invalid_case_rejected_by_its_model(name: str) -> None:
         model.model_validate(on_disk)
 
 
-def test_invalid_cases_cover_all_six_documented_violations() -> None:
-    """§6.2 목록의 6종이 전부 존재 - 세지 않고 부분집합만 두는 축소를 차단."""
+def test_invalid_cases_cover_all_documented_violations() -> None:
+    """§6.2 원 목록 6종 + aaa-critic conditional 2026-08-07 추가 2종(severity/
+    distinct_axes 하한·상한 뮤턴트가 증인 없이 생존한 결함)이 전부 존재 - 세지 않고
+    부분집합만 두는 축소를 차단."""
     assert set(gen.INVALID_CASES) == {
         "composite_out_of_range",
         "subjective_prob_over_one",
@@ -91,6 +94,8 @@ def test_invalid_cases_cover_all_six_documented_violations() -> None:
         "phase_unknown",
         "scenarios_too_few",
         "leading_indicators_one",
+        "severity_out_of_range",
+        "distinct_axes_negative",
     }
 
 
