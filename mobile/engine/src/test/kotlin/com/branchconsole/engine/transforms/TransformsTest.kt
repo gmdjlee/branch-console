@@ -144,6 +144,47 @@ class TransformsTest {
         assertArrayCloseWithNaN(doubleArrayOf(Double.NaN, 10.0, 10.0), Transforms.pctChange1d(x))
     }
 
+    // ---- aaa D-1 (Kotlin 측) 증인: NaN 간극은 pad(forward-fill)되지 않고 전파된다.
+    // engine_ref는 커밋 9563a85에서 pandas deprecated `fill_method='pad'` 의존을
+    // `fill_method=None`으로 고정했다(발산 원인 해소, 골든·9창 불변 — 픽스처 내부 NaN 0건).
+    // Kotlin은 애초에 위치 기반 뺄셈이라 pad 의미론을 가진 적이 없다(NaN 전파가 유일한 경로) —
+    // 아래는 그 사실을 회귀로 고정하는 증인이다. 기대값 산출:
+    // ```
+    // uv run python -c "
+    // import pandas as pd
+    // from engine_ref import transforms as T
+    // print(T.pct_change_1d(pd.Series([100.0, float('nan'), 100.0, 110.0])).tolist())
+    // print(T.pct_change_5d(pd.Series([100.0,105,float('nan'),108,90,95,111,90])).tolist())
+    // "
+    // # pct1d -> [nan, nan, nan, 10.000000000000009]
+    // # pct5d -> [nan, nan, nan, nan, nan, -5.000000000000004, 5.714285714285716, nan]
+    // ```
+    // 대조: pad(ffill) 의미론이었다면 pct5d의 마지막 원소는 NaN이 아니라 -14.28571428571429
+    // (index2의 NaN을 직전값 105로 이월한 뒤 계산한 값)이 나온다 — pad로 되돌리면 이 테스트가 실패한다.
+    @Test
+    fun `pctChange1d propagates a NaN gap instead of pad-filling it (aaa D-1)`() {
+        val x = doubleArrayOf(100.0, Double.NaN, 100.0, 110.0)
+        val expected = doubleArrayOf(Double.NaN, Double.NaN, Double.NaN, 10.000000000000009)
+        assertArrayCloseWithNaN(expected, Transforms.pctChange1d(x))
+    }
+
+    @Test
+    fun `pctChange5d propagates a NaN gap instead of pad-filling it (aaa D-1)`() {
+        val x = doubleArrayOf(100.0, 105.0, Double.NaN, 108.0, 90.0, 95.0, 111.0, 90.0)
+        val expected =
+            doubleArrayOf(
+                Double.NaN,
+                Double.NaN,
+                Double.NaN,
+                Double.NaN,
+                Double.NaN,
+                -5.000000000000004,
+                5.714285714285716,
+                Double.NaN,
+            )
+        assertArrayCloseWithNaN(expected, Transforms.pctChange5d(x))
+    }
+
     @Test
     fun `deltaBp converts pct-points to bp over lookback`() {
         val x = doubleArrayOf(1.0, 1.2, 1.5)
