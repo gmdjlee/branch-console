@@ -314,6 +314,62 @@ class ConfirmTickRunnerTest {
             assertTrue(rows.single().gapReason == null)
         }
 
+    // aaa F-4R (F-4의 2차 재발, 비평가 재현 시나리오 그대로) — 부트스트랩은 gap 행을 만들지
+    // 않으므로(F-4) `forOngoing`의 하한이 gap 경계에만 의존하면 두 번째 실행에서 하한이
+    // 사라진다: 부트스트랩 이전 24일 백로그가 재실행마다 되살아나 20틱 소급 커밋 +
+    // 허위 CATCHUP_GAP_TRUNCATED 행을 만든다. 같은 날 재실행 → 그리고 익일 실행 → 둘 다
+    // tick_input 행 수·gapReason 유무를 단언해 이 회귀가 다시는 조용히 통과하지 못하게 한다.
+    @Test
+    fun `bootstrap then rerunning on the same day never resurrects the pre-bootstrap backlog`() =
+        runTest {
+            val start = LocalDate.of(2026, 1, 1)
+            val days = (0..24).map { start.plusDays(it.toLong()) } // 25 trading days, all pre-seeded
+            days.forEach { seedKospiClose(it, 100.0) }
+            val bootstrapDay = days.last() // 2026-01-25
+
+            val outcome1 = runner(clockAt(bootstrapDay, LocalTime.of(20, 0))).run()
+            val outcome2 = runner(clockAt(bootstrapDay, LocalTime.of(21, 0))).run() // same day, rerun
+
+            assertTrue(outcome1 is ConfirmTickOutcome.Committed)
+            assertEquals(listOf(bootstrapDay), (outcome1 as ConfirmTickOutcome.Committed).committedDates)
+            assertEquals(
+                "a same-day rerun must be a plain no-op, not a rediscovered backlog",
+                ConfirmTickOutcome.NoOp,
+                outcome2,
+            )
+            val rows = db.tickInputDao().allOrderedByDate()
+            assertEquals("only the single bootstrap tick may exist", 1, rows.size)
+            assertEquals("no gap row — nothing was ever actually missed", 0, rows.count { it.gapReason != null })
+            assertEquals(listOf(bootstrapDay.toString()), rows.map { it.tradingDate })
+        }
+
+    @Test
+    fun `bootstrap then the next day's periodic run never resurrects the pre-bootstrap backlog`() =
+        runTest {
+            val start = LocalDate.of(2026, 1, 1)
+            val days = (0..24).map { start.plusDays(it.toLong()) } // 25 trading days, all pre-seeded
+            days.forEach { seedKospiClose(it, 100.0) }
+            val bootstrapDay = days.last() // 2026-01-25
+            val nextDay = bootstrapDay.plusDays(1) // 2026-01-26
+
+            val outcome1 = runner(clockAt(bootstrapDay, LocalTime.of(20, 0))).run()
+            seedKospiClose(nextDay, 100.0)
+            val outcome2 = runner(clockAt(nextDay, LocalTime.of(18, 0))).run() // next day's own periodic run
+
+            assertTrue(outcome1 is ConfirmTickOutcome.Committed)
+            assertTrue(outcome2 is ConfirmTickOutcome.Committed)
+            val committed2 = outcome2 as ConfirmTickOutcome.Committed
+            assertEquals(listOf(nextDay), committed2.committedDates)
+            assertTrue(
+                "must not resurrect the pre-bootstrap backlog as a cap-exceeded gap",
+                committed2.gapSkipped.isEmpty(),
+            )
+            val rows = db.tickInputDao().allOrderedByDate()
+            assertEquals("only bootstrapDay + nextDay — not 21 rows", 2, rows.size)
+            assertEquals("no gap row — nothing was ever actually missed", 0, rows.count { it.gapReason != null })
+            assertEquals(setOf(bootstrapDay.toString(), nextDay.toString()), rows.map { it.tradingDate }.toSet())
+        }
+
     // ---------------------------------------------------------------- ⑥ 휴장일(공백일) 무커밋
 
     @Test
