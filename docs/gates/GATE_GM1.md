@@ -35,7 +35,7 @@ TASK_mobile_m1의 완료 기준 6항 중 **4항 충족 · 2항 미충족(외부 
 | MT1-07 프리뷰(D-17·D-23) | 4d19638 — TASK ①~④ 전건(67.7% 억제 assets 산출·66.7 vs 45.2·Konsist 3중 격리·tick_input 불변), 이월 깊이 1·자기참조 부재, M-39 실경과 | PASS |
 | MT1-08 노티·홈·온보딩+스모크 도구 | 2f9915b~d8ebbbd — 3채널·홈 7상태·K-17 자격증명·dailyCollect 배선(WorkerFactory)·not_configured 표면화 / 08c·08d(8901717·28b2366) — M1_SMOKE.md·판정기(S-2 오탈락 해소·양방향 증인)·진단 JSON | PASS |
 
-## 3. 공통 회귀 (최종 실측 — 2026-08-07 HEAD 35eba00)
+## 3. 공통 회귀 (최종 실측 — 2026-08-08 HEAD 59faf9a, 04d 코드 포함. confirm_time 기입 후 최종 HEAD에서 재실행 예정)
 
 ```
 uv run ruff check .                          → All checks passed!
@@ -43,6 +43,7 @@ uv run pytest -q                             → 274 passed          (①)
 uv run pytest backtest/test_golden.py -q     → 6 passed            (② D-08 2케이스 × 2프로파일 무회귀)
 uv run pytest backtest/test_bt05_parity.py -q → 14 passed          (BT-05 판정 — 9창+합성)
 cd mobile && ./gradlew check --rerun-tasks   → BUILD SUCCESSFUL (207/207 — ktlint·detekt·Kover·생존증인·해시·provenance)
+:app:assembleDebug                           → BUILD SUCCESSFUL (스모크용 APK 패키징 검증 — 기입 후 재빌드 대상)
 ```
 
 계측(connected) 테스트는 컴파일 게이트까지 — 실행은 실기기 스모크(§6)에서.
