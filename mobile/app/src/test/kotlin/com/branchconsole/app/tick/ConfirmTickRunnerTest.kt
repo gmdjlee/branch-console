@@ -1,5 +1,6 @@
 package com.branchconsole.app.tick
 
+import android.database.sqlite.SQLiteConstraintException
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.branchconsole.app.collectors.WarmupStatus
@@ -9,6 +10,7 @@ import com.branchconsole.lake.LakeDatabase
 import com.branchconsole.lake.ObservationDao
 import com.branchconsole.lake.ObservationEntity
 import com.branchconsole.lake.SeriesPoint
+import com.branchconsole.lake.TickInputDao
 import com.branchconsole.lake.TickInputEntity
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -447,6 +449,45 @@ class ConfirmTickRunnerTest {
             assertEquals(listOf("started", "failed"), runLog.map { it.status })
             assertTrue(runLog.last().detail!!.contains("simulated store failure"))
             assertTrue(db.tickInputDao().allOrderedByDate().size == 1) // only the pre-seeded marker
+        }
+
+    private class ConstraintViolatingTickInputDao(private val delegate: TickInputDao) : TickInputDao by delegate {
+        override suspend fun insert(tick: TickInputEntity): Long =
+            throw SQLiteConstraintException("NOT NULL constraint failed: tick_input.severities_json")
+    }
+
+    // qa 반려(마이너) — insertIfAbsent는 trading_date PK 충돌"만" 흡수해야 한다는 좁힘(F-2)의
+    // 반증 방향 witness: 메시지가 "trading_date"를 언급하지 않는 SQLiteConstraintException은
+    // 멱등 no-op으로 삼켜지지 않고 그대로 전파돼야 한다(진짜 스키마 버그를 조용히 숨기지 않는다).
+    @Test
+    fun `a non-PK constraint violation propagates instead of being absorbed as idempotent no-op`() =
+        runTest {
+            val marker = LocalDate.of(2026, 8, 3)
+            val today = LocalDate.of(2026, 8, 4)
+            seedBootstrapMarker(marker)
+            seedKospiClose(marker, 100.0)
+            seedKospiClose(today, 95.0)
+            val violatingRunner =
+                ConfirmTickRunner(
+                    observationDao = db.observationDao(),
+                    tickInputDao = ConstraintViolatingTickInputDao(db.tickInputDao()),
+                    runLogDao = db.runLogDao(),
+                    gridProvider = TradingDayGridProvider(db.observationDao()),
+                    config = config,
+                    clock = clockAt(today, LocalTime.of(18, 0)),
+                )
+
+            val error = runCatching { violatingRunner.run() }.exceptionOrNull()
+
+            assertTrue(
+                "expected the non-PK constraint violation to propagate, got: $error",
+                error is SQLiteConstraintException,
+            )
+            val runLog = db.runLogDao().allOrderedByRanAt()
+            assertEquals(listOf("started", "failed"), runLog.map { it.status })
+            assertTrue(runLog.last().detail!!.contains("severities_json"))
+            // today's tick must NOT have been silently dropped as if it were a duplicate.
+            assertTrue(db.tickInputDao().allOrderedByDate().none { it.tradingDate == today.toString() })
         }
 
     // ---------------------------------------------------------------- ⑦ confirm_time 미기입 시 명시 실패
