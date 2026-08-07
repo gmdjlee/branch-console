@@ -21,4 +21,21 @@ class EngineArchitectureTest {
                 }
             }
     }
+
+    /**
+     * K-05 (CLAUDE.md §3): "kotlinx-datetime는 계약 미러 전용" — MT1-05의 pit/statemachine/
+     * transforms/config 경로는 `java.time`만 쓴다. `contracts` 패키지(Snapshot/Evidence wire
+     * mirror)만 예외다(브리프 지시 그대로).
+     */
+    @Test
+    fun `only the contracts package may import kotlinx-datetime`() {
+        val offenders =
+            Konsist.scopeFromModule("engine")
+                .files
+                .filter { !it.path.replace('\\', '/').contains("/contracts/") }
+                .filter { file -> file.imports.any { it.name.startsWith("kotlinx.datetime") } }
+        check(offenders.isEmpty()) {
+            "kotlinx.datetime import found outside :engine.contracts: ${offenders.map { it.path }}"
+        }
+    }
 }
