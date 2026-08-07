@@ -13,7 +13,7 @@ import org.robolectric.annotation.Config
  * Kover 70% 하한(docs/plans/M1_PLAN_A.md §2.9)을 자체 로직 제외 없이(R-B15) 만족시킨다.
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35])
+@Config(sdk = [36])
 class MainActivityTest {
     @Test
     fun `activity launches and composes without crashing`() {
