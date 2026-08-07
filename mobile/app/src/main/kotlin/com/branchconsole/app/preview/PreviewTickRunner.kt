@@ -22,11 +22,16 @@ private fun cadenceOf(spec: IndicatorSpec): String = spec.source["cadence"] as? 
  * 상태기계 상태를 변경하지 않음")이 코드에 그 경로가 아예 없다는 사실로 성립한다(실행 후 검사가
  * 아니라 구조적 보장). LLM 호출도 없다(브리프 §2-6).
  *
- * ECOS(MT1-00b)가 아직 BLOCKED라 `krx_credit_spread_delta`는 현재
- * [com.branchconsole.app.tick.ConfirmSeriesIds.ALWAYS_MISSING_INDICATORS]에 속해 상시
- * 결측이다 — 이 상태에서 실기기 프리뷰는 raw coverage가 임계 미달로 **상시 억제**된다(GM1
- * 기록 누적 "A-1 프리뷰 커버리지 상한", PROGRESS.md 참조). 이는 결함이 아니라 ECOS 차단의
- * 정직한 반영이다(브리프 aaa 확정 요건 1-b — 정상 동작으로 사전 선언).
+ * ECOS는 MT1-04d로 실제 수집되지만(K-04 종결, `EcosCollector`) `krx_credit_spread_delta`
+ * **지표**는 여전히 [com.branchconsole.app.tick.ConfirmSeriesIds.ALWAYS_MISSING_INDICATORS]에
+ * 속해 상시 결측이다(Python `backtest/run_replay.py`에 이 지표의 builder 자체가 없다 —
+ * `EcosCollector.kt`/`EcosCoverageTest` KDoc 참조, BT-05 golden 부재로 모바일이 먼저 구현할 수
+ * 없다). **다만 이 구조적 결측 2종(`krx_credit_spread_delta`+`kr_cds_5y_delta`)만으로는 raw
+ * coverage가 억제 임계를 넘지 않는다** — 실측 상한은 27.5/31.0=0.8871 > `preview_coverage_min`
+ * 0.80(`EcosCoverageTest`가 SSOT 가중치로 동결, aaa M-1 정정 — 최초 판이 인용한 "0.792/0.847"은
+ * SSOT에서 도출 불가능한 오류 수치였다). 프리뷰 억제는 이 구조적 결측이 아니라 **실제 런타임
+ * 결측**(예: 00a 저널의 `^MOVE`·`^VIX3M` 갱신 정지로 `move_index_z`+`vix_term_structure`까지
+ * 추가로 결측되면 23.5/31.0=0.7581<0.80)에서만 발생한다.
  *
  * `ponytail`: 병렬 수집(collectors 트리거) 오케스트레이션은 이 클래스 밖이다 — collectors는
  * 이미 각자의 `collect()` 진입점을 갖고 있고(MT1-04 완비), 그것을 호출한 뒤 이 러너를 도는
