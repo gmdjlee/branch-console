@@ -1,5 +1,8 @@
 package com.branchconsole.app.collectors.krx
 
+import com.branchconsole.app.collectors.CollectFailureReason
+import com.branchconsole.app.collectors.CollectOutcome
+import com.branchconsole.app.collectors.SeriesFailure
 import com.krxkt.api.KrxClient
 import kotlinx.coroutines.test.runTest
 import okhttp3.mockwebserver.MockResponse
@@ -165,7 +168,7 @@ class KrxCollectorTest {
 
             check(outcome is CollectOutcome.Partial) { "expected Partial, got $outcome" }
             assertEquals(
-                listOf(SeriesFailure("2001", FailureReason.EmptyOnTradingDay("20260804"))),
+                listOf(SeriesFailure("2001", CollectFailureReason.EmptyOnTradingDay("20260804"))),
                 outcome.failures,
             )
             // KOSDAQ's one present day still contributed its 6 OHLCV fields.
@@ -193,7 +196,7 @@ class KrxCollectorTest {
             val outcome = collector.collect(LocalDate.parse("2026-08-05")..LocalDate.parse("2026-08-05"))
 
             check(outcome is CollectOutcome.Failed) { "expected Failed, got $outcome" }
-            assertTrue(outcome.reason is FailureReason.AuthenticationRequired)
+            assertTrue(outcome.reason is CollectFailureReason.AuthenticationRequired)
         }
 
     // ====================================================
@@ -212,7 +215,7 @@ class KrxCollectorTest {
 
             val outcome = collector.collect(LocalDate.parse("2026-08-05")..LocalDate.parse("2026-08-05"))
 
-            assertEquals(CollectOutcome.Failed(FailureReason.NotConfigured), outcome)
+            assertEquals(CollectOutcome.Failed(CollectFailureReason.NotConfigured), outcome)
             assertEquals(0, mockServer.requestCount)
         }
 
@@ -243,7 +246,7 @@ class KrxCollectorTest {
 
             val outcome = collector.collect(LocalDate.parse("2026-08-05")..LocalDate.parse("2026-08-05"))
 
-            assertEquals(CollectOutcome.Failed(FailureReason.AuthenticationRequired()), outcome)
+            assertEquals(CollectOutcome.Failed(CollectFailureReason.AuthenticationRequired()), outcome)
         }
 
     // ====================================================
@@ -274,6 +277,26 @@ class KrxCollectorTest {
             // (Login itself is not throttled — it runs once via the public login() handshake.)
             assertEquals(listOf(1000L, 1000L, 1000L), sleeps)
         }
+
+    // ====================================================
+    // MT1-04g — promoted common Collector conformance (id + expectedSeriesIds)
+    // ====================================================
+
+    @Test
+    fun `collector exposes the pykrx provider id and its four known series`() {
+        val collector =
+            KrxCollector(
+                credentialsProvider = { CREDENTIALS },
+                rateLimiter = noSleepLimiter(),
+                client = KrxClient(baseUrl = mockServer.url("/").toString()),
+            )
+
+        assertEquals("pykrx", collector.id)
+        assertEquals(
+            listOf("1001", "2001", "kospi_investor_trading", "vkospi"),
+            collector.expectedSeriesIds,
+        )
+    }
 }
 
 private const val EMPTY_OUTBLOCK = """{"OutBlock_1": []}"""

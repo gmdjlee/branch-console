@@ -1,6 +1,11 @@
 package com.branchconsole.app.collectors.krx
 
 import android.content.Context
+import com.branchconsole.app.collectors.CollectFailureReason
+import com.branchconsole.app.collectors.CollectOutcome
+import com.branchconsole.app.collectors.Collector
+import com.branchconsole.app.collectors.Observation
+import com.branchconsole.app.collectors.SeriesFailure
 import com.krxkt.KrxIndex
 import com.krxkt.KrxStock
 import com.krxkt.api.KrxClient
@@ -52,8 +57,13 @@ class KrxCollector(
     private val index: KrxIndex = KrxIndex(client),
     private val stock: KrxStock = KrxStock(client),
     private val nowProvider: () -> Instant = Instant::now,
-) {
-    suspend fun collect(range: ClosedRange<LocalDate>): CollectOutcome {
+) : Collector {
+    override val id: String = "pykrx"
+
+    override val expectedSeriesIds: List<String> =
+        listOf(KrxIndex.TICKER_KOSPI, KrxIndex.TICKER_KOSDAQ, SERIES_KOSPI_INVESTOR, SERIES_VKOSPI)
+
+    override suspend fun collect(range: ClosedRange<LocalDate>): CollectOutcome {
         ensureLoggedIn()?.let { return it }
 
         val startStr = range.start.format(KRX_DATE_FMT)
@@ -62,7 +72,7 @@ class KrxCollector(
         return try {
             collectAuthenticated(startStr, endStr)
         } catch (e: KrxError.AuthenticationError) {
-            CollectOutcome.Failed(FailureReason.AuthenticationRequired(e))
+            CollectOutcome.Failed(CollectFailureReason.AuthenticationRequired(e))
         }
     }
 
@@ -73,11 +83,11 @@ class KrxCollector(
         if (client.isLoggedIn()) return null
         val creds =
             runCatching { credentialsProvider.get() }
-                .getOrElse { return CollectOutcome.Failed(FailureReason.NotConfigured) }
+                .getOrElse { return CollectOutcome.Failed(CollectFailureReason.NotConfigured) }
         val loggedIn =
             runCatching { client.login(creds.id, creds.password) }
                 .getOrElse { return CollectOutcome.Failed(toFailureReason(it)) }
-        return if (loggedIn) null else CollectOutcome.Failed(FailureReason.AuthenticationRequired())
+        return if (loggedIn) null else CollectOutcome.Failed(CollectFailureReason.AuthenticationRequired())
     }
 
     // ReturnCount: the empty-calendar short-circuit is a guard clause, not a design smell.
@@ -208,7 +218,7 @@ class KrxCollector(
         seenDates: Set<String>,
     ): List<SeriesFailure> =
         tradingDays.filter { it !in seenDates }
-            .map { SeriesFailure(seriesId, FailureReason.EmptyOnTradingDay(it)) }
+            .map { SeriesFailure(seriesId, CollectFailureReason.EmptyOnTradingDay(it)) }
 
     private fun ohlcvObservations(
         seriesId: String,
@@ -226,8 +236,12 @@ class KrxCollector(
         )
     }
 
-    private fun toFailureReason(e: Throwable): FailureReason =
-        if (e is KrxError.AuthenticationError) FailureReason.AuthenticationRequired(e) else FailureReason.Network(e)
+    private fun toFailureReason(e: Throwable): CollectFailureReason =
+        if (e is KrxError.AuthenticationError) {
+            CollectFailureReason.AuthenticationRequired(e)
+        } else {
+            CollectFailureReason.Network(e)
+        }
 
     companion object {
         private fun tradingDateInstant(date: String): Instant {
