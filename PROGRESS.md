@@ -118,6 +118,18 @@
   - [x] MT1-04ab 야후·FRED 어댑터 — qa+aaa COND→해소 PASS(47fd335·c326428): 00a 계약 오류
     6분류·null 봉 보존·Stooq 비활성 스텁·fred.series 반영(A-2 해소·FINAL §4 물질화).
     RetryPolicy는 assets 로더(fail-fast)·Retrofit 선언 제거
+
+- W3 엔진·패리티 준비 (qa PASS → aaa: 04g·05e PASS / **05 FAIL D-1** — 해소 실측 중)
+  - [x] MT1-04g 웜업 백필 — qa+aaa PASS(564d631). Collector 공통 승격·550 SSOT 로드·구조적
+    부재(3년 롤링) 구분·체크포인트 없는 멱등
+  - [x] MT1-05e 패리티 export — qa+aaa PASS(d21fc6a). 9창×4파일(run_replay 재사용)·결정론·
+    CRLF/SHA 바이트 무결성 버그 자체 발견·결합 커버리지 99% 복원
+  - [ ] MT1-05 엔진 포팅 — 구현 완료(666b0d9: 118테스트·95.1%). **aaa FAIL D-1**: pct_change
+    1d/5d가 결측 입력에서 engine_ref와 발산(pandas deprecated fill_method='pad'가 NaN을
+    forward-fill — Kotlin은 NaN 전파). 영향 지표 3종·가중 6.5/40. 그 외 전 계층 차분 대조
+    무불일치(상태기계 134,703틱·scoring/modifiers 4,000케이스·변환 12종 400건).
+    해소안 (a)=engine_ref를 fill_method=None 고정(의미론 정답·Kotlin 정합) — 골든 영향
+    실측 중(backtest-analyst). 골든 불변이면 채택, 변하면 사용자 상신
 - [ ] MT1-01 스캐폴드+syncConfigs / [ ] MT1-02 계약 미러+스냅샷 / [ ] MT1-03 Room append-only
 - [ ] MT1-04 collectors a야후 b FRED c KRX d ECOS e KIS(옵션) f CDS 판정(G-4)
 - [ ] MT1-05 엔진·상태기계 + 패리티(BT-05) / [ ] MT1-06 일일 확정 틱+캐치업
