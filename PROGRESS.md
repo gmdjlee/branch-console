@@ -120,13 +120,14 @@
     RetryPolicy는 assets 로더(fail-fast)·Retrofit 선언 제거
 
 - W4 실행 경로 (진행 중)
-  - [ ] MT1-06 확정 틱+캐치업 — 구현(b1c8690·d1bfc47·446162f)→aaa R1 FAIL(F-1~F-6: Worker
-    도달 불가·조용한 실패·부트스트랩 소급·그리드 무기록 결손·서술 오류)→재작업(f48d838)→
-    qa FAIL(**허위 완료 주장 적발** — TradingDayGridProvider 미수정인데 수정 주장)→정정
-    (886fb17)→qa 델타 PASS→**aaa R2 FAIL(F-4R)**: F-5 차집합 수정이 F-4 부활 — 부트스트랩
-    단일 커밋 후 재실행이 하한 소멸로 20틱 소급+허위 gap 행(불가역). **F-4 2연속 — 3회째
-    구조 재분류 예고**. 표적 재작업 중(ConfirmTickCandidates 한정, 회귀 증인 2건 의무).
-    F-1·F-2·F-3(08 이관)·F-5·F-6은 해소 확정
+  - [x] MT1-06 확정 틱+캐치업 — qa PASS → **aaa 3라운드 PASS**(b1c8690·d1bfc47·446162f →
+    f48d838·886fb17 → 8124ee8). F-1 앵커·Application 배선(work-testing 실구동) / F-2
+    started·failed 감사+비-PK 제약 전파 증인 / **F-4·F-4R 부트스트랩 하한(2연속 FAIL 후
+    max(bootstrapFloor, closedBoundary)로 해소 — 비평가 재현 5변형 실증, V4: 두 하한 의미론
+    동시 성립)** / F-5 CALENDAR_FALLBACK 기록+늦은 앵커 재편입 / F-6 서술 정정(중간에 qa가
+    허위 완료 주장 1건 적발 → 은폐 없이 명시 정정) / F-3은 MT1-08c·08d 이관. :app 110·
+    258·골든 6·패리티 green. **W4 마감**. 비평가 부수 발견: 깨끗한 체크아웃에서
+    verifyKrxProvenance CRLF 전건 실패(.gitattributes 미적용 — GM1 재현성, 별도 수정 위임)
   - [x] MT1-07 프리뷰(D-17·D-23) — qa+aaa **PASS**(4d19638). TASK ①~④ 전건 실증(tick_input
     불변·Konsist 3중 격리·67.7% 억제 assets 산출·66.7 vs 45.2 재현+부정 증인), 이월 원천
     lastCommittedSeverities 깊이 1·자기참조 부재, M-39 실경과(이원 시각 PreviewInstants —
