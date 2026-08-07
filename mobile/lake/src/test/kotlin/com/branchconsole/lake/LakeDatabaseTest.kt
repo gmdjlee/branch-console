@@ -79,6 +79,20 @@ class LakeDatabaseTest {
             db.openHelper.writableDatabase.execSQL("UPDATE run_log SET status = 'retried'")
         }
 
+    // MT1-06f — run_log 조회(K-15 실행 이력 노출). ran_at 오름차순 증인.
+    @Test
+    fun `allOrderedByRanAt returns run_log rows ordered by ran_at ascending`() =
+        runTest {
+            val dao = db.runLogDao()
+            dao.insert(RunLogEntity(tradingDate = "2026-08-06", ranAt = 20L, status = "success", detail = null))
+            dao.insert(RunLogEntity(tradingDate = "2026-08-05", ranAt = 10L, status = "noop", detail = "no candidates"))
+
+            val rows = dao.allOrderedByRanAt()
+
+            assertEquals(listOf(10L, 20L), rows.map { it.ranAt })
+            assertEquals(listOf("noop", "success"), rows.map { it.status })
+        }
+
     // ① append-only — 런타임 트리거 증인(컴파일 시점 증인은 LakeArchitectureTest).
     @Test
     fun `raw UPDATE and DELETE on observation are blocked by trigger`() =
