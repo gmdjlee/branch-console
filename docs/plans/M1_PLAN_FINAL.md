@@ -93,7 +93,9 @@
 
 **착수 선행 2건(★)**: ① `engine.preview_coverage_min: 0.80`(MT1-07 블록) ② `engine.warmup_padding_days: 550`(MT1-03c·04g 블록) — 둘 다 `configs/indicators.yaml` `engine:` 블록, engine_ref 미소비라 골든·서버 영향 0(스키마 가드 테스트 동반).
 
-기타: `profiles.mobile_daily.catchup_max_ticks: 20` / `profiles.mobile_daily.confirm_time_kst`(00g 실측 후) / `krx_credit_spread_delta.source.item_codes` VERIFY→실측값(00b 후) / `contracts/snapshots/` 신설 / `.gitattributes` / `golden_mobile.yaml` registry_version 스탬프 정정 / 문서 16:20→확정값 정정 / **K-19**(kotlin_krx 빈 응답⊕파싱 실패 동일 반환)·**K-20**(알림 권한 거부 시 3채널 무력) CLAUDE.md §3 편입 / **D-27**(휴장일 무커밋) / **D-25 부기**(간극 카운터 무조작 — 오차 상한: 강등 ≤2틱 조기·승격 0틱, 비평가 코드 추적 검증)
+기타: `profiles.mobile_daily.catchup_max_ticks: 20` / `profiles.mobile_daily.confirm_time_kst`(00g 실측 후) / `krx_credit_spread_delta.source.item_codes` VERIFY→실측값(00b 후) / `contracts/snapshots/` 신설 / `.gitattributes` / `golden_mobile.yaml` registry_version 스탬프 정정 / 문서 16:20→확정값 정정 / **K-19**(kotlin_krx 빈 응답⊕파싱 실패 동일 반환)·**K-20**(알림 권한 거부 시 3채널 무력) CLAUDE.md §3 편입 / **D-27**(휴장일 무커밋) / **D-25 부기**(간극 카운터 무조작 — 오차 상한: 강등 ≤2틱 조기·승격 0틱, 비평가 코드 추적 검증) /
+**`providers.fred.series`에 VIXCLS·SP500 추가**(2026-08-07 추가 승인 — A-2 해소: W0 실측으로
+Stooq 폴백 무효 확정에 따른 야후 폴백 미러, 00a §9 근거. MT1-04b에서 반영 완료)
 
 ## 5. 리스크 요지
 

@@ -67,7 +67,8 @@
 - W0 실측 선행 (판정: qa R1 PASS→aaa R1 FAIL(D-1~5·A-1~6)→수정→qa R2 PASS→**aaa R2 PASS** — REVIEW_M1)
   - [x] SSOT 선행 2키(preview_coverage_min 0.80·warmup_padding_days 550) — ea14a87, 가드 테스트 포함
   - [x] MT1-00a 야후·Stooq·FRED — 완료. 야후 chart v8 UA만으로 OK / **Stooq 전면 PoW 차단(K-18
-    폴백 무효, A-2 미결)** / FRED 폴백: VIX·SPX 가능, KRW·DXY 불가 / HY OAS **3년 롤링 정책**·
+    폴백 무효 — A-2는 W2에서 해소: Stooq 비활성 스텁+fred.series VIXCLS·SP500 추가, FINAL §4
+    물질화)** / FRED 폴백: VIX·SPX 가능, KRW·DXY 불가 / HY OAS **3년 롤링 정책**·
     공휴일 결측 표기 이원성 / MT1-04a·04b 계약 인도
   - [~] MT1-00b ECOS item_code — **차단(BLOCKED, 워커 귀책 아님)**: ECOS_API_KEY 미발급, VERIFY
     2건 유지. 재개 조건 저널 §4. MT1-04d 블록 유지. FRED 절반은 00a §12로 이관·완료
@@ -107,6 +108,16 @@
     자기 수정 파일 측정 편입 → 실공백 노출 → URL 파라미터화로 82.8% 충족)·명시 배선·측정 생존
     증인 3모듈 공통(subprojects 승격 — :krx 침묵 통과 재현이 실패로 잡힘). :lake rule은 Kover
     API 한계 실증 후 MT1-03 이연 — **W1 마감**
+
+- W2 원장·수집 (판정: qa PASS → aaa CONDITIONAL 경미 2 — 04ab 소관, 해소 중)
+  - [x] MT1-03 원장 — qa+aaa PASS(4573e0c). :lake 모듈(lane·레인별 revision·M-49 감사 합집합·
+    severities_json NOT NULL·composite IS NOT NULL 이월 깊이 1). append-only 이중 방어(Konsist+
+    트리거), 증인 6종 뮤테이션 전건 사망, 커버리지 100%, 생존 증인 자동 적용 확인
+  - [ ] MT1-04c KRX 어댑터 — 구현 완료(eeee805): K-03 간격 SSOT 로드·K-19 EmptyOnTradingDay·
+    달력 재사용(등가성 소스 확인)·D-1 계약 승계 테스트. aaa 승인 대기(04ab 해소 후 일괄)
+  - [ ] MT1-04ab 야후·FRED 어댑터 — 구현 완료(47fd335): 00a 계약 오류 6분류·null 봉 보존·Stooq
+    비활성 스텁·fred.series 반영(A-2 해소). **aaa COND 해소 중**: RetryPolicy 리터럴→assets
+    로더(D-1)·Retrofit 미사용 선언 제거(D-2)
 - [ ] MT1-01 스캐폴드+syncConfigs / [ ] MT1-02 계약 미러+스냅샷 / [ ] MT1-03 Room append-only
 - [ ] MT1-04 collectors a야후 b FRED c KRX d ECOS e KIS(옵션) f CDS 판정(G-4)
 - [ ] MT1-05 엔진·상태기계 + 패리티(BT-05) / [ ] MT1-06 일일 확정 틱+캐치업
