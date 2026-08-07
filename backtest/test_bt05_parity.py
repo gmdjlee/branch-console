@@ -24,13 +24,14 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 import pytest
 import yaml
 
+from backtest.export_parity import SYNTHETIC_WINDOW_ID
 from backtest.fixture_schema import load_windows
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -42,9 +43,13 @@ COMPOSITE_ABS_TOL = 0.05
 COVERAGE_ABS_TOL = 1e-9
 VALUE_REL_TOL = 1e-9
 VALUE_ABS_TOL = 1e-12
-GOLDEN_ABS_TOL = 1e-9  # L6: golden_mobile.yaml 자체가 이미 근사-PIT 확정값 — 완전 일치 기대
+GOLDEN_ABS_TOL = (
+    1e-9  # L6: golden_mobile.yaml 자체가 이미 근사-PIT 확정값 — 완전 일치 기대
+)
 
-WINDOW_IDS = tuple(w.window_id for w in load_windows())
+# 9개 실측 창(SSOT: backtest/windows.yaml) + 1개 합성 퇴화 증인 창(SYNTHETIC_WINDOW_ID —
+# aaa CONDITIONAL 해소, windows.yaml에는 등재하지 않는다 — BT-03/04 실측 통계 오염 방지).
+WINDOW_IDS = (*[w.window_id for w in load_windows()], SYNTHETIC_WINDOW_ID)
 GOLDEN_WINDOW_IDS = ("w2024_carry_unwind", "w2024_05_calm")  # D-08 골든 2케이스
 
 
@@ -61,7 +66,9 @@ def _verify_manifest(window_dir: Path) -> None:
             continue
         digest, name = line.split(None, 1)
         path = window_dir / name
-        assert path.exists(), f"{window_dir.name}: MANIFEST references missing file '{name}'"
+        assert path.exists(), (
+            f"{window_dir.name}: MANIFEST references missing file '{name}'"
+        )
         actual = _sha256(path)
         assert actual == digest, (
             f"{window_dir.name}: sha256 mismatch for '{name}' "
@@ -88,7 +95,9 @@ def _num_close(a: float | None, b: float | None, rel: float, abs_: float) -> boo
     return diff <= max(rel * max(abs(a), abs(b)), abs_)
 
 
-def _require_generated(window_id: str) -> tuple[Path, list[dict[str, Any]], list[dict[str, Any]]]:
+def _require_generated(
+    window_id: str,
+) -> tuple[Path, list[dict[str, Any]], list[dict[str, Any]]]:
     window_dir = PARITY_DIR / window_id
     expected_path = window_dir / "expected.jsonl"
     actual_path = window_dir / "actual.jsonl"
@@ -100,7 +109,7 @@ def _require_generated(window_id: str) -> tuple[Path, list[dict[str, Any]], list
     if not actual_path.exists():
         pytest.skip(
             f"{window_id}: actual.jsonl missing — run "
-            '\'cd mobile && ./gradlew :engine:test --tests "*ParityRunnerTest*"\' first'
+            "'cd mobile && ./gradlew :engine:test --tests \"*ParityRunnerTest*\"' first"
         )
     _verify_manifest(window_dir)
     return window_dir, _load_jsonl(expected_path), _load_jsonl(actual_path)
@@ -134,7 +143,9 @@ def test_bt05_parity_window_l0_to_l5(window_id: str) -> None:
             # L1 visible_at — instant-equal (format-agnostic), null-symmetric.
             e_vis, a_vis = e_layer["visible_at"], a_layer["visible_at"]
             if e_vis is None or a_vis is None:
-                assert e_vis == a_vis, f"{ind_loc}: L1 visible_at null mismatch ({e_vis!r} vs {a_vis!r})"
+                assert e_vis == a_vis, (
+                    f"{ind_loc}: L1 visible_at null mismatch ({e_vis!r} vs {a_vis!r})"
+                )
             else:
                 assert _parse_instant(e_vis) == _parse_instant(a_vis), (
                     f"{ind_loc}: L1 visible_at mismatch {e_vis!r} != {a_vis!r}"
@@ -144,7 +155,9 @@ def test_bt05_parity_window_l0_to_l5(window_id: str) -> None:
             )
 
             # L2 value — rel 1e-9 or abs 1e-12, whichever is larger.
-            assert _num_close(e_layer["value"], a_layer["value"], VALUE_REL_TOL, VALUE_ABS_TOL), (
+            assert _num_close(
+                e_layer["value"], a_layer["value"], VALUE_REL_TOL, VALUE_ABS_TOL
+            ), (
                 f"{ind_loc}: L2 value mismatch expected={e_layer['value']} actual={a_layer['value']}"
             )
 
@@ -163,7 +176,9 @@ def test_bt05_parity_window_l0_to_l5(window_id: str) -> None:
         assert _num_close(e["coverage"], a["coverage"], 0.0, COVERAGE_ABS_TOL), (
             f"{loc}: L4 coverage mismatch expected={e['coverage']} actual={a['coverage']}"
         )
-        assert e["distinct_axes"] == a["distinct_axes"], f"{loc}: L4 distinct_axes mismatch"
+        assert e["distinct_axes"] == a["distinct_axes"], (
+            f"{loc}: L4 distinct_axes mismatch"
+        )
         assert e["any_crit"] == a["any_crit"], f"{loc}: L4 any_crit mismatch"
         assert e["any_extreme"] == a["any_extreme"], f"{loc}: L4 any_extreme mismatch"
         assert e["fired_axes"] == a["fired_axes"], (
@@ -171,7 +186,9 @@ def test_bt05_parity_window_l0_to_l5(window_id: str) -> None:
         )
 
         # L5 phase timeline — exact, every tick.
-        assert e["phase"] == a["phase"], f"{loc}: L5 phase mismatch expected={e['phase']} actual={a['phase']}"
+        assert e["phase"] == a["phase"], (
+            f"{loc}: L5 phase mismatch expected={e['phase']} actual={a['phase']}"
+        )
 
 
 @pytest.mark.parametrize("window_id", GOLDEN_WINDOW_IDS)
@@ -187,7 +204,7 @@ def test_bt05_parity_golden_l6(window_id: str) -> None:
     if not actual_path.exists():
         pytest.skip(
             f"{window_id}: actual.jsonl missing — run "
-            '\'cd mobile && ./gradlew :engine:test --tests "*ParityRunnerTest*"\' first'
+            "'cd mobile && ./gradlew :engine:test --tests \"*ParityRunnerTest*\"' first"
         )
 
     golden = yaml.safe_load(GOLDEN_MOBILE_PATH.read_text(encoding="utf-8"))
@@ -200,7 +217,9 @@ def test_bt05_parity_golden_l6(window_id: str) -> None:
     for i, (g, a) in enumerate(zip(golden_ticks, actual, strict=True)):
         loc = f"{window_id}[golden tick {i} date={g['date']}]"
         assert g["date"] == a["kst_date"], f"{loc}: date mismatch"
-        assert g["phase"] == a["phase"], f"{loc}: L6 phase mismatch expected={g['phase']} actual={a['phase']}"
+        assert g["phase"] == a["phase"], (
+            f"{loc}: L6 phase mismatch expected={g['phase']} actual={a['phase']}"
+        )
         assert _num_close(g["composite"], a["composite"], 0.0, GOLDEN_ABS_TOL), (
             f"{loc}: L6 composite mismatch golden={g['composite']} actual={a['composite']}"
         )
@@ -222,10 +241,62 @@ def test_bt05_w2026_or_any_extreme_fires() -> None:
     """
     expected_path = PARITY_DIR / "w2026_structural" / "expected.jsonl"
     if not expected_path.exists():
-        pytest.skip("w2026_structural/expected.jsonl missing — run export_parity.py first")
+        pytest.skip(
+            "w2026_structural/expected.jsonl missing — run export_parity.py first"
+        )
     ticks = _load_jsonl(expected_path)
     fired = [t for t in ticks if t["any_extreme"]]
     assert fired, (
         "w2026_structural: any_extreme never fires — D-26/or_any_extreme escape path is not "
         "exercised by this window; a synthetic config witness is required (§9-C)"
+    )
+
+
+def test_bt05_wsynth_degenerate_witnesses_present() -> None:
+    """합성 퇴화 증인 창(wsynth_degenerate) 자체가 퇴화하지 않았는지 확인 — aaa CONDITIONAL
+    해소 조건("합성 창이 퇴화하면 실패하도록"). §9-C가 고정 포함을 요구한 4종
+    (i 전 지표 결측 ii 단일 지표만 유효 iii 스테일 경계 등호 iv 임계 경계 등호)이
+    `expected.jsonl`(engine_ref 실제 계산 결과, 하드코딩 아님)에 최소 1틱씩 나타나는지 본다.
+
+    여기서 참조하는 리터럴(1.07·48h)은 SSOT 값이 아니라 이 특정 합성 픽스처의 설계값
+    (`export_parity._synthetic_degenerate_window`/`_write_synthetic_fixture` docstring
+    참조: vix_term_structure crit=1.07·mobile_daily daily_us stale=48h를 정확히 겨냥해
+    만든 값) — "그 설계가 실제로 그 조건을 냈는가"를 확인하는 자기 회귀 증인이다.
+    actual.jsonl과의 L0~L5 비교는 위 `test_bt05_parity_window_l0_to_l5`가 이미 수행한다.
+    """
+    expected_path = PARITY_DIR / SYNTHETIC_WINDOW_ID / "expected.jsonl"
+    if not expected_path.exists():
+        pytest.skip(
+            f"{SYNTHETIC_WINDOW_ID}/expected.jsonl missing — run export_parity.py first"
+        )
+    ticks = _load_jsonl(expected_path)
+
+    assert any(t["composite"] is None for t in ticks), (
+        "witness (i) absent: no tick with composite=None (all-indicators-missing, D-25 §3)"
+    )
+
+    def active_count(t: dict[str, Any]) -> int:
+        return sum(1 for v in t["indicators"].values() if v["severity"] is not None)
+
+    assert any(active_count(t) == 1 for t in ticks), (
+        "witness (ii) absent: no tick with exactly one active indicator (coverage=weight/total)"
+    )
+
+    assert any(
+        v["stale"] is False
+        and v["visible_at"] is not None
+        and _parse_instant(t["evaluated_at"]) - _parse_instant(v["visible_at"])
+        == timedelta(hours=48)
+        for t in ticks
+        for v in t["indicators"].values()
+    ), (
+        "witness (iii) absent: no tick at exactly the 48h stale boundary still marked fresh"
+    )
+
+    assert any(
+        v["severity"] == 3 and v["value"] == 1.07
+        for t in ticks
+        for v in t["indicators"].values()
+    ), (
+        "witness (iv) absent: no tick with severity=3 via exact threshold-boundary value (1.07==crit)"
     )
