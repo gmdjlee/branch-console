@@ -318,3 +318,17 @@ stable" 오기(실제 0.9.9). **해소 커밋**: ① 652d566(invalid 2건 추가
 절차 동반, invalid 14파일·207 green) ② 2a4335b(Kover 0.9.9 정정+activityCompose 근거).
 **해소 확인으로 PASS 승격** — 세 서브태스크 완료, PROGRESS 체크 승인. MT1-01a 착수 적격
 (승계 3건: kotlin_krx 전이 의존성 버전 목록·카탈로그 앱 라이브러리 공백·wrapper 경로 미검증).
+
+### MT1-01a mobile 스캐폴드 — 커밋 eb480b0·83c0e9e
+
+**라운드 1 (2026-08-07)**: qa **PASS**(check·assembleDebug 재실행, 판단 6건 대조, SNAPSHOT 0,
+계측 태스크 미포함, Python 207 무회귀) → aaa **CONDITIONAL(경미 1)**. aaa 독립 재현:
+check --rerun-tasks 109/109, Kover 게이트 주입 시험 재현(+detekt 룰 실증 부수 확인), Konsist·
+Robolectric XML 실측, snakeyaml-engine 3.1 POM 원문 대조(junit-jupiter-api compile 누출 = 상류
+버그 실재), exclude 무부작용을 실제 configs 파싱 프로브로 증명(registry 0.3.1-rc·19지표 정상),
+wrapper sha256 상류 대조 일치. 판단 6건 전건 정당. 경미 D-1: Robolectric @Config sdk=35 ↔
+targetSdk 36 불일치·근거 부재 — **해소 83c0e9e**(sdk 36, 실행 재검증). **PASS 승격**.
+부수 처분: FINAL §1.3 경로 `mobile/third_party/krxkt/`→`mobile/krx/` Advisor 정정(비평가
+에스컬레이션 — B §3.2.1 Kover 글롭 연동), MT1-01f는 미충족·잔여 6건의 별도 서브태스크 확정,
+01b·01g·02b/c 착수 적격(각 브리프 명시 요건: 01b ③건 / 01g 선결 ③건+00c 승계 의무 3건 /
+02b :engine serialization 배선 누락 보완).

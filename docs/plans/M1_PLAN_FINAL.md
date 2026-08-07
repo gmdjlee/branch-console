@@ -56,7 +56,7 @@
 | M-29 targetSdk | **최신(35+) + POST_NOTIFICATIONS 대응을 M1에서 처리**(C U-14) |
 | M-30 Gradle 의존성 체크섬 | **M3 이월**(A U-8 — 카탈로그+동적 버전 금지로 §2.3 충족) |
 | 스모크 범위 | **필수(게이트 정본, 확정 1회+프리뷰 3회 — 프리뷰 3회는 서로 다른 시계 조건 배치(D §11 하드 요구), 사용자 실작업 ≈25분) + 확장 4종은 선택**(C U-15 — 사용자 승인 안건, 미승인 시 S9 멱등만 승격) |
-| 데이터 소스·경로 | KRX = `D:\android_2025\kotlin_krx` 벤더링(`mobile/third_party/krxkt/` + VENDOR/PROVENANCE 매니페스트, 적응 수정 허용·무단 수정 가드), 야후 글로벌 = Stooq 폴백(K-18), 야후 ^KS11 폴백 비채택(사용자 기결정) |
+| 데이터 소스·경로 | KRX = `D:\android_2025\kotlin_krx` 벤더링(**`mobile/krx/`** — A §2.3 정본. 2026-08-07 정정: 초판의 `mobile/third_party/krxkt/` 표기는 B/C 대안 명명의 잔재로 A §2.3·Gradle 관례(`:krx`)와 불일치, MT1-01a aaa 판정이 적발. B §3.2.1의 Kover 벤더 제외 글롭도 `mobile/krx/` 기준으로 읽을 것. + VENDOR/PROVENANCE 매니페스트, 적응 수정 허용·무단 수정 가드), 야후 글로벌 = Stooq 폴백(K-18 — 단 W0 실측으로 Stooq 전면 차단 확인, FRED 부분 폴백으로 대체: 00a 저널), 야후 ^KS11 폴백 비채택(사용자 기결정) |
 
 ## 2. 정규 참조 매핑 (구현 브리프가 인용할 정본 절)
 
