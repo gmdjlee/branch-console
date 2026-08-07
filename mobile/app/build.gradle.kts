@@ -188,6 +188,7 @@ tasks.named("check") {
 dependencies {
     implementation(project(":engine"))
     implementation(project(":krx"))
+    implementation(project(":lake"))
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
@@ -263,14 +264,7 @@ kover {
     }
 }
 
-// MT1-01f 잔여 2 (docs/plans/M1_PLAN_B.md §3.2.1 모듈 표의 :lake 90% 행) — 의도적 이연.
-// :lake는 아직 패키지조차 없다(MT1-03 선행 필요, settings.gradle.kts에 include(":lake") 없음).
-// 계획의 모듈 표는 :engine·:krx처럼 :lake도 "별도 Gradle 모듈"로 그린다(§3.2 의존성 그래프
-// 레인 C) — :app 내부의 패키지 스코프 규칙이 아니다. 설사 지금 :app 안에 lake 패키지를 만들어
-// 규칙을 걸고 싶어도, Kover 0.9.9의 KoverVerifyRule/KoverVerifyBound(kover-gradle-plugin-0.9.9.jar
-// 실측: javap로 두 인터페이스 전 메서드 확인)에는 rule 단위 필터가 없다 — filters는 리포트
-// 전체(total/variant) 단위로만 걸리므로 "lake 패키지만 90%, 나머지는 70%"를 :app 하나의
-// 리포트 안에서 동시에 표현할 방법이 없다(전체에 90%를 걸면 :app 전체가 90%를 요구받고,
-// 필터를 lake로 좁히면 다른 규칙과 총량을 공유할 수 없다). TODO(MT1-03a): :lake 모듈 생성 시
-// mobile/lake/build.gradle.kts에 :engine·:krx와 동일한 kover { reports { verify { rule(...) {
-// minBound(90) } } } } 패턴을 적용하고 settings.gradle.kts에 include(":lake")를 추가한다.
+// MT1-01f 잔여 2 — 해소(MT1-03): :lake는 이제 별도 Gradle 모듈이다(mobile/lake/build.gradle.kts,
+// kover minBound(90) 자체 규칙 보유). :app은 implementation(project(":lake"))로 소비만 하고,
+// :app 자체의 70% 규칙(위 kover 블록)에는 영향이 없다 — 두 모듈의 kover 리포트가 애초에 분리돼
+// 있어 "lake 패키지만 90%" 같은 리포트 내 부분 규칙을 만들 필요가 없어졌다.

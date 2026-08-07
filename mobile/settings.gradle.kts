@@ -24,4 +24,5 @@ rootProject.name = "branch-console-mobile"
 
 include(":engine")
 include(":krx")
+include(":lake")
 include(":app")
