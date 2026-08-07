@@ -237,6 +237,9 @@ dependencies {
     // 공개 API(JsonObject 반환)를 직접 소비한다 — gson은 :krx의 implementation 의존이라
     // 전이 노출되지 않는다.
     testImplementation(libs.gson)
+    // MT1-07b: PreviewArchitectureTest의 carry-forward 격리 증거화(engine/lake 모듈과 동일
+    // 선례, Konsist.scopeFromModule("app")).
+    testImplementation(libs.konsist)
 
     androidTestImplementation(libs.androidx.test.core)
     androidTestImplementation(libs.androidx.test.ext.junit)
