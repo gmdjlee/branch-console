@@ -25,8 +25,12 @@ data class WarmupSeriesStatus(
     val reason: String? = null,
 )
 
+/** `INSUFFICIENT`는 MT1-06h 부트스트랩 게이트([com.branchconsole.app.tick.WarmupGate])가 쓴다 —
+ * 원계열은 실제로 있으나(수집 성공) 지표의 `requiredRows` 요건을 아직 채우지 못한 상태다.
+ * `NOT_COLLECTED`(애초에 수집 시도 안 함)·`ERROR`(수집 실패)와 구분되는 별개 축이다(M-45/46
+ * "WARMUP_INSUFFICIENT는 MISSING과 구분되는 3번째 상태"). */
 @Serializable
-enum class WarmupStatus { OK, PARTIAL, ERROR, NOT_COLLECTED }
+enum class WarmupStatus { OK, PARTIAL, ERROR, NOT_COLLECTED, INSUFFICIENT }
 
 /** 백필 1회 실행의 웜업 상태 리포트 전체 — 계열별 적재 행수·기간·결측 사유. */
 @Serializable
