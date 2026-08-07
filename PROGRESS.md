@@ -103,8 +103,10 @@
   - [x] MT1-02b Kotlin 계약 미러 — qa+aaa PASS(ddd32f4). 12클래스·제약 12개 등가(뮤테이션
     결박 확인), naive 비대칭 Kotlin 거부 고정, :engine Kover 100%. 02c(스키마 드리프트 연동)는
     픽스처 왕복이 담당 — 완료로 흡수
-  - [ ] MT1-01f Kover 게이트 — 구현 완료(2299613: 제외 글롭·명시 배선·생존 증인, :krx 82.8%
-    로그인 URL 파라미터화 포함). **aaa COND D-1**(증인 :engine 한정 → 3모듈 승격) 해소 중
+  - [x] MT1-01f Kover 게이트 — qa+aaa COND→해소 PASS(2299613·336861c). 제외 글롭(클래스 25종,
+    자기 수정 파일 측정 편입 → 실공백 노출 → URL 파라미터화로 82.8% 충족)·명시 배선·측정 생존
+    증인 3모듈 공통(subprojects 승격 — :krx 침묵 통과 재현이 실패로 잡힘). :lake rule은 Kover
+    API 한계 실증 후 MT1-03 이연 — **W1 마감**
 - [ ] MT1-01 스캐폴드+syncConfigs / [ ] MT1-02 계약 미러+스냅샷 / [ ] MT1-03 Room append-only
 - [ ] MT1-04 collectors a야후 b FRED c KRX d ECOS e KIS(옵션) f CDS 판정(G-4)
 - [ ] MT1-05 엔진·상태기계 + 패리티(BT-05) / [ ] MT1-06 일일 확정 틱+캐치업
