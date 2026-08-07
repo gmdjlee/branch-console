@@ -109,15 +109,15 @@
     증인 3모듈 공통(subprojects 승격 — :krx 침묵 통과 재현이 실패로 잡힘). :lake rule은 Kover
     API 한계 실증 후 MT1-03 이연 — **W1 마감**
 
-- W2 원장·수집 (판정: qa PASS → aaa CONDITIONAL 경미 2 — 04ab 소관, 해소 중)
+- W2 원장·수집 (qa PASS → aaa COND 경미 2 → 해소 PASS — **W2 마감**)
   - [x] MT1-03 원장 — qa+aaa PASS(4573e0c). :lake 모듈(lane·레인별 revision·M-49 감사 합집합·
     severities_json NOT NULL·composite IS NOT NULL 이월 깊이 1). append-only 이중 방어(Konsist+
     트리거), 증인 6종 뮤테이션 전건 사망, 커버리지 100%, 생존 증인 자동 적용 확인
-  - [ ] MT1-04c KRX 어댑터 — 구현 완료(eeee805): K-03 간격 SSOT 로드·K-19 EmptyOnTradingDay·
-    달력 재사용(등가성 소스 확인)·D-1 계약 승계 테스트. aaa 승인 대기(04ab 해소 후 일괄)
-  - [ ] MT1-04ab 야후·FRED 어댑터 — 구현 완료(47fd335): 00a 계약 오류 6분류·null 봉 보존·Stooq
-    비활성 스텁·fred.series 반영(A-2 해소). **aaa COND 해소 중**: RetryPolicy 리터럴→assets
-    로더(D-1)·Retrofit 미사용 선언 제거(D-2)
+  - [x] MT1-04c KRX 어댑터 — qa+aaa PASS(eeee805): K-03 간격 SSOT 로드·K-19 EmptyOnTradingDay·
+    달력 재사용(getBusinessDays 동일 엔드포인트 등가 확인)·D-1 계약 승계 테스트(원시값 자릿수 일치)
+  - [x] MT1-04ab 야후·FRED 어댑터 — qa+aaa COND→해소 PASS(47fd335·c326428): 00a 계약 오류
+    6분류·null 봉 보존·Stooq 비활성 스텁·fred.series 반영(A-2 해소·FINAL §4 물질화).
+    RetryPolicy는 assets 로더(fail-fast)·Retrofit 선언 제거
 - [ ] MT1-01 스캐폴드+syncConfigs / [ ] MT1-02 계약 미러+스냅샷 / [ ] MT1-03 Room append-only
 - [ ] MT1-04 collectors a야후 b FRED c KRX d ECOS e KIS(옵션) f CDS 판정(G-4)
 - [ ] MT1-05 엔진·상태기계 + 패리티(BT-05) / [ ] MT1-06 일일 확정 틱+캐치업

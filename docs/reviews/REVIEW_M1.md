@@ -333,6 +333,20 @@ targetSdk 36 불일치·근거 부재 — **해소 83c0e9e**(sdk 36, 실행 재�
 01b·01g·02b/c 착수 적격(각 브리프 명시 요건: 01b ③건 / 01g 선결 ③건+00c 승계 의무 3건 /
 02b :engine serialization 배선 누락 보완).
 
+### W2 배치 MT1-03·04c·04ab — 커밋 4573e0c·eeee805·47fd335(+해소 c326428)
+
+**라운드 1 (2026-08-07)**: qa **PASS**(207/207 재실행, tie-break 증인 실반전 재현, TRDVAL 픽스처
+자릿수 대조, Stooq 스텁 실호출 불가 구조) → aaa **CONDITIONAL(경미 2)**. aaa 독립 재현: :lake
+스키마 council 확정값 1:1(M-43·49·43b·34·22 전건), 증인 6종 뮤테이션 전건 사망(L1~L6), W1 생존
+증인의 :lake 자동 보호 확인(B §3.2.1 lake 90% — W1 잔여 #2 해소), 04c 달력 재사용 등가성 소스
+확인(getBusinessDays = 동일 엔드포인트·동일 파생), 04ab 커밋 비자기완결 주장은 전제 불성립
+판정(dep는 04c 자신도 사용). 경미: D-1(RetryPolicy 리터럴 — W0 D-4 선례 구속, 즉시 해소 요구)·
+D-2(Retrofit 선언·미사용 — 기술 선택은 재량 판정, 선언 정리). **해소 c326428**(assets 로더
+fail-fast·필수 파라미터·Retrofit 제거·귀속 주석 정정) → **PASS 승격, W2 마감**.
+Advisor 처분: A-2 기록 모순(sources.yaml 기변경 vs PROGRESS 미결 표기) → FINAL §4·PROGRESS
+물질화(17efd8e). 후속 착수 요건: 04g(웜업 550 assets 로드·3년 롤링 구조적 부재 처리·공통
+Collector 승격) / MT1-05(:engine 무의존·vkospi 폴백 유지·as_of 규약 대조 선행·브랜치 증인).
+
 ### W1 배치 MT1-01b·01g·02b·01f — 커밋 2103750·d47105b·ddd32f4·2299613
 
 **라운드 1 (2026-08-07)**: qa **PASS**(check --rerun-tasks 115/115, 업스트림 2패스 정규화 diff —
