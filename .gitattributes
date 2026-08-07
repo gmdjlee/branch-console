@@ -1,0 +1,12 @@
+# GM1 재현성 고정 (M1_PLAN_FINAL.md §4 "SSOT 변경 제안 통합" 중 `.gitattributes` 신설,
+# 근거: M1_PLAN_B.md §7.3·§15 제안 4).
+#
+# mobile/krx/는 kotlin_krx 벤더링 소스이며 krx-manifest.sha256이 "커밋 시점 바이트"를
+# 그대로 기준값으로 삼는다(REIMPORT.md §6). core.autocrlf=true 환경에서 새 체크아웃을
+# 만들면 git이 LF 블롭을 CRLF로 확장해 verifyKrxProvenance가 벤더 파일 전건을 CHANGED로
+# 오탐한다(기존 트리는 이미 LF로 존재해 영향 없음 — 클린 체크아웃에서만 재현).
+# `-text`는 정규화만 끄고 diff는 그대로 유지한다(§15 제안 4 예시와 동일 방식).
+#
+# 범위를 mobile/krx/**로 최소화한다 — 저장소 전반 정규화 규칙(제안 4 원안의
+# `*.yaml -text`/`*.md -text` 등)은 대량 churn 위험이 있어 별도 후속 제안으로 미룬다.
+mobile/krx/** -text
