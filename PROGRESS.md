@@ -94,9 +94,17 @@
     :app)+카탈로그+wrapper 8.13 sha256 핀, check 실가동(109/109, Kover 주입 시험·detekt 룰
     실증). 발견: snakeyaml-engine 3.1 POM junit-jupiter compile 누출 → exclude(01b 파싱
     무영향 실증). FINAL §1.3 경로 표기 충돌 적발 → mobile/krx/ 정정(Advisor)
-  - [ ] MT1-01f Kover 게이트 — **부분 선행(01a)**. 잔여 6: 제외 규칙·lake 패키지 스코프 rule·
-    벤더 글롭(mobile/krx 기준)·명시 dependsOn·측정 0줄 vacuous·Python 결합 명령(05e 대기)
-  - [ ] MT1-01b syncConfigs(M-03) / [ ] MT1-01g kotlin_krx 벤더링 / [ ] MT1-02b/c Kotlin 계약 미러
+  - [x] MT1-01b syncConfigs — qa+aaa PASS(2103750). 생성 assets(M-03)+3계층 해시, 증인 3종
+    재현(변조·체크인 사본·자가치유). verifyConfigHashes는 mustRunAfter(자가치유의 증인 무력화
+    회피 — 근거 인라인)
+  - [x] MT1-01g kotlin_krx 벤더링 — qa+aaa PASS(d47105b). 53파일, 실코드 변경 4파일 전건
+    PROVENANCE 등재(TRDVAL 슬롯 수정+실측 픽스처 증인 포함), verifyKrxProvenance 양방향 증인.
+    detekt 베이스라인 103건은 :krx 한정·신규 코드 미차폐(실행 확인)
+  - [x] MT1-02b Kotlin 계약 미러 — qa+aaa PASS(ddd32f4). 12클래스·제약 12개 등가(뮤테이션
+    결박 확인), naive 비대칭 Kotlin 거부 고정, :engine Kover 100%. 02c(스키마 드리프트 연동)는
+    픽스처 왕복이 담당 — 완료로 흡수
+  - [ ] MT1-01f Kover 게이트 — 구현 완료(2299613: 제외 글롭·명시 배선·생존 증인, :krx 82.8%
+    로그인 URL 파라미터화 포함). **aaa COND D-1**(증인 :engine 한정 → 3모듈 승격) 해소 중
 - [ ] MT1-01 스캐폴드+syncConfigs / [ ] MT1-02 계약 미러+스냅샷 / [ ] MT1-03 Room append-only
 - [ ] MT1-04 collectors a야후 b FRED c KRX d ECOS e KIS(옵션) f CDS 판정(G-4)
 - [ ] MT1-05 엔진·상태기계 + 패리티(BT-05) / [ ] MT1-06 일일 확정 틱+캐치업
