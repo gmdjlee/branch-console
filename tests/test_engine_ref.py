@@ -82,6 +82,37 @@ def test_pct_change_1d_and_5d() -> None:
     assert transforms.pct_change_5d(x5).iloc[-1] == pytest.approx(-10.0)
 
 
+def test_pct_change_1d_nan_gap_propagates_instead_of_forward_filled() -> None:
+    """D-1 해소(aaa W3): pandas의 폐기예정 기본값 fill_method='pad'는 차분 전 NaN을
+    직전값으로 forward-fill해, 실제로는 결측인 관측을 가짜 0%/스퓨리어스 변화율로
+    둔갑시킨다(Kotlin 포팅은 애초에 NaN 전파). 이 퇴화 증인은 engine_ref.transforms가
+    fill_method=None(명시 고정)을 유지하는 한 계속 통과해야 하며, 누군가 그 인자를
+    지우면(=pad로 회귀) 실패한다."""
+    x = pd.Series([100.0, np.nan, 110.0], index=_dates(3))
+    result = transforms.pct_change_1d(x)
+    assert pd.isna(result.iloc[1])  # 결측 관측 그 자체
+    assert pd.isna(result.iloc[2])  # 결측 다음 행 — 실제 1일 변화율은 미지수
+
+    # pad였다면(회귀 시) 결측을 직전값 100으로 메워 아래처럼 가짜 수치가 나왔을 것 —
+    # 이 어서션이 실패하지 않는다는 사실이 곧 pad로 회귀했다는 신호다.
+    with pytest.warns(FutureWarning):  # pandas가 fill_method="pad" 자체를 폐기예정 경고
+        padded_would_be = x.pct_change(1, fill_method="pad") * 100.0
+    assert padded_would_be.iloc[1] == pytest.approx(0.0)
+    assert padded_would_be.iloc[2] == pytest.approx(10.0)
+
+
+def test_pct_change_5d_nan_gap_propagates_instead_of_forward_filled() -> None:
+    """당일 관측치 자체가 결측(K-01 yfinance 지연/장애)인 경우의 퇴화 증인 —
+    pad는 이를 '변화 없음(0%)'으로 위장해 D-02 결측 제외 규율을 무력화한다."""
+    x = pd.Series([100.0, 100.0, 100.0, 100.0, 100.0, np.nan], index=_dates(6))
+    result = transforms.pct_change_5d(x)
+    assert pd.isna(result.iloc[-1])
+
+    with pytest.warns(FutureWarning):
+        padded_would_be = x.pct_change(5, fill_method="pad") * 100.0
+    assert padded_would_be.iloc[-1] == pytest.approx(0.0)  # pad라면 나왔을 가짜 값
+
+
 def test_abs_wrapper() -> None:
     x = pd.Series([-3.0, 2.0, -1.0], index=_dates(3))
     assert list(transforms.abs_(x)) == pytest.approx([3.0, 2.0, 1.0])

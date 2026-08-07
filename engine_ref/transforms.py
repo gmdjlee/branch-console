@@ -41,11 +41,11 @@ def delta_bp(x: pd.Series, lookback: int) -> pd.Series:
 
 
 def pct_change_1d(x: pd.Series) -> pd.Series:
-    return x.astype("float64").pct_change(1) * 100.0
+    return x.astype("float64").pct_change(1, fill_method=None) * 100.0
 
 
 def pct_change_5d(x: pd.Series) -> pd.Series:
-    return x.astype("float64").pct_change(5) * 100.0
+    return x.astype("float64").pct_change(5, fill_method=None) * 100.0
 
 
 def abs_(x: pd.Series) -> pd.Series:
