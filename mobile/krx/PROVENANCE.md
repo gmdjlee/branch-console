@@ -94,6 +94,31 @@ TooGenericExceptionCaught 등 103건, 전부 `fromJson(){ ... catch(Exception) }
 - **테스트**: 기존 `KrxClientTest.kt`의 재시도 관련 테스트(`should retry 3 times...` 등)는
   기본값이 그대로이므로 무변경으로 green.
 
+#### `api/KrxClient.kt` — 로그인 URL 3종 파라미터화 (MT1-01f)
+
+- **배경**: MT1-01f(Kover 커버리지 게이트) 정밀화 과정에서 `com.krxkt.*` 패키지 전체를
+  뭉뚱그려 배제하던 이전 필터를 파일 단위 배제로 좁혔더니(§4 매니페스트 절 참고), 우리가
+  실제로 수정한 이 세 파일이 측정 대상에 들어왔고 `:krx` 모듈 커버리지가 57.84%로
+  드러나(AAA §2.3 요구 70% 미달) `login()`/`postLogin()` 56줄이 전부 미검증 상태임이
+  실측됐다. 원인은 이 두 메서드가 `KrxEndpoints.LOGIN_PAGE`/`LOGIN_JSP`/`LOGIN_URL`(실제
+  KRX 프로덕션 URL)을 직접 참조해 `MockWebServer`로 가로챌 수 없었기 때문이다
+  — CLAUDE.md "테스트는 네트워크 금지: 픽스처 기반" 규율상 실 네트워크를 두드리는 테스트는
+  작성할 수 없다.
+- **수정**: 이미 존재하는 `baseUrl`/`sessionInitUrl` 생성자 파라미터화 패턴(위 "재시도 정책
+  파라미터화" 항목과 동일 패턴)을 그대로 확장해 `loginPageUrl`·`loginJspUrl`·`loginUrl`
+  3개 생성자 파라미터를 추가했다. 기본값은 각각 `KrxEndpoints.LOGIN_PAGE`/`LOGIN_JSP`/
+  `LOGIN_URL` 그대로이므로 **동작 변화 0**(인자를 넘기지 않으면 기존과 완전히 동일).
+  `login()`/`postLogin()` 본문의 `KrxEndpoints.LOGIN_*` 직접 참조 3곳을 해당 필드 참조로
+  치환했다.
+- **테스트**: `KrxClientTest.kt`에 `login()`(CD001 성공·CD011 중복 로그인 재시도·오인식
+  에러코드 실패)·`postLogin()`(3구간 각각의 IOException → NetworkError, 빈 본문/파싱
+  실패 → ParseError) 신규 9건 + `initSession()` 3건(성공·2회 호출 시 무동작·IOException
+  흡수) + `InMemoryCookieJar` 3건(URL 매치 조회·동일 name+domain 교체·만료 쿠키 축출)을
+  추가했다 — 전부 `MockWebServer`/순수 인메모리 로직만 사용, 실 네트워크 호출 없음.
+  결과: `:krx` 라인 커버리지 57.84% → 82.76%(재시도·로그인 실패 분기 다수 포함).
+- **매니페스트**: `krx-manifest.sha256`의 `KrxClient.kt`·`KrxClientTest.kt` 두 해시를
+  갱신했다(§4).
+
 #### 자격증명 주입 — **변경 없음 (이미 충족)**
 
 - 브리프 항목: "자격증명 주입 구조: 하드코딩·환경 직접 접근 제거, 생성자/인터페이스 주입".

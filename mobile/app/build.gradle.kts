@@ -180,7 +180,10 @@ val verifyNoCheckedInAssets by tasks.registering {
 
 android.sourceSets["main"].assets.srcDir(ssotAssets)
 tasks.named("preBuild") { dependsOn(syncConfigs) }
-tasks.named("check") { dependsOn(syncConfigs, verifyConfigHashes, verifyNoCheckedInAssets) }
+tasks.named("check") {
+    // MT1-01f 잔여 4: check<-koverVerify 자동 배선에 기대지 않고 명시한다(버전 상향 대비).
+    dependsOn(syncConfigs, verifyConfigHashes, verifyNoCheckedInAssets, "koverVerify")
+}
 
 dependencies {
     implementation(project(":engine"))
@@ -230,6 +233,28 @@ detekt {
 
 kover {
     reports {
+        filters {
+            excludes {
+                // MT1-01f 제외 규칙(docs/plans/M1_PLAN_B.md §3.2.1) — 생성 코드·서드파티만,
+                // 자체 로직 제외 금지(R-B15). 이 모듈에는 Room 엔티티/DAO(MT1-03)·추가
+                // kotlinx.serialization 사용처·@Preview 컴포저블(MT1-08)이 아직 없어 지금은
+                // 매치 0건(무해)이지만, 뒤 서브태스크가 해당 코드를 추가할 때 재논의 없이 바로
+                // 적용되도록 정책을 지금 고정한다.
+                // *_Impl / *Dao_Impl: Room이 생성하는 구현체(예: AppDatabase_Impl).
+                // *$$serializer / *$Companion: kotlinx.serialization 생성 직렬화기·
+                // Companion.serializer() 접근자(:engine과 동일 정책).
+                // *BuildConfig: AGP 생성 BuildConfig(현재 buildFeatures.buildConfig 비활성).
+                classes(
+                    "*_Impl",
+                    "*Dao_Impl",
+                    "*\$\$serializer",
+                    "*\$Companion",
+                    "*BuildConfig",
+                )
+                // @Preview 컴포저블 — 개발 편의용 미실행 코드.
+                annotatedBy("*Preview")
+            }
+        }
         verify {
             rule("app minimum line coverage 70%") {
                 minBound(70)
@@ -237,3 +262,15 @@ kover {
         }
     }
 }
+
+// MT1-01f 잔여 2 (docs/plans/M1_PLAN_B.md §3.2.1 모듈 표의 :lake 90% 행) — 의도적 이연.
+// :lake는 아직 패키지조차 없다(MT1-03 선행 필요, settings.gradle.kts에 include(":lake") 없음).
+// 계획의 모듈 표는 :engine·:krx처럼 :lake도 "별도 Gradle 모듈"로 그린다(§3.2 의존성 그래프
+// 레인 C) — :app 내부의 패키지 스코프 규칙이 아니다. 설사 지금 :app 안에 lake 패키지를 만들어
+// 규칙을 걸고 싶어도, Kover 0.9.9의 KoverVerifyRule/KoverVerifyBound(kover-gradle-plugin-0.9.9.jar
+// 실측: javap로 두 인터페이스 전 메서드 확인)에는 rule 단위 필터가 없다 — filters는 리포트
+// 전체(total/variant) 단위로만 걸리므로 "lake 패키지만 90%, 나머지는 70%"를 :app 하나의
+// 리포트 안에서 동시에 표현할 방법이 없다(전체에 90%를 걸면 :app 전체가 90%를 요구받고,
+// 필터를 lake로 좁히면 다른 규칙과 총량을 공유할 수 없다). TODO(MT1-03a): :lake 모듈 생성 시
+// mobile/lake/build.gradle.kts에 :engine·:krx와 동일한 kover { reports { verify { rule(...) {
+// minBound(90) } } } } 패턴을 적용하고 settings.gradle.kts에 include(":lake")를 추가한다.

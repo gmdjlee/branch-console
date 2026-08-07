@@ -34,13 +34,21 @@ import kotlin.coroutines.cancellation.CancellationException
  * @param maxRetries 요청 실패 시 재시도 횟수 (MT1-01g 파라미터화 — 실제 값 배선은 어댑터
  *   계층 SSOT 로드가 담당, MT1-04c 소관. 기본값은 upstream 원값 그대로 유지)
  * @param retryDelaysMs 재시도별 backoff 지연(ms), 크기는 [maxRetries]와 일치해야 함
+ * @param loginPageUrl 로그인 페이지 URL (MT1-01f 파라미터화 — baseUrl/sessionInitUrl과 동일한
+ *   테스트 가능성 목적, 기본값은 upstream 원값 그대로 유지)
+ * @param loginJspUrl 로그인 iframe JSP URL (테스트용)
+ * @param loginUrl 로그인 POST URL (테스트용)
  */
+@Suppress("LongParameterList") // all 5 test-only overrides after okHttpClient carry real defaults
 class KrxClient(
     private val okHttpClient: OkHttpClient = createDefaultClient(),
     private val baseUrl: String = KrxEndpoints.BASE_URL,
     private val sessionInitUrl: String = KrxEndpoints.SESSION_INIT_URL,
     private val maxRetries: Int = DEFAULT_MAX_RETRIES,
     private val retryDelaysMs: List<Long> = DEFAULT_RETRY_DELAYS_MS,
+    private val loginPageUrl: String = KrxEndpoints.LOGIN_PAGE,
+    private val loginJspUrl: String = KrxEndpoints.LOGIN_JSP,
+    private val loginUrl: String = KrxEndpoints.LOGIN_URL,
 ) {
     @Volatile
     private var sessionInitialized = false
@@ -133,7 +141,7 @@ class KrxClient(
         // 1. GET 로그인 페이지 → 초기 JSESSIONID 발급
         val pageRequest =
             Request.Builder()
-                .url(KrxEndpoints.LOGIN_PAGE)
+                .url(loginPageUrl)
                 .get()
                 .addHeader("User-Agent", KrxEndpoints.USER_AGENT)
                 .build()
@@ -147,10 +155,10 @@ class KrxClient(
         // 2. GET login.jsp → iframe 세션 초기화
         val jspRequest =
             Request.Builder()
-                .url(KrxEndpoints.LOGIN_JSP)
+                .url(loginJspUrl)
                 .get()
                 .addHeader("User-Agent", KrxEndpoints.USER_AGENT)
-                .addHeader("Referer", KrxEndpoints.LOGIN_PAGE)
+                .addHeader("Referer", loginPageUrl)
                 .build()
 
         try {
@@ -163,7 +171,7 @@ class KrxClient(
         val headers =
             mapOf(
                 "User-Agent" to KrxEndpoints.USER_AGENT,
-                "Referer" to KrxEndpoints.LOGIN_PAGE,
+                "Referer" to loginPageUrl,
             )
 
         var errorCode = postLogin(loginId, loginPw, headers, skipDup = false)
@@ -224,7 +232,7 @@ class KrxClient(
 
         val requestBuilder =
             Request.Builder()
-                .url(KrxEndpoints.LOGIN_URL)
+                .url(loginUrl)
                 .post(formBuilder.build())
 
         headers.forEach { (key, value) ->

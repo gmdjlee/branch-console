@@ -2,6 +2,7 @@ package com.krxkt.api
 
 import com.krxkt.error.KrxError
 import kotlinx.coroutines.test.runTest
+import okhttp3.Cookie
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.SocketPolicy
@@ -300,5 +301,229 @@ class KrxClientTest {
             "dbms/MDC/STAT/standard/MDCSTAT01501",
             KrxEndpoints.Bld.STOCK_OHLCV_ALL,
         )
+    }
+
+    // ====================================================
+    // initSession (MT1-01f coverage — sessionInitUrl is already test-overridable)
+    // ====================================================
+
+    private fun sessionTestClient(): KrxClient =
+        KrxClient(
+            baseUrl = mockServer.url("/").toString(),
+            sessionInitUrl = mockServer.url("/init").toString(),
+        )
+
+    @Test
+    fun `initSession should mark session initialized on success`() {
+        mockServer.enqueue(MockResponse().setBody("<html></html>").setResponseCode(200))
+        val freshClient = sessionTestClient()
+
+        freshClient.initSession()
+
+        val request = mockServer.takeRequest()
+        assertEquals("GET", request.method)
+        freshClient.close()
+    }
+
+    @Test
+    fun `initSession should be a no-op on second call`() {
+        mockServer.enqueue(MockResponse().setBody("<html></html>").setResponseCode(200))
+        val freshClient = sessionTestClient()
+
+        freshClient.initSession()
+        freshClient.initSession() // second call must not issue a second request
+
+        assertEquals(1, mockServer.requestCount)
+        freshClient.close()
+    }
+
+    @Test
+    fun `initSession should swallow IOException`() {
+        mockServer.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST))
+        val freshClient = sessionTestClient()
+
+        freshClient.initSession() // must not throw
+
+        freshClient.close()
+    }
+
+    // ====================================================
+    // login / postLogin (MT1-01f: loginPageUrl/loginJspUrl/loginUrl parameterized for testability,
+    // same pattern as baseUrl/sessionInitUrl — PROVENANCE.md §3.1)
+    // ====================================================
+
+    private fun loginTestClient(): KrxClient =
+        KrxClient(
+            baseUrl = mockServer.url("/base").toString(),
+            loginPageUrl = mockServer.url("/page").toString(),
+            loginJspUrl = mockServer.url("/jsp").toString(),
+            loginUrl = mockServer.url("/login").toString(),
+        )
+
+    @Test
+    fun `login should succeed on CD001`() {
+        mockServer.enqueue(MockResponse().setBody("<html></html>").setResponseCode(200)) // page
+        mockServer.enqueue(MockResponse().setBody("<html></html>").setResponseCode(200)) // jsp
+        mockServer.enqueue(MockResponse().setBody("""{"_error_code": "CD001"}""").setResponseCode(200)) // login
+        val freshClient = loginTestClient()
+
+        val result = freshClient.login("id", "pw")
+
+        assertTrue(result)
+        assertTrue(freshClient.isLoggedIn())
+        assertEquals(3, mockServer.requestCount)
+        freshClient.close()
+    }
+
+    @Test
+    fun `login should retry with skipDup on CD011 then succeed`() {
+        mockServer.enqueue(MockResponse().setBody("<html></html>").setResponseCode(200)) // page
+        mockServer.enqueue(MockResponse().setBody("<html></html>").setResponseCode(200)) // jsp
+        mockServer.enqueue(MockResponse().setBody("""{"_error_code": "CD011"}""").setResponseCode(200)) // dup
+        mockServer.enqueue(MockResponse().setBody("""{"_error_code": "CD001"}""").setResponseCode(200)) // retry
+        val freshClient = loginTestClient()
+
+        val result = freshClient.login("id", "pw")
+
+        assertTrue(result)
+        assertEquals(4, mockServer.requestCount)
+        mockServer.takeRequest()
+        mockServer.takeRequest()
+        mockServer.takeRequest() // first POST, no skipDup
+        val retryRequest = mockServer.takeRequest()
+        val decoded = URLDecoder.decode(retryRequest.body.readUtf8(), "UTF-8")
+        assertContains(decoded, "skipDup=Y")
+        freshClient.close()
+    }
+
+    @Test
+    fun `login should return false on unrecognized error code`() {
+        mockServer.enqueue(MockResponse().setBody("<html></html>").setResponseCode(200)) // page
+        mockServer.enqueue(MockResponse().setBody("<html></html>").setResponseCode(200)) // jsp
+        mockServer.enqueue(MockResponse().setBody("""{"_error_code": "CD999"}""").setResponseCode(200)) // bad creds
+        val freshClient = loginTestClient()
+
+        val result = freshClient.login("id", "wrong-pw")
+
+        assertTrue(!result)
+        assertTrue(!freshClient.isLoggedIn())
+        freshClient.close()
+    }
+
+    @Test
+    fun `login should throw NetworkError when login page GET fails`() {
+        mockServer.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST))
+        val freshClient = loginTestClient()
+
+        val error = assertFailsWith<KrxError.NetworkError> { freshClient.login("id", "pw") }
+        assertContains(error.message ?: "", "Failed to load login page")
+        freshClient.close()
+    }
+
+    @Test
+    fun `login should throw NetworkError when login jsp GET fails`() {
+        mockServer.enqueue(MockResponse().setBody("<html></html>").setResponseCode(200)) // page
+        mockServer.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST)) // jsp
+        val freshClient = loginTestClient()
+
+        val error = assertFailsWith<KrxError.NetworkError> { freshClient.login("id", "pw") }
+        assertContains(error.message ?: "", "Failed to load login JSP")
+        freshClient.close()
+    }
+
+    @Test
+    fun `login should throw NetworkError when login POST fails`() {
+        mockServer.enqueue(MockResponse().setBody("<html></html>").setResponseCode(200)) // page
+        mockServer.enqueue(MockResponse().setBody("<html></html>").setResponseCode(200)) // jsp
+        mockServer.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST)) // login
+        val freshClient = loginTestClient()
+
+        val error = assertFailsWith<KrxError.NetworkError> { freshClient.login("id", "pw") }
+        assertContains(error.message ?: "", "Login request failed")
+        freshClient.close()
+    }
+
+    @Test
+    fun `login should throw ParseError on empty login response body`() {
+        // MockWebServer/OkHttp never yields a null ResponseBody for a normal HTTP response
+        // (mirrors "post should handle empty string response body" above) — an empty body
+        // reaches JsonParser as "" and fails JSON parsing, not the body==null NetworkError
+        // branch. That branch is defensive/unreachable via real HTTP, same category as
+        // executeRequest's body==null check.
+        mockServer.enqueue(MockResponse().setBody("<html></html>").setResponseCode(200)) // page
+        mockServer.enqueue(MockResponse().setBody("<html></html>").setResponseCode(200)) // jsp
+        mockServer.enqueue(MockResponse().setBody("").setResponseCode(200)) // login, empty
+        val freshClient = loginTestClient()
+
+        val error = assertFailsWith<KrxError.ParseError> { freshClient.login("id", "pw") }
+        assertContains(error.message ?: "", "Failed to parse login response")
+        freshClient.close()
+    }
+
+    @Test
+    fun `login should throw ParseError on malformed login response`() {
+        mockServer.enqueue(MockResponse().setBody("<html></html>").setResponseCode(200)) // page
+        mockServer.enqueue(MockResponse().setBody("<html></html>").setResponseCode(200)) // jsp
+        mockServer.enqueue(MockResponse().setBody("not-json").setResponseCode(200)) // login, malformed
+        val freshClient = loginTestClient()
+
+        val error = assertFailsWith<KrxError.ParseError> { freshClient.login("id", "pw") }
+        assertContains(error.message ?: "", "Failed to parse login response")
+        freshClient.close()
+    }
+
+    // ====================================================
+    // InMemoryCookieJar (MT1-01f coverage — no HTTP needed, pure in-memory logic)
+    // ====================================================
+
+    @Test
+    fun `InMemoryCookieJar should return cookies matching the request url`() {
+        val jar = InMemoryCookieJar()
+        val url = mockServer.url("/any")
+        val cookie =
+            Cookie.Builder()
+                .name("JSESSIONID")
+                .value("abc123")
+                .domain(url.host)
+                .build()
+
+        jar.saveFromResponse(url, listOf(cookie))
+        val loaded = jar.loadForRequest(url)
+
+        assertEquals(1, loaded.size)
+        assertEquals("abc123", loaded.first().value)
+    }
+
+    @Test
+    fun `InMemoryCookieJar should replace a cookie with the same name and domain`() {
+        val jar = InMemoryCookieJar()
+        val url = mockServer.url("/any")
+        val original = Cookie.Builder().name("JSESSIONID").value("old").domain(url.host).build()
+        val refreshed = Cookie.Builder().name("JSESSIONID").value("new").domain(url.host).build()
+
+        jar.saveFromResponse(url, listOf(original))
+        jar.saveFromResponse(url, listOf(refreshed))
+        val loaded = jar.loadForRequest(url)
+
+        assertEquals(1, loaded.size)
+        assertEquals("new", loaded.first().value)
+    }
+
+    @Test
+    fun `InMemoryCookieJar should evict expired cookies on load`() {
+        val jar = InMemoryCookieJar()
+        val url = mockServer.url("/any")
+        val expired =
+            Cookie.Builder()
+                .name("JSESSIONID")
+                .value("stale")
+                .domain(url.host)
+                .expiresAt(System.currentTimeMillis() - 1000L)
+                .build()
+
+        jar.saveFromResponse(url, listOf(expired))
+        val loaded = jar.loadForRequest(url)
+
+        assertTrue(loaded.isEmpty())
     }
 }

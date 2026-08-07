@@ -56,18 +56,48 @@ kover {
     reports {
         filters {
             excludes {
-                // 벤더 원본 전체 제외(PROVENANCE.md) — 우리 수정 3파일(InvestorTrading·IndexOhlcv·
-                // KrxClient)까지 포함해 패키지 단위로 뭉뚱그린다. Kover 필터가 클래스/패키지
-                // glob만 지원해 "벤더 원본 vs 우리 수정분" 파일 단위 정밀 분리가 어렵기 때문 —
-                // 정밀화(또는 커버리지 rule의 vacuous 판정 회피)는 MT1-01f(Kover 게이트)로 이월한다
-                // (PROGRESS.md MT1-01f 잔여 항목 "벤더 글롭" 참고).
-                packages("com.krxkt")
-                packages("com.krxkt.api")
-                packages("com.krxkt.cache")
-                packages("com.krxkt.error")
-                packages("com.krxkt.model")
-                packages("com.krxkt.parser")
-                packages("com.krxkt.util")
+                // MT1-01f 정밀화(01g가 남긴 "벤더 글롭" 잔여 항목, docs/plans/M1_PLAN_B.md
+                // §3.2.1) — 이전 판은 com.krxkt.* 패키지 전체를 뭉뚱그려 제외해 우리가 실제로
+                // 수정한 3파일(PROVENANCE.md §3.1: InvestorTrading.kt D-1 로직 수정,
+                // KrxClient.kt 재시도 파라미터화, IndexOhlcv.kt KDoc 정정)까지 측정 밖으로
+                // 밀어냈다(자체 로직 제외 금지, R-B15 위반 소지). Kover의 classes() 필터는
+                // 클래스명 glob을 지원하므로 패키지 단위 대신 "수정 3파일을 제외한 나머지
+                // 벤더 파일"을 파일명 기준으로 열거해 정밀 배제한다 — InvestorTrading·
+                // IndexOhlcv·KrxClient(및 그 안의 InMemoryCookieJar)는 이 목록에 없으므로
+                // 그대로 측정된다. 각 패턴은 해당 파일이 선언하는 최상위 타입(+ 중첩 클래스는
+                // "$"로 시작하는 컴파일러 명명 규칙을 활용한 접두 와일드카드)과 1:1 대응한다.
+                classes(
+                    "com.krxkt.api.KrxEndpoints*",
+                    "com.krxkt.cache.TickerCache*",
+                    "com.krxkt.error.KrxError*",
+                    "com.krxkt.KrxEtf*",
+                    "com.krxkt.KrxIndex*",
+                    "com.krxkt.KrxStock*",
+                    "com.krxkt.model.DerivativeIndex*",
+                    "com.krxkt.model.EtfInfo*",
+                    "com.krxkt.model.EtfOhlcvHistory*",
+                    "com.krxkt.model.EtfPortfolio*",
+                    "com.krxkt.model.EtfPrice*",
+                    "com.krxkt.model.IndexFundamentalHistory*",
+                    "com.krxkt.model.IndexInfo*",
+                    "com.krxkt.model.IndexMarket*",
+                    "com.krxkt.model.IndexOhlcvByTicker*",
+                    "com.krxkt.model.IndexPortfolio*",
+                    // Market*는 같은 접두를 공유하는 MarketCap·MarketOhlcv(둘 다 벤더 원본)도
+                    // 함께 배제한다 — 셋 다 순수 벤더 파일이므로 의도된 겹침이다.
+                    "com.krxkt.model.Market*",
+                    "com.krxkt.model.OptionVolume*",
+                    // ShortSelling*는 ShortSellingHistory를, ShortBalance*는 ShortBalanceHistory를
+                    // 함께 배제한다(model/ShortSelling.kt 한 파일 안의 4개 벤더 데이터 클래스).
+                    "com.krxkt.model.ShortSelling*",
+                    "com.krxkt.model.ShortBalance*",
+                    // StockFundamental*는 StockFundamentalHistory(별도 파일)도 함께 배제한다.
+                    "com.krxkt.model.StockFundamental*",
+                    "com.krxkt.model.StockOhlcvHistory*",
+                    "com.krxkt.model.TickerInfo*",
+                    "com.krxkt.parser.KrxJsonParser*",
+                    "com.krxkt.util.DateUtils*",
+                )
             }
         }
         verify {
@@ -146,5 +176,7 @@ val verifyKrxProvenance by tasks.registering {
 }
 
 tasks.named("check") {
-    dependsOn(verifyKrxProvenance)
+    // MT1-01f 잔여 4: Kover 0.9.9의 check<-koverVerify 자동 배선에 기대지 않고 명시한다
+    // (버전 상향 시 조용히 풀리는 것을 방지, docs/plans/M1_PLAN_B.md §3.2.1).
+    dependsOn(verifyKrxProvenance, "koverVerify")
 }

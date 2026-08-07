@@ -1,4 +1,4 @@
-2b572820c83d7c2599acf59d96e70704f998ec7c523dfc62143861879a9d8e0d *src/main/kotlin/com/krxkt/api/KrxClient.kt
+b4dd530d9327043096c56ce8b7f883bd96b570d33c659c691b43043e1e4ed946 *src/main/kotlin/com/krxkt/api/KrxClient.kt
 06540177e109cc7867dab81269407beadd8cd84fc1696dd8c3c7166870c79a84 *src/main/kotlin/com/krxkt/api/KrxEndpoints.kt
 af1a24091342282e82938095a6c8a195897e5b3e6ad3c5ea4d87279dc654b83b *src/main/kotlin/com/krxkt/cache/TickerCache.kt
 593660e704bc24ce66823a965214d283485a69d64ce2a716d74c9d5b315829a2 *src/main/kotlin/com/krxkt/error/KrxError.kt
@@ -27,7 +27,7 @@ ec4505fec6e33818d2e51e4d11cba367af03c82da55283ffaea48246dff044ba *src/main/kotli
 33257c2d43809bd99453a8dfa95c9a67f9dff3661cf52d9837409a9ce24026fb *src/main/kotlin/com/krxkt/model/TickerInfo.kt
 db184c47b7cee52b58ac019bc904cc727173f81b4027a9aa52ca2b78c5bdf13e *src/main/kotlin/com/krxkt/parser/KrxJsonParser.kt
 a74bccac069589137a806a6e7613b2e58d39651263fdf03053dccb375df1116b *src/main/kotlin/com/krxkt/util/DateUtils.kt
-c1270d9b057eaf4739cf32ae6a4f84cb2384835d5a8edff401e3fcfaf7e28ea9 *src/test/kotlin/com/krxkt/api/KrxClientTest.kt
+ef8d3a347b83cadb6b2fe2351fef06a45417dea5a46a4379df2e6dbd30286bd7 *src/test/kotlin/com/krxkt/api/KrxClientTest.kt
 50f3e311579f2bfd54e4cbb492aad6ed0c1e99bc3d2ab3cffbcab9808bbd5adf *src/test/kotlin/com/krxkt/cache/TickerCacheTest.kt
 8b841aba1b2d87a285a874e0ee5f934fbb94b6f8a8a287c433c3b7bb1f8722f8 *src/test/kotlin/com/krxkt/KrxIndexTest.kt
 59424d3c0b92b19dd966255949c47133e3f4bd75fb636f389134bb85547283ea *src/test/kotlin/com/krxkt/KrxStockTest.kt
