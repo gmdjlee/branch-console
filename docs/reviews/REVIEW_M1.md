@@ -304,3 +304,17 @@ W0 절에 누적.
 불가**: 00e(툴체인 매트릭스, 01a 블로커)·00f(SQLite 플랜) 미착수 적발 — 착수 지시. 00g의
 raw JSON 컨테이너 키 정정("output"), A-1 재계산 0.847 검산 일치. 부기: 00b 저널에 FRED 절반
 이관 상호참조 1줄 권고 — Advisor 반영.
+
+### 배치 MT1-00e·00f·02a — 커밋 cdebe47·d6c39c4·a05259f / 4039bb6 / 3b5ddf0·daad43f
+
+**라운드 1 (2026-08-07)**: qa **FAIL 3건**(PROGRESS 표기 실효 / 02a 커버리지 이탈 근거 저장소
+부재 / 00e compileSdk 근거 문장 불일치) → 정정(28a64da·daad43f·a05259f) → qa 델타 **PASS** →
+aaa **CONDITIONAL(경미 2)**. aaa 독립 재현: 02a contracts 뮤테이션 11종(9 사망·2 생존 적발 —
+Severity·distinct_axes 완화 방향 증인 부재), "재생성이 가드를 무력화하지 못함" 확인(invalid
+하드코딩 설계 정당), 00e 스모크 재실행·jvmToolchain 함정 축자 재현·버전 7종 Maven/Google
+독립 대조(Room 3.x 부재 추가 확인), 00f 플랜·자가검증 재실행 일치.
+경미 2건: ① 02a 다이제스트 제외 근거 과잉 서술(생존 뮤턴트 2종) ② 00e Kover 0.9.8 "최신
+stable" 오기(실제 0.9.9). **해소 커밋**: ① 652d566(invalid 2건 추가 — 뮤턴트 2종 사망 확인
+절차 동반, invalid 14파일·207 green) ② 2a4335b(Kover 0.9.9 정정+activityCompose 근거).
+**해소 확인으로 PASS 승격** — 세 서브태스크 완료, PROGRESS 체크 승인. MT1-01a 착수 적격
+(승계 3건: kotlin_krx 전이 의존성 버전 목록·카탈로그 앱 라이브러리 공백·wrapper 경로 미검증).
