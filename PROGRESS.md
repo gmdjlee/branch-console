@@ -107,10 +107,20 @@
     판별자 규율 비침범, aaa 확인. A §2.12 (b-0) 표 규정에 따른 기록)
   - **사용자 결정(2026-08-07)**: MT1-04d ECOS 어댑터 = **키 발급 후 M1 내 구현**(이연 아님).
     키 도착 시 00b 재개(item_code 실측·VERIFY 교체) → 04d 구현 → 구현 트랙 종결
-  - [ ] 미인도 3건(aaa 전수 대조 적발 — TASK 헤더 신설 12항목 중): **04h**(PIT 대조 —
-    수집기 출력 vs backtest/fixtures input.csv, BT-05 전제 증명) / **05k**(원장→사슬 e2e
-    Robolectric 1창 — BT-05 미커버 ①② 보완) / **02d**(정의 상충 → Advisor 확정: B §138
-    형상 다이제스트 교차 검증) — 인도 착수
+  - [x] MT1-04h PIT 대조 하니스 — qa+aaa PASS(2611123). 13/14쌍 실파서 경로 대조(1e-6),
+    VKOSPI 제외 사유 10창 0행 실측, 하이브리드 봉투 한계 공시(형상 주장은 04a~c 소관 분담)
+  - [x] MT1-05k 원장→사슬 e2e — qa+aaa PASS(ec65281). w2026 53틱 실 Room→confirmSeries→
+    실 13지표 사슬→커밋, engine_ref expected 대조. 전이 5회·**or_any_extreme e2e 실발화**,
+    비순환(expected는 Python 정본), SSOT 무수정(잠정 17:00 = grid.json 동일 가정)
+  - [x] MT1-02d 형상 다이제스트 — qa+aaa PASS(a148e66). B §138 정의(Advisor 확정),
+    디스크립터 구동 도출 ↔ shape.sha256 바이트 일치, Python _type_repr 동형성 대조 완료,
+    가짜 필드 뮤테이션 증인
+  - 흡수 명시(aaa 요구 — 추적 공백 재발 방지): **03c**(tick_input 테이블)=MT1-03에 흡수 /
+    **05b2**(IndicatorRuntime)=MT1-05·06에 흡수(ConfirmIndicatorRuntime) / **06h**(부트스트랩
+    게이트)=MT1-06에 흡수(WarmupGate) / **07e**(프리뷰 시계 증인)=MT1-07에 흡수(M-39 테스트)
+  - **구현 트랙 최종 정산(aaa)**: 기본 8 중 04d만 잔여(ECOS 키 대기·M1 내 구현 확정),
+    04e=M2 이연(사용자)·04f=(b) 미수집(사용자). 신설 12 전건 인도·흡수. **구현 외 잔여**:
+    confirm_time 실측(00g)·ECOS 키(외부)·실기기 스모크·GATE_GM1 리포트+승인
 
 - W1 기반
   - [x] MT1-01a 스캐폴드 — qa PASS+aaa COND→해소 PASS(eb480b0·83c0e9e). 3모듈(:engine/:krx/
