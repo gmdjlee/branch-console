@@ -48,6 +48,12 @@ object IndicatorRegistry {
             maxSeverity = (item["max_severity"] as? Number)?.toInt() ?: IndicatorSpec.DEFAULT_MAX_SEVERITY,
         )
 
+    /** `indicators.yaml` 최상위 `registry_version`(예: "0.3.1-rc") — `tick_input.registry_version`
+     * 감사 컬럼(M-49)에 기록할 값을 코드 리터럴 없이 얻는다. */
+    fun registryVersion(source: ConfigSource): String {
+        return YamlLoader.loadMap(source, "indicators.yaml").asString("registry_version")
+    }
+
     fun weightMap(specs: List<IndicatorSpec>): Map<String, Double> =
         LinkedHashMap<String, Double>(specs.size).apply { specs.forEach { put(it.id, it.weight) } }
 

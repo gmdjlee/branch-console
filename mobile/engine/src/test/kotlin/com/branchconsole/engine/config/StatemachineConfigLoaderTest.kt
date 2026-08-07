@@ -24,6 +24,26 @@ class StatemachineConfigLoaderTest {
     }
 
     @Test
+    fun `mobile_daily catchup_max_ticks is 20 (M-17b)`() {
+        assertEquals(20, config.profiles.getValue("mobile_daily").catchupMaxTicks)
+    }
+
+    @Test
+    fun `mobile_daily confirm_time_kst is still unmeasured (AD-3b, MT1-00g pending)`() {
+        // 2026-08-07 현재 SSOT에 값이 없다(PROGRESS.md) — 이 테스트는 "조용한 17:00 기본값"이
+        // 몰래 들어오지 않았음을 고정한다. MT1-00g 실측 완료 후 값이 채워지면 이 테스트를
+        // 갱신한다(브리프 aaa 요건 1).
+        assertEquals(null, config.profiles.getValue("mobile_daily").confirmTimeKst)
+    }
+
+    @Test
+    fun `server_intraday has no confirm_time_kst or catchup_max_ticks (mobile_daily-only extension)`() {
+        val profile = config.profiles.getValue("server_intraday")
+        assertEquals(null, profile.confirmTimeKst)
+        assertEquals(null, profile.catchupMaxTicks)
+    }
+
+    @Test
     fun `server_intraday profile reentry_cooldown_ticks defaults are read, not the missing-key fallback`() {
         val profile = config.profiles.getValue("server_intraday")
         assertEquals(2, profile.promoteSustainTicks)
