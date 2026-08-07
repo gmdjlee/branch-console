@@ -14,6 +14,12 @@ Covers (§6, brief 완료 기준):
 ④ asymmetric/naive_datetime — Python(pydantic) currently ACCEPTS it (§6.2.1 채택
    (a): 부정 케이스가 아니라 "알려진 비대칭"의 고정). Kotlin's `Instant.parse` is
    expected to reject the same input (MT1-02b/c scope) — not exercised here.
+
+커버리지 스코프 (QA 발견 — 이관자 확인용): M1_PLAN_B.md §3.2.1의 결합 명령
+(`--cov=backtest.export_parity --cov=scripts.gen_contract_snapshots`)은
+`backtest/test_export_parity.py`가 아직 없어(MT1-05e 미착수) 현재 실행 불가하다.
+지금은 `scripts.gen_contract_snapshots` 단독 `--cov-fail-under=90`으로 검증한다
+(실측 99%). MT1-05e 완료 기준에 결합 명령 복원을 포함시킬 것.
 """
 
 from __future__ import annotations
