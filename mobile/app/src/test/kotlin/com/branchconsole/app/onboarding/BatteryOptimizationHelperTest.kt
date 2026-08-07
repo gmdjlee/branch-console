@@ -32,6 +32,7 @@ class BatteryOptimizationHelperTest {
 
     @Test
     fun `settings intent targets the ignore-battery-optimizations list`() {
-        assertEquals(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS, BatteryOptimizationHelper.openSettingsIntent().action)
+        val action = BatteryOptimizationHelper.openSettingsIntent().action
+        assertEquals(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS, action)
     }
 }

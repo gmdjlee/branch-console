@@ -19,6 +19,9 @@ import com.branchconsole.lake.Lane
 import com.branchconsole.lake.ObservationEntity
 import java.time.Clock
 import java.time.LocalDate
+import java.time.ZoneOffset
+
+private val KST = ZoneOffset.ofHours(9)
 
 // Same classification as ProductionConfirmTickWorker.DAILY_COLLECT_LOOKBACK_DAYS: an operational
 // fetch-window margin (covers weekends/holidays for the underlying series read), not a threshold/
@@ -60,7 +63,9 @@ internal class PreviewRefreshUseCase(
     }
 
     private suspend fun collectAndAppendPreviewRows() {
-        val today = LocalDate.now(clock)
+        // aaa M-4: "today" is KST, matching the adjacent PreviewTickRunner's own convention
+        // (PreviewTickRunner.previewGrid/run both resolve "today" via clock.withZone(KST)).
+        val today = LocalDate.now(clock.withZone(KST))
         val range = today.minusDays(PREVIEW_COLLECT_LOOKBACK_DAYS)..today
         for (collector in collectors) {
             appendPreviewRows(collector.collect(range))
@@ -79,7 +84,8 @@ internal class PreviewRefreshUseCase(
 
     private suspend fun appendPreviewRow(row: Observation) {
         val asOfMillis = row.asOf.toEpochMilli()
-        val nextRevision = (db.observationDao().maxRevision(row.seriesId, row.field, asOfMillis, Lane.PREVIEW) ?: -1) + 1
+        val priorRevision = db.observationDao().maxRevision(row.seriesId, row.field, asOfMillis, Lane.PREVIEW)
+        val nextRevision = (priorRevision ?: -1) + 1
         // Same-cell races (two refreshes overlapping) would collide on the UNIQUE index; absorbed
         // the same way WarmupBackfillOrchestrator.appendRows does (K-14-style "best effort, never
         // crash the whole refresh over one row").
@@ -103,12 +109,14 @@ internal class PreviewRefreshUseCase(
         val severities = result.indicators.values.map { it.severity }
         if (!ProvisionalAlertEvaluator.shouldNotify(result.suppressed, severities)) return
         if (!NotificationGate.isEnabled(context)) return
+        val composite = formatComposite(result.filledComposite)
+        val coverage = formatCoveragePercent(result.rawCoverage)
         NotificationSender.send(
             context = context,
             channelId = NotificationChannels.PROVISIONAL_ALERT,
             notificationId = NOTIF_ID_PROVISIONAL_ALERT,
             title = "잠정 경보",
-            text = "PREVIEW · composite ${formatComposite(result.filledComposite)} · coverage ${formatCoveragePercent(result.rawCoverage)}",
+            text = "PREVIEW · composite $composite · coverage $coverage",
         )
     }
 }

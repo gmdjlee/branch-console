@@ -68,7 +68,9 @@ class CredentialsStore(private val prefs: SharedPreferences) {
         }
 
     fun fredCredentialsProvider(): FredCredentialsProvider =
-        FredCredentialsProvider { load().fredApiKey?.takeIf { it.isNotBlank() } ?: error("FRED_API_KEY not configured") }
+        FredCredentialsProvider {
+            load().fredApiKey?.takeIf { it.isNotBlank() } ?: error("FRED_API_KEY not configured")
+        }
 
     companion object {
         private const val PREFS_FILE_NAME = "branch_console_credentials"

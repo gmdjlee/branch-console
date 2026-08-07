@@ -1,5 +1,6 @@
 package com.branchconsole.app.home
 
+import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.branchconsole.app.preview.PreviewIndicatorState
@@ -51,9 +52,11 @@ private fun tickRow(
 class HomeDataTest {
     private lateinit var db: LakeDatabase
 
+    private fun context() = ApplicationProvider.getApplicationContext<Context>()
+
     @Before
     fun setUp() {
-        db = LakeDatabase.buildInMemory(ApplicationProvider.getApplicationContext())
+        db = LakeDatabase.buildInMemory(context())
     }
 
     @After
@@ -64,7 +67,7 @@ class HomeDataTest {
     @Test
     fun `empty lake yields EMPTY state with no tick fields`() =
         runTest {
-            val ui = HomeData.load(ApplicationProvider.getApplicationContext(), db, previewResult = null)
+            val ui = HomeData.load(context(), db, previewResult = null)
 
             assertEquals(HomeState.EMPTY, ui.state)
             assertNull(ui.composite)
@@ -80,7 +83,7 @@ class HomeDataTest {
             val severities = """{"vix_level_z": 3, "kospi_drawdown": 1, "usdkrw_z": 2, "dxy_z": null}"""
             db.tickInputDao().insert(tickRow("2026-08-06", severities))
 
-            val ui = HomeData.load(ApplicationProvider.getApplicationContext(), db, previewResult = null)
+            val ui = HomeData.load(context(), db, previewResult = null)
 
             assertEquals(3, ui.topIndicators.size)
             assertEquals("vix_level_z", ui.topIndicators[0].id)
@@ -95,18 +98,21 @@ class HomeDataTest {
         runTest {
             db.tickInputDao().insert(tickRow("2026-08-06", "{}"))
 
-            val ui = HomeData.load(ApplicationProvider.getApplicationContext(), db, previewResult = null)
+            val ui = HomeData.load(context(), db, previewResult = null)
 
-            assertTrue("registry_version must be non-blank from the real SSOT asset", !ui.registryVersion.isNullOrBlank())
+            val msg = "registry_version must be non-blank from the real SSOT asset"
+            assertTrue(msg, !ui.registryVersion.isNullOrBlank())
         }
 
     @Test
     fun `last run log status and detail surface on the ui state`() =
         runTest {
             db.tickInputDao().insert(tickRow("2026-08-06", "{}"))
-            db.runLogDao().insert(RunLogEntity(tradingDate = "2026-08-06", ranAt = 0L, status = "success", detail = "committed=1"))
+            db.runLogDao().insert(
+                RunLogEntity(tradingDate = "2026-08-06", ranAt = 0L, status = "success", detail = "committed=1"),
+            )
 
-            val ui = HomeData.load(ApplicationProvider.getApplicationContext(), db, previewResult = null)
+            val ui = HomeData.load(context(), db, previewResult = null)
 
             assertEquals("success", ui.lastRunStatus)
             assertEquals("committed=1", ui.lastRunDetail)
@@ -115,6 +121,12 @@ class HomeDataTest {
     @Test
     fun `preview projection surfaces stale (carried) indicators as a distinct badge list`() =
         runTest {
+            // Freshly observed this preview -- not stale.
+            val fresh = PreviewIndicatorState(severity = 2, observed = true, carriedAsOfMillis = null)
+            // Carried forward from the last confirmed tick -- stale badge target.
+            val carried = PreviewIndicatorState(severity = 1, observed = false, carriedAsOfMillis = 1000L)
+            // Missing even after carry-forward -- not a stale badge (no severity to carry).
+            val missing = PreviewIndicatorState(severity = null, observed = false, carriedAsOfMillis = null)
             val previewResult =
                 PreviewResult(
                     tickDay = LocalDate.of(2026, 8, 6),
@@ -123,18 +135,10 @@ class HomeDataTest {
                     filledCoverage = 1.0,
                     filledComposite = 45.2,
                     suppressed = true,
-                    indicators =
-                        mapOf(
-                            // Freshly observed this preview -- not stale.
-                            "vix_level_z" to PreviewIndicatorState(severity = 2, observed = true, carriedAsOfMillis = null),
-                            // Carried forward from the last confirmed tick -- stale badge target.
-                            "kospi_drawdown" to PreviewIndicatorState(severity = 1, observed = false, carriedAsOfMillis = 1000L),
-                            // Missing even after carry-forward -- not a stale badge (no severity to carry).
-                            "usdkrw_z" to PreviewIndicatorState(severity = null, observed = false, carriedAsOfMillis = null),
-                        ),
+                    indicators = mapOf("vix_level_z" to fresh, "kospi_drawdown" to carried, "usdkrw_z" to missing),
                 )
 
-            val ui = HomeData.load(ApplicationProvider.getApplicationContext(), db, previewResult)
+            val ui = HomeData.load(context(), db, previewResult)
 
             val preview = ui.preview
             assertTrue("preview projection must be present when a PreviewResult is supplied", preview != null)

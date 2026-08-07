@@ -72,6 +72,12 @@ private fun tickInputRow(
     pitQuality = "live",
 )
 
+private fun failedRunLog(
+    date: String,
+    ranAt: Long,
+    detail: String,
+) = RunLogEntity(tradingDate = date, ranAt = ranAt, status = "failed", detail = detail)
+
 /**
  * TASK MT1-08 완료 기준 — 노티 트리거 테스트(`--tests "*NotificationTrigger*"`, 억제 상태
  * 미발신·전이 없을 때 미발신 포함). [ProvisionalAlertEvaluatorTest]/[PhaseTransitionEvaluatorTest]
@@ -113,7 +119,8 @@ class NotificationTriggerTest {
     fun `no tick_input rows means no phase transition notification`() =
         runTest {
             sync().checkAndNotify()
-            assertTrue("no data yet -> nothing to notify", sent.none { it.channelId == NotificationChannels.PHASE_TRANSITION })
+            val phaseTransitionsSent = sent.none { it.channelId == NotificationChannels.PHASE_TRANSITION }
+            assertTrue("no data yet -> nothing to notify", phaseTransitionsSent)
         }
 
     @Test
@@ -183,7 +190,9 @@ class NotificationTriggerTest {
     @Test
     fun `no failed run_log rows means no tick_failure notification`() =
         runTest {
-            db.runLogDao().insert(RunLogEntity(tradingDate = "2026-08-05", ranAt = 0L, status = "success", detail = null))
+            db.runLogDao().insert(
+                RunLogEntity(tradingDate = "2026-08-05", ranAt = 0L, status = "success", detail = null),
+            )
 
             sync().checkAndNotify()
 
@@ -208,11 +217,11 @@ class NotificationTriggerTest {
     fun `a second failure on the same KST day stays within the 1-per-day notification budget`() =
         runTest {
             val clock = Clock.fixed(Instant.parse("2026-08-05T08:00:00Z"), ZoneId.of("UTC")) // 17:00 KST
-            db.runLogDao().insert(RunLogEntity(tradingDate = "2026-08-05", ranAt = 0L, status = "failed", detail = "first"))
+            db.runLogDao().insert(failedRunLog(date = "2026-08-05", ranAt = 0L, detail = "first"))
             sync(clock).checkAndNotify()
             sent.clear()
 
-            db.runLogDao().insert(RunLogEntity(tradingDate = "2026-08-05", ranAt = 1L, status = "failed", detail = "second"))
+            db.runLogDao().insert(failedRunLog(date = "2026-08-05", ranAt = 1L, detail = "second"))
             sync(clock).checkAndNotify()
 
             assertTrue(
@@ -226,11 +235,11 @@ class NotificationTriggerTest {
         runTest {
             val day1 = Clock.fixed(Instant.parse("2026-08-05T08:00:00Z"), ZoneId.of("UTC"))
             val day2 = Clock.fixed(Instant.parse("2026-08-06T08:00:00Z"), ZoneId.of("UTC"))
-            db.runLogDao().insert(RunLogEntity(tradingDate = "2026-08-05", ranAt = 0L, status = "failed", detail = "day1"))
+            db.runLogDao().insert(failedRunLog(date = "2026-08-05", ranAt = 0L, detail = "day1"))
             sync(day1).checkAndNotify()
             sent.clear()
 
-            db.runLogDao().insert(RunLogEntity(tradingDate = "2026-08-06", ranAt = 1L, status = "failed", detail = "day2"))
+            db.runLogDao().insert(failedRunLog(date = "2026-08-06", ranAt = 1L, detail = "day2"))
             sync(day2).checkAndNotify()
 
             assertEquals(1, sent.count { it.channelId == NotificationChannels.TICK_FAILURE })

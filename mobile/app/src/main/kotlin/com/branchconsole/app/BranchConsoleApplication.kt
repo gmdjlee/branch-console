@@ -4,7 +4,6 @@ import android.app.Application
 import android.util.Log
 import androidx.work.Configuration
 import com.branchconsole.app.notif.NotificationChannels
-import com.branchconsole.app.notif.NotificationSyncWorker
 import com.branchconsole.app.production.BranchConsoleWorkerFactory
 import com.branchconsole.app.tick.ConfirmTickWorker
 
@@ -25,11 +24,17 @@ private const val TAG = "BranchConsoleApp"
  * MT1-08c/08d — `Configuration.Provider`를 구현해 [BranchConsoleWorkerFactory]를 등록한다.
  * `ConfirmTickWorker.schedulePeriodic`가 못박은 `PeriodicWorkRequestBuilder<ConfirmTickWorker>`
  * 클래스명을 그 팩토리가 가로채 `ProductionConfirmTickWorker`(dailyCollect 실구현)로 바꿔
- * 낸다 — `tick/ConfirmTickWorker.kt`는 한 줄도 고치지 않는다. AndroidX Startup은 Application이
- * `Configuration.Provider`를 구현하면 자동으로 이 설정을 쓴다(매니페스트 변경 불필요).
+ * 낸다 — `tick/ConfirmTickWorker.kt`는 한 줄도 고치지 않는다. **매니페스트 변경이 필요하다**
+ * (`AndroidManifest.xml`의 `InitializationProvider` meta-data 제거) — 실측(바이트코드
+ * 디컴파일)에 따르면 androidx.startup 기반 기본 `WorkManagerInitializer`가 `Application#onCreate`
+ * 이전에 무조건 기본 `Configuration`으로 WorkManager를 즉시 초기화해 버리므로, 그 초기화기를
+ * 매니페스트에서 제거해야만 `WorkManagerImpl.getInstance()`의 지연 초기화 경로(그 안에서만
+ * `Configuration.Provider` instanceof 검사가 일어난다)가 살아난다.
  *
- * MT1-08a — 노티 채널 3종을 앱 시작마다 확정하고(멱등), 확정 틱/캐치업과 독립된 15분 주기
- * [NotificationSyncWorker]를 등록해 국면 전이·틱 실패 노티를 배선한다.
+ * MT1-08a — 노티 채널 3종을 앱 시작마다 확정한다(멱등). 국면 전이·틱 실패 노티는 별도 폴링
+ * 워커가 아니라 [com.branchconsole.app.production.ProductionConfirmTickWorker.doWork]가
+ * `super.doWork()` 직후 직접 확인한다(aaa M-5 — 확정 틱 완료 시점에 정확히 물려 K-15 표면·
+ * 지연을 늘리지 않는다). `provisional_alert`는 프리뷰 갱신 버튼(홈 화면)이 그때그때 확인한다.
  */
 class BranchConsoleApplication : Application(), Configuration.Provider {
     override val workManagerConfiguration: Configuration
@@ -44,6 +49,5 @@ class BranchConsoleApplication : Application(), Configuration.Provider {
         }.onFailure { e ->
             Log.e(TAG, "confirm tick scheduling failed (will retry on next app launch)", e)
         }
-        NotificationSyncWorker.schedulePeriodic(this)
     }
 }

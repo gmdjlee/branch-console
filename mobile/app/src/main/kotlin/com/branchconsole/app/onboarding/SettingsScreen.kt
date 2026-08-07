@@ -122,7 +122,9 @@ private fun CredentialsSection(
         label = { Text("KRX 비밀번호") },
     )
     Button(onClick = {
-        scope.launch { krxVerify = CredentialVerification.verifyKrx(fields.krxId.orEmpty(), fields.krxPassword.orEmpty()).label() }
+        scope.launch {
+            krxVerify = CredentialVerification.verifyKrx(fields.krxId.orEmpty(), fields.krxPassword.orEmpty()).label()
+        }
     }) {
         Text("KRX 검증")
     }
@@ -133,7 +135,9 @@ private fun CredentialsSection(
         onValueChange = { onFieldsChange(fields.copy(fredApiKey = it)) },
         label = { Text("FRED API 키") },
     )
-    Button(onClick = { scope.launch { fredVerify = CredentialVerification.verifyFred(fields.fredApiKey.orEmpty()).label() } }) {
+    Button(onClick = {
+        scope.launch { fredVerify = CredentialVerification.verifyFred(fields.fredApiKey.orEmpty()).label() }
+    }) {
         Text("FRED 검증")
     }
     fredVerify?.let { Text(it) }

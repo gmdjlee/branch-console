@@ -25,6 +25,9 @@ import java.time.ZoneId
 import java.time.ZoneOffset
 
 private const val REGISTRY_VERSION = "0.0.0-test"
+private const val FIXED_CLOCK_INSTANT = "2026-08-06T01:00:00Z" // 10:00 KST
+private val SERIES = ConfirmSeriesIds.VIX
+private val FIELD = ConfirmSeriesIds.FIELD_CLOSE
 
 /** Reduced fixture registry (same shape/convention as PreviewTickRunnerTest) — this file only
  * exercises the collect -> append(lane=1) -> [PreviewTickRunner] wiring, not zscore numerics. */
@@ -106,6 +109,19 @@ private class FakeVixCollector(private val asOfDates: List<LocalDate>, private v
         )
 }
 
+/** Records the [ClosedRange] it was asked to collect -- aaa M-4 KST boundary witness. */
+private class RangeCapturingCollector : Collector {
+    override val id = "range-capture"
+    override val expectedSeriesIds = listOf(ConfirmSeriesIds.VIX)
+    var lastRange: ClosedRange<LocalDate>? = null
+        private set
+
+    override suspend fun collect(range: ClosedRange<LocalDate>): CollectOutcome {
+        lastRange = range
+        return CollectOutcome.Ok(emptyList())
+    }
+}
+
 @RunWith(AndroidJUnit4::class)
 @Config(sdk = [36])
 class PreviewRefreshUseCaseTest {
@@ -121,14 +137,16 @@ class PreviewRefreshUseCaseTest {
         db.close()
     }
 
-    // 2026-08-06T01:00:00Z == 10:00 KST.
-    private fun useCase(collectors: List<Collector>): PreviewRefreshUseCase =
+    private fun useCase(
+        collectors: List<Collector>,
+        clock: Clock = Clock.fixed(Instant.parse(FIXED_CLOCK_INSTANT), ZoneId.of("UTC")),
+    ): PreviewRefreshUseCase =
         PreviewRefreshUseCase(
             context = ApplicationProvider.getApplicationContext(),
             db = db,
             collectors = collectors,
             configSource = FIXTURE,
-            clock = Clock.fixed(Instant.parse("2026-08-06T01:00:00Z"), ZoneId.of("UTC")),
+            clock = clock,
         )
 
     @Test
@@ -137,10 +155,10 @@ class PreviewRefreshUseCaseTest {
             val fixedDate = LocalDate.of(2026, 8, 5)
             useCase(listOf(FakeVixCollector(listOf(fixedDate), value = 15.0))).refresh()
 
-            val rows = db.observationDao().previewSeries(ConfirmSeriesIds.VIX, ConfirmSeriesIds.FIELD_CLOSE, 0L, Long.MAX_VALUE)
-            assertTrue("preview-lane read must see the appended row", rows.isNotEmpty())
+            val previewRows = db.observationDao().previewSeries(SERIES, FIELD, 0L, Long.MAX_VALUE)
+            assertTrue("preview-lane read must see the appended row", previewRows.isNotEmpty())
 
-            val confirmedOnly = db.observationDao().confirmSeries(ConfirmSeriesIds.VIX, ConfirmSeriesIds.FIELD_CLOSE, 0L, Long.MAX_VALUE)
+            val confirmedOnly = db.observationDao().confirmSeries(SERIES, FIELD, 0L, Long.MAX_VALUE)
             assertTrue("must NOT land in the confirmed lane", confirmedOnly.isEmpty())
         }
 
@@ -151,15 +169,14 @@ class PreviewRefreshUseCaseTest {
             val asOfMillis = fixedDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
 
             useCase(listOf(FakeVixCollector(listOf(fixedDate), value = 15.0))).refresh()
-            assertEquals(0, db.observationDao().maxRevision(ConfirmSeriesIds.VIX, ConfirmSeriesIds.FIELD_CLOSE, asOfMillis, Lane.PREVIEW))
+            val firstRevision = db.observationDao().maxRevision(SERIES, FIELD, asOfMillis, Lane.PREVIEW)
+            assertEquals(0, firstRevision)
 
-            useCase(listOf(FakeVixCollector(listOf(fixedDate), value = 25.0))).refresh() // same day, intraday value moved
+            // Same day, intraday value moved.
+            useCase(listOf(FakeVixCollector(listOf(fixedDate), value = 25.0))).refresh()
 
-            assertEquals(
-                "second refresh must not silently drop on the UNIQUE constraint",
-                1,
-                db.observationDao().maxRevision(ConfirmSeriesIds.VIX, ConfirmSeriesIds.FIELD_CLOSE, asOfMillis, Lane.PREVIEW),
-            )
+            val secondRevision = db.observationDao().maxRevision(SERIES, FIELD, asOfMillis, Lane.PREVIEW)
+            assertEquals("second refresh must not silently drop on the UNIQUE constraint", 1, secondRevision)
         }
 
     @Test
@@ -170,5 +187,18 @@ class PreviewRefreshUseCaseTest {
 
             assertTrue(result.indicators.containsKey("vix_level_z"))
             assertTrue("preview must never commit tick_input", db.tickInputDao().allOrderedByDate().isEmpty())
+        }
+
+    @Test
+    fun `aaa M-4 - collect range uses the KST calendar date, not the UTC one`() =
+        runTest {
+            // 2026-08-06T16:00:00Z is still 2026-08-06 in UTC but already 2026-08-07 01:00 KST --
+            // a UTC-dated "today" would be one day behind the correct KST trading day.
+            val boundaryClock = Clock.fixed(Instant.parse("2026-08-06T16:00:00Z"), ZoneId.of("UTC"))
+            val collector = RangeCapturingCollector()
+
+            useCase(listOf(collector), clock = boundaryClock).refresh()
+
+            assertEquals(LocalDate.of(2026, 8, 7), collector.lastRange?.endInclusive)
         }
 }
