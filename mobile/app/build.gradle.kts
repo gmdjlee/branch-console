@@ -206,6 +206,13 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.okhttp)
     implementation(libs.kotlinx.serialization.json)
+    // MT1-04c: KrxCollector 내부 suspend 흐름과 KrxRateLimiter의 delay() 기본값이 직접 쓴다.
+    implementation(libs.kotlinx.coroutines.core)
+    // MT1-04c: KrxRateLimitConfig가 K-03 SSOT(configs/sources.yaml)를 assets에서 파싱한다.
+    // engine/krx build.gradle.kts와 동일 사유로 junit-jupiter 런타임 누출을 제외한다.
+    implementation(libs.snakeyaml.engine) {
+        exclude(group = "org.junit.jupiter")
+    }
 
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
@@ -217,6 +224,14 @@ dependencies {
     testImplementation(libs.snakeyaml.engine) {
         exclude(group = "org.junit.jupiter")
     }
+    // MT1-04a/04b collectors 픽스처 테스트(네트워크 금지, :krx KrxClientTest와 동일 선례).
+    testImplementation(libs.okhttp.mockwebserver)
+    // MT1-04c: KrxCollectorTest/KrxRateLimiterTest의 runTest{} (:krx 테스트와 동일 선례).
+    testImplementation(libs.kotlinx.coroutines.test)
+    // MT1-04c: KrxInvestorTradingContractTest가 :krx의 KrxJsonParser/InvestorTrading
+    // 공개 API(JsonObject 반환)를 직접 소비한다 — gson은 :krx의 implementation 의존이라
+    // 전이 노출되지 않는다.
+    testImplementation(libs.gson)
 
     androidTestImplementation(libs.androidx.test.core)
     androidTestImplementation(libs.androidx.test.ext.junit)
