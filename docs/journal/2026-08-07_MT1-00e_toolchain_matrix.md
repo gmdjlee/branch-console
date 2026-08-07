@@ -80,7 +80,7 @@ HEAD(`6cc8180`)가 origin과 완전히 동기화됨. 미추적 파일 5건(MT1-0
 | Gradle | **8.13** | 위 AGP 요구사항과 정확히 일치 + 로컬에 **이미 추출되어 있음**(§1) → 신규 다운로드 0 |
 | Kotlin | **2.1.0** | kotlin_krx 고정값과 정렬(§2), AD-A9 제약("≥2.1.0")의 최소값을 그대로 채택 — 상향은 미검증 리스크로 남김(§7) |
 | JDK(빌드 실행) | **21**(Android Studio 내장 JBR) | AGP 8.13 최소요건(17)을 상회. standalone JDK 17이 로컬에 없어 JBR 21로 대체 실측(§1, §5) |
-| compileSdk / targetSdk | **36**(minSdk 29는 계획 고정값 그대로) | AGP 8.13이 지원하는 최대치(36.1)이자 로컬 SDK platform 최신판과 일치 |
+| compileSdk / targetSdk | **36**(minSdk 29는 계획 고정값 그대로) | AGP 8.13 지원 범위(최대 36.1) 안의 값 — 로컬 SDK 최신판은 36.1이지만 **36으로 채택**(§5 스모크도 36으로 수행). 36.1(QPR)로 올릴지는 MT1-01a 재량으로 남긴다 |
 | Compose BOM | **2025.01.01** | Kotlin 2.1.0(2024-11 릴리스)과 동시대 안정판. Compose Compiler는 Kotlin 2.0+부터 `org.jetbrains.kotlin.plugin.compose` 플러그인이 **Kotlin 버전과 1:1**로 맞춰지므로 별도 버전 불필요(kotlin=2.1.0 → compose-compiler 플러그인도 2.1.0) — [developer.android.com/develop/ui/compose/setup-compose-dependencies-and-compiler](https://developer.android.com/develop/ui/compose/setup-compose-dependencies-and-compiler) |
 
 AGP 9.x 계열(최신 9.3.0, 2026-07)은 **의도적으로 채택하지 않았다** — 최소 Gradle 9.5.0을
