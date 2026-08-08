@@ -21,7 +21,11 @@ import java.time.ZoneOffset
  */
 class FredObservationsCollectorTest {
     private lateinit var server: MockWebServer
-    private val fixedClock: Clock = Clock.fixed(Instant.parse("2026-08-06T00:00:00Z"), ZoneOffset.UTC)
+
+    // 정오 UTC(=07:00 CDT) -- CT/UTC 날짜가 같은 "안전한" 시각. UTC/CT 날짜가 갈리는 창의 동작은
+    // 아래 전용 테스트(실기기 S-0, aaa R6 D-6 America/Chicago 확정)가 별도로 다룬다 -- 이 clock을
+    // 자정 근처로 두면 그 버그를 재현하는 값을 "정상"으로 오인해 단언하게 된다.
+    private val fixedClock: Clock = Clock.fixed(Instant.parse("2026-08-06T12:00:00Z"), ZoneOffset.UTC)
 
     @Before
     fun setup() {
@@ -74,6 +78,34 @@ class FredObservationsCollectorTest {
             assertEquals("json", url.queryParameter("file_type"))
             assertEquals("VIXCLS", url.queryParameter("series_id"))
             assertEquals("test-key", url.queryParameter("api_key"))
+        }
+
+    /**
+     * 실기기 S-0 발견 결함 회귀 가드 — FRED realtime 달력은 America/Chicago 기준으로 실측
+     * 확정됐다(클래스 KDoc E1~E3 참조, aaa R6 D-6). 2026-08-08T04:30:00Z는 판별력 있는 시각으로
+     * 고른 것 — 이 순간 UTC=08-08, ET(America/New_York)=08-08, CT(America/Chicago)=08-07로
+     * 셋이 갈린다. 그래서 이 테스트 하나가 UTC 회귀와 (이전 라운드의 오답이었던) ET 회귀를
+     * 모두 잡는다 — 단일 시각으로는 여러 시간대 가설을 무판별한다는 게 바로 R6에서 드러난
+     * 교훈이다.
+     */
+    @Test
+    fun `fetchObservations uses FRED's Chicago calendar date, not UTC or ET, across the day boundary`() =
+        runBlocking {
+            val mismatchClock = Clock.fixed(Instant.parse("2026-08-08T04:30:00Z"), ZoneOffset.UTC)
+            val mismatchCollector =
+                FredObservationsCollector(
+                    credentials = FredCredentialsProvider { "test-key" },
+                    baseUrl = server.url("/fred").toString(),
+                    retryPolicy = RetryPolicy(attempts = 1, backoffMs = emptyList()),
+                    clock = mismatchClock,
+                )
+            server.enqueue(MockResponse().setBody(VIXCLS_FIXTURE).setResponseCode(200))
+
+            mismatchCollector.fetchObservations("VIXCLS")
+
+            val url = server.takeRequest().requestUrl!!
+            assertEquals("2026-08-07", url.queryParameter("realtime_start"))
+            assertEquals("2026-08-07", url.queryParameter("realtime_end"))
         }
 
     @Test
