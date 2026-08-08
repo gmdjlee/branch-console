@@ -33,6 +33,15 @@ import com.branchconsole.app.collectors.krx.KrxCredentialsProvider
  * `CredentialsStoreEncryptionInstrumentedTest`).
  */
 class CredentialsStore(private val prefs: SharedPreferences) {
+    /**
+     * aaa D-4 — [CredentialFields.trimmed]을 여기서 거친다. 이유: [krxCredentialsProvider]/
+     * [fredCredentialsProvider]/[ecosCredentialsProvider]와 [isCollectConfigured]가 전부 이
+     * 함수 하나로 수렴하므로, 여기서 트림하면 그 4곳이 자동으로 커버된다. 이게 결정적인 이유는
+     * S-0에서 트림 도입 **이전에** 이미 후행 공백 포함 키가 실기기에 저장돼 있었다는 사실 —
+     * `save()`만 고쳐서는 legacy 저장값이 영구히 오염된 채 남아 확정 틱 수집이 조용히
+     * 400/불일치로 실패한다(§2.2 조용한 실패 금지). `load()`가 트림하면 그 legacy 값도 읽을
+     * 때마다 자동 치유된다.
+     */
     fun load(): CredentialFields =
         CredentialFields(
             krxId = prefs.getString(KEY_KRX_ID, null),
@@ -41,16 +50,17 @@ class CredentialsStore(private val prefs: SharedPreferences) {
             ecosApiKey = prefs.getString(KEY_ECOS_KEY, null),
             kisAppKey = prefs.getString(KEY_KIS_APP_KEY, null),
             kisAppSecret = prefs.getString(KEY_KIS_APP_SECRET, null),
-        )
+        ).trimmed()
 
     fun save(fields: CredentialFields) {
+        val normalized = fields.trimmed()
         prefs.edit()
-            .putOrRemove(KEY_KRX_ID, fields.krxId)
-            .putOrRemove(KEY_KRX_PW, fields.krxPassword)
-            .putOrRemove(KEY_FRED_KEY, fields.fredApiKey)
-            .putOrRemove(KEY_ECOS_KEY, fields.ecosApiKey)
-            .putOrRemove(KEY_KIS_APP_KEY, fields.kisAppKey)
-            .putOrRemove(KEY_KIS_APP_SECRET, fields.kisAppSecret)
+            .putOrRemove(KEY_KRX_ID, normalized.krxId)
+            .putOrRemove(KEY_KRX_PW, normalized.krxPassword)
+            .putOrRemove(KEY_FRED_KEY, normalized.fredApiKey)
+            .putOrRemove(KEY_ECOS_KEY, normalized.ecosApiKey)
+            .putOrRemove(KEY_KIS_APP_KEY, normalized.kisAppKey)
+            .putOrRemove(KEY_KIS_APP_SECRET, normalized.kisAppSecret)
             .apply()
     }
 
@@ -122,4 +132,31 @@ data class CredentialFields(
     val ecosApiKey: String? = null,
     val kisAppKey: String? = null,
     val kisAppSecret: String? = null,
-)
+) {
+    /**
+     * 실기기 S-0 발견 결함 수정 — 신뢰 경계(폼 입력·영속값) 위생의 공용 정규화 함수(aaa D-4
+     * 재판정으로 "유일한 초크포인트" 문구 정정: 실제로는 3곳에서 이 함수를 호출한다).
+     * 모바일 키보드 자동완성/붙여넣기가 남기는 후행 공백을 okhttp가 그대로 `%20`으로 인코딩해
+     * FRED가 키 불일치 400을 반환한다(실기기 재현: 정상 32자 키 200 vs 같은 키+공백1 400).
+     * - [CredentialsStore.load] — **결정적 호출부**. provider 3종([CredentialsStore.krxCredentialsProvider]
+     *   /[CredentialsStore.fredCredentialsProvider]/[CredentialsStore.ecosCredentialsProvider])과
+     *   [CredentialsStore.isCollectConfigured]가 전부 load()로 수렴해, 트림 도입 이전에 저장된
+     *   legacy 패딩 값까지 읽을 때마다 자동 치유한다.
+     * - [CredentialsStore.save] — 저장 시점에도 트림(중복이지만 무해 — load가 어차피 다시
+     *   트림하므로 상태 오염 방지의 이중 방어일 뿐).
+     * - SettingsScreen 검증 버튼 — 아직 저장하지 않은 폼 입력값을 검증 직전에 커버(load를
+     *   거치지 않는 유일한 미저장 경로).
+     * KRX 비밀번호도 예외 없이 트림한다 — 양끝 공백이 유효한 비밀번호일 가능성보다 붙여넣기
+     * 오염일 가능성이 압도적이다. 트림 후 공백만 남으면 null로 접어 기존 `isNullOrBlank()`
+     * 판정과 일관되게 한다.
+     */
+    fun trimmed(): CredentialFields =
+        CredentialFields(
+            krxId = krxId?.trim()?.ifBlank { null },
+            krxPassword = krxPassword?.trim()?.ifBlank { null },
+            fredApiKey = fredApiKey?.trim()?.ifBlank { null },
+            ecosApiKey = ecosApiKey?.trim()?.ifBlank { null },
+            kisAppKey = kisAppKey?.trim()?.ifBlank { null },
+            kisAppSecret = kisAppSecret?.trim()?.ifBlank { null },
+        )
+}

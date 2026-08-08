@@ -165,8 +165,11 @@ private fun CredentialsSection(
         label = { Text("KRX 비밀번호") },
     )
     Button(onClick = {
+        // 실기기 S-0 — 검증 경로도 CredentialFields.trimmed()를 거친다. 결정적 초크포인트는
+        // CredentialsStore.load(legacy 치유 포함)이고, 여기는 미저장 폼 입력 커버용(aaa O-2).
         scope.launch {
-            krxVerify = CredentialVerification.verifyKrx(fields.krxId.orEmpty(), fields.krxPassword.orEmpty()).label()
+            val trimmed = fields.trimmed()
+            krxVerify = CredentialVerification.verifyKrx(trimmed.krxId.orEmpty(), trimmed.krxPassword.orEmpty()).label()
         }
     }) {
         Text("KRX 검증")
@@ -179,7 +182,7 @@ private fun CredentialsSection(
         label = { Text("FRED API 키") },
     )
     Button(onClick = {
-        scope.launch { fredVerify = CredentialVerification.verifyFred(fields.fredApiKey.orEmpty()).label() }
+        scope.launch { fredVerify = CredentialVerification.verifyFred(fields.trimmed().fredApiKey.orEmpty()).label() }
     }) {
         Text("FRED 검증")
     }
@@ -190,6 +193,10 @@ private fun CredentialsSection(
         onValueChange = { onFieldsChange(fields.copy(ecosApiKey = it)) },
         label = { Text("ECOS API 키 (선택 — 미발급 시 관련 지표 미수집)") },
     )
+    // 실기기 관찰(S-0 계열) — KIS appkey 입력 중 다음 필드(appsecret)가 키보드에 가려짐.
+    // 귀속: imeAction=Next + FocusRequester 체이닝 부재(OutlinedTextField 기본값은 Done) —
+    // 자동 스크롤/포커스 이동이 없어 verticalScroll만으로는 안 보인다. M2 UI 정비 이관, 여기서는
+    // 수정하지 않는다(구조 변경 금지 범위 밖).
     OutlinedTextField(
         value = fields.kisAppKey.orEmpty(),
         onValueChange = { onFieldsChange(fields.copy(kisAppKey = it)) },
