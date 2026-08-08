@@ -6,6 +6,10 @@
          Denial must not disable app function; see notif.NotificationGate and the home banner fallback. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- 실기기 S-0 발견 결함 수정 — 누락 시 모든 소켓 호출(자격증명 검증·collectors·확정 틱)이
+         SecurityException으로 실패한다. install-time normal 권한(사용자 승인 불필요). -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:name=".BranchConsoleApplication"
         android:allowBackup="false"
