@@ -149,11 +149,13 @@
       788f13f. imePadding은 aaa가 무효 코드로 반증(safeDrawing ⊇ ime — 제거)
     - [x] ③자격증명 공백 미트림 — aaa R4 FAIL(생산 provider 3경로 우회 적발 → load() 수렴점
       처방)→R5 PASS. legacy 저장값 자동 치유 + save() 우회 증인, 9cbe115
-    - [~] ④FRED realtime 날짜 시간대 버그(400의 진범 — KST 오전 창 매일 실패, 17:00 확정 틱은
-      창 밖): UTC→ET 수정이 aaa R6 FAIL(D-6: ET 미실측, 03:30Z 재현은 ET/CT 무판별 — 세인트
-      루이스 연준=CT). Advisor 판별 실측 04:06Z: **ET 반증**(ET 오늘 400/전일 200). CT 확정은
-      05:00~06:00Z 창 실측 대기(예약). 부수 적발: 테스트 고정 clock(00:00Z)이 버그 창 안에서
-      UTC 계산을 정답 박제 → 정오 이동+경계 전용 증인(시간 픽스처 원칙, GATE_GM1 기록)
+    - [x] ④FRED realtime 날짜 시간대 버그(400의 진범 — KST 오전 창 매일 실패, 17:00 확정 틱은
+      창 밖): UTC→ET 수정이 aaa R6 FAIL(D-6: ET 미실측, 03:30Z 재현은 ET/CT 무판별) → Advisor
+      판별 실측 3점(04:06Z ET 오늘 400=**ET 반증** / 05:06Z CT 오늘 200) → **America/Chicago
+      확정**(롤오버 04:06~05:06Z = UTC−5, 세인트루이스 연준 정합) → 존 교정+실측표 KDoc+판별
+      시각(04:30Z, UTC/ET/CT 3자 분기) 경계 증인 — qa R8·aaa R7 PASS, a2c5e09. 부수 적발:
+      테스트 고정 clock(00:00Z)이 버그 창 안에서 UTC 계산을 정답 박제 → 정오 이동+경계 전용
+      증인(시간 픽스처 원칙). 잔여: 재설치 후 사용자 FRED 확인 1회 / 겨울 CST 롤오버 관찰
     - 부기: KIS appkey→appsecret 키보드 가림(imeAction=Next 부재) M2 이관(코드 주석 물질화) /
       adb 주입 터치가 이 기기에서 앱 미도달 — 실탭·실검증은 사용자 수행으로 대체
 

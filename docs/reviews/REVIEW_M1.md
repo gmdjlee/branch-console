@@ -369,3 +369,50 @@ CHANGED/UNTRACKED 양방향, detekt 베이스라인의 신규 코드 미차폐�
 **01b·01g·02b 즉시 체크 승인, 01f는 D-1 해소 후.** W2 착수 적격 — 브리프 요건: MT1-03(:lake
 모듈 신설 선행·M-43/49/43b/34 스키마 확정값·00f 승계·purge 분리) / MT1-04(04c 벤더 직접 수정
 금지·K-03 간격 SSOT 배선·KOSPI 스코프·04a Stooq 무효 처리(A-2)·04b 계열별 파서 분리·04g 550).
+
+### 실기기 S-0 결함 트랙 — 수정 4건 — 커밋 788f13f·9cbe115·a2c5e09 (2026-08-08)
+
+구현 트랙 종결 선언(8839c15) 후, 실기기 S-0 선행(SM-F966N·Android 16)에서 사용자 보고
+"API 키 입력 요소가 없다"로 개시. 동일 서브태스크 계열로 qa 8라운드·aaa 7라운드 수렴.
+
+**결함 ①인셋·②INTERNET (788f13f)**: ① compileSdk 36 edge-to-edge 강제 + MainActivity 루트
+인셋 미처리 → 탭 행이 상태바(89px) 뒤 — 터치·시인 불가(Advisor 3중 실측: bounds·input tap·
+키 이벤트 대조). ② 매니페스트 INTERNET 미선언 → 전 소켓 SecurityException(사용자 검증 버튼
+실증). 둘 다 JVM 원리적 미검출(인셋 재현 불가·테스트 네트워크 금지). 궤적: qa R1 FAIL(증인이
+파일 전문 contains — 주석 자기언급으로 뮤테이션 생존) → 교정 → qa R2 PASS → aaa R1 **FAIL**
+(D-1 imePadding은 무효 코드 — safeDrawing ⊇ ime 원본 반증 / D-2 배치 뮤턴트 C(리프 이동) 생존 /
+D-3 선례 역인용) → imePadding 전면 제거+루트 체인 앵커 → qa R3 PASS → aaa R2 **COND**(C-1
+"무해" 미실측 단정 — Advisor 문구 교정으로 종결, ④ 검증 범위 한정 물질화) → ② 발견·수정
+(병합 매니페스트 blame으로 소스 단독 기여 확인, PackageManager 기반 증인) → qa R4 PASS →
+aaa R3 **PASS**. 실기기 3경로 실측 통과(탭 y265>89+실탭 전환 / 최하단 필드 키보드 미가림 /
+FRED HTTP 400 응답 = INTERNET 실증·SecurityException 부재).
+
+**결함 ③자격증명 공백 미트림 (9cbe115)**: FRED 400의 오귀속 발단(후행 공백 재현 400 —
+실제 진범은 ④). 1차 수정(save+검증 버튼) → qa R5 PASS → aaa R4 **FAIL**(D-4 생산 provider
+3경로가 트림 우회 — 사용자 단말의 legacy 패딩 저장값에서 "버튼 초록·야간 배치 400" 조용한
+실패 구조 / D-5 완료 조건 false green) → **load() 수렴점 재수정**(legacy 자동 치유) + save()
+우회 raw prefs 증인 → qa R6 PASS(키 리터럴 어긋남 뮤테이션까지 자기방어 실증) → aaa R5
+**PASS**("뮤턴트 1개가 provider 3종+isCollectConfigured+legacy를 동시 방어 — 수렴점 배치의
+실증").
+
+**결함 ④FRED realtime 시간대 (a2c5e09)**: buildUrl의 realtime_start/end가 UTC 날짜 → FRED
+달력 기준 미래 날짜 400 — KST 오전 창 매일 실패(오전 캐치업·프리뷰), 17:00 확정 틱은 창 밖.
+1차 수정 America/New_York → qa R7 PASS → aaa R6 **FAIL**(D-6: ET는 미실측 추정 — 03:30Z
+재현은 ET/CT 무판별, 운영 주체는 세인트루이스 연준=CT, CT 참이면 13:00~14:00 KST 잔여창이
+S-3(a) 슬롯과 정확히 중첩) → **Advisor 판별 실측 3점**: E1 03:30:57Z rt=08-08→400(UTC 반증) /
+E2 04:06:10Z(ET 00:06) rt=08-08→**400(ET 반증)** / E3 05:06:09Z(CT 00:06) rt=08-08→**200** —
+롤오버 (04:06Z,05:06Z] = UTC−5 = **America/Chicago 확정** → 존 교정+KDoc 실측표+경계 증인을
+판별 시각 04:30Z(UTC/ET/CT 3자 분기)로 이동(UTC·ET 회귀 뮤턴트 양쪽 사망) → qa R8 PASS(시간대
+산술 독립 재계산) → aaa R7 **PASS**(추론 폐쇄성 검산 — E3가 MT/PT 배제 역할까지 확인).
+부수 적발: 기존 테스트 고정 clock 2026-08-06T00:00:00Z가 버그 창 안에서 UTC 계산을 정답
+박제 → 정오 이동+경계 전용 증인 분리.
+
+**구조 신호(aaa 확정 — GATE_GM1 전재)**: ⑴ 증인은 수정한 코드가 아니라 결함 도달 수렴점에
+⑵ 고정 clock은 경계 밖 안전 시각에·경계는 전용 증인으로 ⑶ 외부 시스템 달력·시간대는 추정
+금지·실측 필수(K-13 확장) ⑷ 실측은 반증 가능해야 — 무판별 관측 위의 오답이 기계 검증(qa)을
+통과해 1라운드 출하됐음(기계 검증은 증인이 옳은 것을 겨냥했는지는 판정 못함) ⑸ 정량: 4건 중
+2건(③④)은 JVM 검출 가능 — 종결 선언 조기의 정량 근거.
+
+**잔여**: 재설치 후 사용자 "FRED 확인됨" 1회(실패 시 aaa R7 철회·재판정) / 겨울 CST 롤오버
+1회 재실측(게이트 아님 — 후속 관찰) / UX: KIS appkey→appsecret 키보드 가림(imeAction=Next
+부재) M2 이관(코드 주석 물질화).
